@@ -85,6 +85,16 @@ export function Navbar({
             >
               Pitch Creator
             </button>
+
+            {/* Get Funded - Premium Feature */}
+            <button
+              onClick={() => onNavigate('Get Funded')}
+              className={`hover:text-primary transition-all font-bold px-4 py-2 rounded-lg bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-2 border-green-500/40 shadow-md hover:shadow-lg hover:scale-105 ${
+                currentPage === 'Get Funded' ? 'text-green-600 ring-2 ring-green-500/30 bg-green-500/20' : 'text-green-600'
+              }`}
+            >
+              💰 Get Funded
+            </button>
           </div>
 
           {/* Right side - Mobile menu + Theme toggle + Auth/Profile */}
@@ -139,6 +149,19 @@ export function Navbar({
                     }`}
                   >
                     Pitch Creator
+                  </button>
+
+                  {/* Get Funded - Mobile */}
+                  <button
+                    onClick={() => {
+                      onNavigate('Get Funded');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`rounded-lg px-4 py-2 text-left font-bold bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-2 border-green-500/40 transition-colors ${
+                      currentPage === 'Get Funded' ? 'text-green-600 ring-2 ring-green-500/30 bg-green-500/20' : 'text-green-600'
+                    }`}
+                  >
+                    💰 Get Funded
                   </button>
                   {isLoggedIn && (
                     <button

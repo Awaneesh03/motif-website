@@ -19,6 +19,7 @@ import { MembershipPage } from './components/pages/MembershipPage';
 import { PricingPage } from './components/pages/PricingPage';
 import { PitchCreatorPage } from './components/pages/PitchCreatorPage';
 import { DashboardPage } from './components/pages/DashboardPage';
+import { VCConnectionPage } from './components/pages/VCConnectionPage';
 
 type PageType =
   | 'Home'
@@ -36,7 +37,8 @@ type PageType =
   | 'Membership'
   | 'Pricing'
   | 'Pitch Creator'
-  | 'Dashboard';
+  | 'Dashboard'
+  | 'Get Funded';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('Home');
@@ -109,6 +111,8 @@ export default function App() {
         return <PitchCreatorPage onNavigate={handleNavigate} />;
       case 'Dashboard':
         return <DashboardPage onNavigate={handleNavigate} />;
+      case 'Get Funded':
+        return <VCConnectionPage onNavigate={handleNavigate} />;
       case 'Settings':
         return <ProfilePage onNavigate={handleNavigate} />;
       default:
