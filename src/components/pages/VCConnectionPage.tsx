@@ -716,7 +716,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 title: 'Build Your Profile',
                 description:
                   'Complete our assessment, submit your pitch deck, and provide traction evidence',
-                timeline: '30-45 min',
                 icon: FileText,
                 bgColor: 'bg-purple-100 dark:bg-purple-900',
                 iconColor: 'text-purple-600 dark:text-purple-400',
@@ -726,7 +725,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 title: 'Expert Review',
                 description:
                   'Our analysts score your startup and provide detailed feedback on investment readiness',
-                timeline: '48 hours',
                 icon: BarChart3,
                 bgColor: 'bg-blue-100 dark:bg-blue-900',
                 iconColor: 'text-blue-600 dark:text-blue-400',
@@ -736,7 +734,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 title: 'VC Matching',
                 description:
                   'We match you with 3-5 VCs aligned with your industry. You approve before intros',
-                timeline: '2-3 days',
                 icon: Users,
                 bgColor: 'bg-green-100 dark:bg-green-900',
                 iconColor: 'text-green-600 dark:text-green-400',
@@ -746,7 +743,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 title: 'Get Introduced',
                 description:
                   'Double opt-in email introduction with your profile, deck, and our endorsement',
-                timeline: '24 hours',
                 icon: MessageCircle,
                 bgColor: 'bg-orange-100 dark:bg-orange-900',
                 iconColor: 'text-orange-600 dark:text-orange-400',
@@ -765,11 +761,8 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                     <div className={`mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl ${step.bgColor} shadow-lg`}>
                       <step.icon className={`h-8 w-8 ${step.iconColor}`} />
                     </div>
-                    <div className="mb-3 flex items-center gap-3">
+                    <div className="mb-3">
                       <span className="text-sm font-bold text-primary">STEP {step.step}</span>
-                      <Badge variant="secondary" className="text-xs font-medium">
-                        {step.timeline}
-                      </Badge>
                     </div>
                     <h3 className="mb-3 text-xl font-bold">{step.title}</h3>
                     <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
