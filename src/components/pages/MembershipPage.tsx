@@ -5,6 +5,7 @@ import { Check, Sparkles, Zap } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 
 const plans = [
   {
@@ -215,51 +216,63 @@ export function MembershipPage({ onNavigate }: MembershipPageProps) {
           </motion.div>
 
           {/* FAQ Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-12"
-          >
-            <h2 className="mb-8 text-center">Frequently Asked Questions</h2>
-            <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
-              <Card className="border-border/50">
-                <CardContent className="p-6">
-                  <h4 className="mb-2">Can I switch plans anytime?</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Yes! You can upgrade or downgrade your plan at any time. Changes take effect
-                    immediately.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border-border/50">
-                <CardContent className="p-6">
-                  <h4 className="mb-2">What payment methods do you accept?</h4>
-                  <p className="text-muted-foreground text-sm">
-                    We accept all major credit cards, PayPal, and bank transfers for annual plans.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border-border/50">
-                <CardContent className="p-6">
-                  <h4 className="mb-2">Is there a free trial for Premium?</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Yes! New users get a 14-day free trial of the Premium plan with full access to
-                    all features.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border-border/50">
-                <CardContent className="p-6">
-                  <h4 className="mb-2">Can I cancel anytime?</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Absolutely. You can cancel your subscription at any time with no cancellation
-                    fees.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </motion.div>
+          <section className="bg-background pt-8 pb-12 md:pt-10 md:pb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="mb-12 text-center"
+            >
+              <h2 className="mb-4 text-3xl sm:text-4xl font-bold">Frequently Asked Questions</h2>
+              <p className="text-muted-foreground text-base sm:text-lg">
+                Common questions about our membership plans
+              </p>
+            </motion.div>
+
+            <Accordion type="single" collapsible className="w-full">
+              <div className="grid md:grid-cols-2 gap-3 md:gap-4 items-start">
+                <div className="space-y-2">
+                  <AccordionItem value="item-1" className="border rounded-lg px-4 border-b-border">
+                    <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                      Can I switch plans anytime?
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground leading-relaxed pb-4">
+                      Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-2" className="border rounded-lg px-4 border-b-border">
+                    <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                      What payment methods do you accept?
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground leading-relaxed pb-4">
+                      We accept all major credit cards, PayPal, and bank transfers for annual plans.
+                    </AccordionContent>
+                  </AccordionItem>
+                </div>
+
+                <div className="space-y-2">
+                  <AccordionItem value="item-3" className="border rounded-lg px-4 border-b-border">
+                    <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                      Is there a free trial for Premium?
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground leading-relaxed pb-4">
+                      Yes! New users get a 14-day free trial of the Premium plan with full access to all features.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-4" className="border rounded-lg px-4 border-b-border">
+                    <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                      Can I cancel anytime?
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground leading-relaxed pb-4">
+                      Absolutely. You can cancel your subscription at any time with no cancellation fees.
+                    </AccordionContent>
+                  </AccordionItem>
+                </div>
+              </div>
+            </Accordion>
+          </section>
         </div>
       </section>
     </div>

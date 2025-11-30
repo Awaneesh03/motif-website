@@ -1,4 +1,4 @@
-import { Linkedin, MessageSquare, Github, Twitter, Mail } from 'lucide-react';
+import { Linkedin, Instagram, Twitter, Mail } from 'lucide-react';
 
 interface FooterProps {
   onNavigate: (page: string) => void;
@@ -7,7 +7,7 @@ interface FooterProps {
 export function Footer({ onNavigate }: FooterProps) {
   return (
     <footer className="bg-muted/30 border-border mt-20 border-t">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           {/* Logo + Tagline */}
           <div>
@@ -48,7 +48,7 @@ export function Footer({ onNavigate }: FooterProps) {
           <div>
             <h4 className="mb-4">Features</h4>
             <div className="flex flex-col gap-2">
-              {['Pitch Creator', 'Pricing', 'Contact', 'Resources'].map(link => (
+              {['Pitch Creator', 'Contact', 'Resources'].map(link => (
                 <button
                   key={link}
                   onClick={() => onNavigate(link)}
@@ -64,16 +64,37 @@ export function Footer({ onNavigate }: FooterProps) {
           <div>
             <h4 className="mb-4">Connect</h4>
             <div className="flex gap-4">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <a
+                href="#"
+                className="text-muted-foreground transition-all duration-300 hover:scale-110"
+                style={{
+                  color: 'hsl(var(--muted-foreground))',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#0A66C2'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
+              >
                 <Linkedin className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <MessageSquare className="h-5 w-5" />
+              <a
+                href="#"
+                className="text-muted-foreground transition-all duration-300 hover:scale-110"
+                style={{
+                  color: 'hsl(var(--muted-foreground))',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#E4405F'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
+              >
+                <Instagram className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Github className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <a
+                href="#"
+                className="text-muted-foreground transition-all duration-300 hover:scale-110"
+                style={{
+                  color: 'hsl(var(--muted-foreground))',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#1DA1F2'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
+              >
                 <Twitter className="h-5 w-5" />
               </a>
             </div>

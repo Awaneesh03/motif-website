@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   ArrowLeft,
@@ -24,11 +25,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Progress } from '../ui/progress';
 
 interface CaseDetailPageProps {
-  caseId?: string;
   onNavigate?: (page: string) => void;
 }
 
-export function CaseDetailPage({ caseId, onNavigate }: CaseDetailPageProps) {
+export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
+  const { caseId } = useParams<{ caseId: string }>();
   const [solution, setSolution] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);

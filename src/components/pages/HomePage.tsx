@@ -613,30 +613,6 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
         </div>
       </section>
 
-      {/* CTA Banner */}
-      <section className="gradient-lavender relative overflow-hidden py-12">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20"></div>
-        <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="mb-4 text-white">
-            {isLoggedIn
-              ? 'Upgrade to Premium and unlock all features'
-              : 'Start building your next idea today — it\'s free to try'}
-          </h2>
-          <p className="mb-8 text-white/90">
-            {isLoggedIn
-              ? 'Get access to advanced AI tools, priority support, and exclusive features.'
-              : 'No credit card required. Get started in 60 seconds.'}
-          </p>
-          <Button
-            size="lg"
-            className="text-primary rounded-[16px] bg-white px-8 shadow-lg hover:bg-white/90"
-            onClick={() => onNavigate?.(isLoggedIn ? 'Pricing' : 'Auth')}
-          >
-            {isLoggedIn ? 'Subscribe Now' : 'Get Started'}
-          </Button>
-        </div>
-      </section>
-
       {/* Comment Panel */}
       <Sheet open={commentPanelOpen} onOpenChange={setCommentPanelOpen}>
         <SheetContent

@@ -3,10 +3,12 @@ import type { FormEvent } from 'react';
 import { motion } from 'motion/react';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { supabase } from '../../lib/supabase';
 
 interface AuthPageProps {
   onNavigate?: (page: string) => void;
@@ -22,6 +24,7 @@ interface ValidationErrors {
 export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
   const [isLogin, setIsLogin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -135,7 +138,7 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
     setErrors(newErrors);
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     // Mark all fields as touched
@@ -151,16 +154,103 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
       return;
     }
 
-    // Handle form submission
-    console.log('Form submitted:', formData);
-    toast.success(isLogin ? 'Welcome back!' : 'Account created successfully!');
-    onLogin?.();
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        // Handle login
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (error) throw error;
+
+        console.log('Login successful:', data);
+        toast.success('Welcome back!');
+        onLogin?.();
+      } else {
+        // Handle signup
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.fullName,
+            },
+          },
+        });
+
+        if (error) throw error;
+
+        console.log('Signup successful:', data);
+
+        // Check if email confirmation is required
+        if (data.user && !data.session) {
+          toast.success('Account created! Please check your email to verify your account.');
+        } else {
+          toast.success('Account created successfully!');
+          onLogin?.();
+        }
+      }
+    } catch (error: any) {
+      console.error('Auth error:', error);
+
+      // Provide more detailed error messages
+      let errorMessage = 'An error occurred. Please try again.';
+
+      if (error.message) {
+        errorMessage = error.message;
+      }
+
+      if (error.message?.includes('fetch')) {
+        errorMessage = 'Unable to connect to authentication server. Please check your internet connection and Supabase configuration.';
+      }
+
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleLogin = () => {
-    // Simulate Google login
-    toast.success('Signed in with Google!');
-    onLogin?.();
+  const handleGoogleLoginSuccess = (credentialResponse: CredentialResponse) => {
+    console.log('Google Login Success:', credentialResponse);
+
+    // In a production app, you would:
+    // 1. Send the credential to your backend
+    // 2. Verify the token server-side
+    // 3. Create a session or JWT token
+    // 4. Store user information
+
+    // For now, we'll decode the JWT token to get user info (client-side only for demo)
+    if (credentialResponse.credential) {
+      try {
+        // Decode JWT token (note: this is just for demo, do this server-side in production)
+        const base64Url = credentialResponse.credential.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+
+        const userData = JSON.parse(jsonPayload);
+        console.log('User Data:', userData);
+
+        toast.success(`Welcome, ${userData.name}!`);
+        onLogin?.();
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        toast.success('Signed in with Google!');
+        onLogin?.();
+      }
+    }
+  };
+
+  const handleGoogleLoginError = () => {
+    console.error('Google Login Failed');
+    toast.error('Failed to sign in with Google. Please try again.');
   };
 
   return (
@@ -319,51 +409,43 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    className="gradient-lavender shadow-lavender h-12 w-full rounded-xl text-white font-semibold hover:opacity-90 transition-opacity mt-6"
+                    disabled={isLoading}
+                    className="gradient-lavender shadow-lavender h-12 w-full rounded-xl text-white font-semibold hover:opacity-90 transition-opacity mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLogin ? 'Sign In' : 'Sign Up'}
+                    {isLoading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
                   </Button>
                 </form>
 
-                {/* Divider */}
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-border"></div>
-                  </div>
-                  <div className="relative flex justify-center">
-                    <span className="bg-card px-4 text-sm text-muted-foreground">
-                      or
-                    </span>
-                  </div>
-                </div>
+                {/* Google Sign In - Only show if configured */}
+                {import.meta.env.VITE_GOOGLE_CLIENT_ID &&
+                 import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'your_google_client_id_here' && (
+                  <>
+                    {/* Divider */}
+                    <div className="relative my-6">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-border"></div>
+                      </div>
+                      <div className="relative flex justify-center">
+                        <span className="bg-card px-4 text-sm text-muted-foreground">
+                          or
+                        </span>
+                      </div>
+                    </div>
 
-                {/* Google Sign In */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 w-full rounded-xl font-medium"
-                  onClick={handleGoogleLogin}
-                >
-                  <svg className="mr-3 h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    />
-                  </svg>
-                  <span>Continue with Google</span>
-                </Button>
+                    {/* Google Sign In */}
+                    <div className="flex justify-center">
+                      <GoogleLogin
+                        onSuccess={handleGoogleLoginSuccess}
+                        onError={handleGoogleLoginError}
+                        useOneTap
+                        theme="outline"
+                        size="large"
+                        text={isLogin ? 'signin_with' : 'signup_with'}
+                        width="100%"
+                      />
+                    </div>
+                  </>
+                )}
 
                 {/* Toggle Login/Signup */}
                 <div className="mt-6 text-center">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
 import { Toaster } from './components/ui/sonner';
 import { Navbar } from './components/Navbar';
@@ -21,30 +22,11 @@ import { PitchCreatorPage } from './components/pages/PitchCreatorPage';
 import { DashboardPage } from './components/pages/DashboardPage';
 import { VCConnectionPage } from './components/pages/VCConnectionPage';
 
-type PageType =
-  | 'Home'
-  | 'Features'
-  | 'Community'
-  | 'Resources'
-  | 'About'
-  | 'Contact'
-  | 'Auth'
-  | 'Case Studies'
-  | 'Idea Analyser'
-  | 'CaseDetail'
-  | 'Profile'
-  | 'Settings'
-  | 'Membership'
-  | 'Pricing'
-  | 'Pitch Creator'
-  | 'Dashboard'
-  | 'Get Funded';
-
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>('Home');
-  const [currentCaseId, setCurrentCaseId] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isDark) {
@@ -56,68 +38,75 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentPage]);
+  }, [location.pathname]);
 
   const toggleTheme = () => {
     setIsDark(!isDark);
   };
 
   const handleNavigate = (page: string, caseId?: string) => {
-    setCurrentPage(page as PageType);
+    const routeMap: Record<string, string> = {
+      'Home': '/',
+      'About': '/about',
+      'Features': '/features',
+      'Community': '/community',
+      'Resources': '/resources',
+      'Contact': '/contact',
+      'Auth': '/auth',
+      'Case Studies': '/case-studies',
+      'Idea Analyser': '/idea-analyser',
+      'Profile': '/profile',
+      'Settings': '/profile',
+      'Membership': '/membership',
+      'Pricing': '/pricing',
+      'Pitch Creator': '/pitch-creator',
+      'Dashboard': '/dashboard',
+      'Get Funded': '/get-funded'
+    };
+
     if (caseId) {
-      setCurrentCaseId(caseId);
+      navigate(`/case-studies/${caseId}`);
+    } else {
+      navigate(routeMap[page] || '/');
     }
   };
 
   const handleLogin = () => {
     setIsLoggedIn(true);
-    setCurrentPage('Home');
+    navigate('/');
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
-    setCurrentPage('Home');
+    navigate('/');
   };
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'Home':
-        return <HomePage onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />;
-      case 'About':
-        return <AboutPage />;
-      case 'Features':
-        return <FeaturesPage />;
-      case 'Community':
-        return <CommunityPage onNavigate={handleNavigate} />;
-      case 'Resources':
-        return <ResourcesPage />;
-      case 'Contact':
-        return <ContactPage />;
-      case 'Auth':
-        return <AuthPage onNavigate={handleNavigate} onLogin={handleLogin} />;
-      case 'Case Studies':
-        return <CaseStudiesPage onNavigate={handleNavigate} />;
-      case 'CaseDetail':
-        return <CaseDetailPage caseId={currentCaseId || undefined} onNavigate={handleNavigate} />;
-      case 'Idea Analyser':
-        return <IdeaAnalyserPage />;
-      case 'Profile':
-        return <ProfilePage onNavigate={handleNavigate} />;
-      case 'Membership':
-        return <MembershipPage onNavigate={handleNavigate} />;
-      case 'Pricing':
-        return <PricingPage onNavigate={handleNavigate} />;
-      case 'Pitch Creator':
-        return <PitchCreatorPage onNavigate={handleNavigate} />;
-      case 'Dashboard':
-        return <DashboardPage onNavigate={handleNavigate} />;
-      case 'Get Funded':
-        return <VCConnectionPage onNavigate={handleNavigate} />;
-      case 'Settings':
-        return <ProfilePage onNavigate={handleNavigate} />;
-      default:
-        return <HomePage onNavigate={handleNavigate} />;
+  // Get current page name from pathname for navbar highlighting
+  const getCurrentPage = () => {
+    const pathMap: Record<string, string> = {
+      '/': 'Home',
+      '/about': 'About',
+      '/features': 'Features',
+      '/community': 'Community',
+      '/resources': 'Resources',
+      '/contact': 'Contact',
+      '/auth': 'Auth',
+      '/case-studies': 'Case Studies',
+      '/idea-analyser': 'Idea Analyser',
+      '/profile': 'Profile',
+      '/membership': 'Membership',
+      '/pricing': 'Pricing',
+      '/pitch-creator': 'Pitch Creator',
+      '/dashboard': 'Dashboard',
+      '/get-funded': 'Get Funded'
+    };
+
+    // Handle case detail pages
+    if (location.pathname.startsWith('/case-studies/')) {
+      return 'Case Studies';
     }
+
+    return pathMap[location.pathname] || 'Home';
   };
 
   return (
@@ -126,16 +115,35 @@ export default function App() {
       <Navbar
         isDark={isDark}
         toggleTheme={toggleTheme}
-        currentPage={currentPage}
+        currentPage={getCurrentPage()}
         onNavigate={handleNavigate}
         isLoggedIn={isLoggedIn}
         onLogout={handleLogout}
       />
-      <main>{renderPage()}</main>
+      <main>
+        <Routes>
+          <Route path="/" element={<HomePage onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/community" element={<CommunityPage onNavigate={handleNavigate} />} />
+          <Route path="/resources" element={<ResourcesPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/auth" element={<AuthPage onNavigate={handleNavigate} onLogin={handleLogin} />} />
+          <Route path="/case-studies" element={<CaseStudiesPage onNavigate={handleNavigate} />} />
+          <Route path="/case-studies/:caseId" element={<CaseDetailPage onNavigate={handleNavigate} />} />
+          <Route path="/idea-analyser" element={<IdeaAnalyserPage />} />
+          <Route path="/profile" element={<ProfilePage onNavigate={handleNavigate} />} />
+          <Route path="/membership" element={<MembershipPage onNavigate={handleNavigate} />} />
+          <Route path="/pricing" element={<PricingPage onNavigate={handleNavigate} />} />
+          <Route path="/pitch-creator" element={<PitchCreatorPage onNavigate={handleNavigate} />} />
+          <Route path="/dashboard" element={<DashboardPage onNavigate={handleNavigate} />} />
+          <Route path="/get-funded" element={<VCConnectionPage onNavigate={handleNavigate} />} />
+        </Routes>
+      </main>
       <Footer onNavigate={handleNavigate} />
 
       {/* Chatbot - Available on all pages except Auth */}
-      {currentPage !== 'Auth' && <Chatbot isDark={isDark} />}
+      {location.pathname !== '/auth' && <Chatbot isDark={isDark} />}
     </div>
   );
 }

@@ -198,43 +198,48 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
       </section>
 
       {/* FAQ Section */}
-      <section className="bg-muted/30 py-20">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <section className="bg-background pt-8 pb-12 md:pt-10 md:pb-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="mb-12 text-center"
           >
-            <h2 className="mb-4">Frequently Asked Questions</h2>
-            <p className="text-muted-foreground">
+            <h2 className="mb-4 text-3xl sm:text-4xl font-bold">Frequently Asked Questions</h2>
+            <p className="text-muted-foreground text-base sm:text-lg">
               Everything you need to know about our pricing and plans
             </p>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card className="glass-surface border-border/50">
-              <CardContent className="p-6">
-                <Accordion type="single" collapsible className="w-full">
-                  {faqs.map((faq, index) => (
-                    <AccordionItem key={index} value={`item-${index}`} className="border-border">
-                      <AccordionTrigger className="hover:text-primary text-left hover:no-underline">
-                        {faq.question}
-                      </AccordionTrigger>
-                      <AccordionContent className="text-muted-foreground">
-                        {faq.answer}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </CardContent>
-            </Card>
-          </motion.div>
+          <Accordion type="single" collapsible className="w-full">
+            <div className="grid md:grid-cols-2 gap-3 md:gap-4 items-start">
+              <div className="space-y-2">
+                {faqs.slice(0, 3).map((faq, index) => (
+                  <AccordionItem key={index} value={`item-${index}`} className="border rounded-lg px-4 border-b-border">
+                    <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                      {faq.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground leading-relaxed pb-4">
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </div>
+              <div className="space-y-2">
+                {faqs.slice(3).map((faq, index) => (
+                  <AccordionItem key={index + 3} value={`item-${index + 3}`} className="border rounded-lg px-4 border-b-border">
+                    <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                      {faq.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground leading-relaxed pb-4">
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </div>
+            </div>
+          </Accordion>
 
           {/* Help CTA */}
           <motion.div
@@ -261,22 +266,6 @@ export function PricingPage({ onNavigate }: PricingPageProps) {
               </CardContent>
             </Card>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="gradient-lavender relative overflow-hidden py-16">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20"></div>
-        <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="mb-4 text-white">Ready to validate your next big idea?</h2>
-          <p className="mb-8 text-white/90">Join thousands of founders building with Motif</p>
-          <Button
-            size="lg"
-            className="text-primary rounded-[16px] bg-white px-8 shadow-lg hover:bg-white/90"
-            onClick={() => onNavigate?.('Auth')}
-          >
-            Start Free Today
-          </Button>
         </div>
       </section>
     </div>

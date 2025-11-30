@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useState } from 'react';
-import { TrendingUp, Clock, MessageCircle, Award, Send, AlertCircle } from 'lucide-react';
+import { TrendingUp, Clock, MessageCircle, Award, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '../ui/button';
