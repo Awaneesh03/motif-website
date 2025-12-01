@@ -354,7 +354,7 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                             mockUserAttempts
                               .filter(a => a.status === 'completed')
                               .reduce((acc, a) => acc + a.score, 0) /
-                              mockUserAttempts.filter(a => a.status === 'completed').length
+                            mockUserAttempts.filter(a => a.status === 'completed').length
                           )}
                           %
                         </p>
@@ -432,11 +432,10 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                                 {[1, 2, 3, 4, 5].map(star => (
                                   <Star
                                     key={star}
-                                    className={`h-4 w-4 ${
-                                      star <= Math.round(attempt.score / 20)
+                                    className={`h-4 w-4 ${star <= Math.round(attempt.score / 20)
                                         ? 'fill-yellow-400 text-yellow-400'
                                         : 'text-gray-300'
-                                    }`}
+                                      }`}
                                   />
                                 ))}
                               </div>
@@ -465,7 +464,40 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                 </CardContent>
               </Card>
 
-              {/* Leaderboard Table */}
+              {/* Your Rank Card - Moved to top */}
+              <Card className="border-primary/50 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="text-primary h-5 w-5" />
+                    Your Rank
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-2xl shadow-lg">
+                        #42
+                      </div>
+                      <div>
+                        <p className="font-semibold text-xl">You're doing great!</p>
+                        <p className="text-muted-foreground text-sm">Keep solving to climb higher!</p>
+                        <p className="text-muted-foreground text-xs mt-1">8 cases completed</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-primary">1,234</div>
+                      <div className="text-sm text-muted-foreground mb-2">Total Points</div>
+                      <div className="flex items-center gap-1 justify-end">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-lg font-semibold">85%</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Avg Score</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Global Leaderboard Table */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -481,26 +513,24 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className={`flex items-center gap-4 p-4 rounded-lg transition-all hover:bg-muted/50 ${
-                          user.rank <= 3 ? 'bg-muted/30' : ''
-                        }`}
-                      >
-                        {/* Rank Badge */}
-                        <div
-                          className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${
-                            user.rank === 1
-                              ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white'
-                              : user.rank === 2
-                                ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white'
-                                : user.rank === 3
-                                  ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white'
-                                  : 'bg-muted text-muted-foreground'
+                        className={`flex items-center gap-4 p-4 rounded-lg transition-all hover:bg-muted/50 ${user.rank <= 3 ? 'bg-muted/30' : ''
                           }`}
+                      >
+                        {/* Rank Badge with Trophy for top 3 */}
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${user.rank === 1
+                              ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-lg'
+                              : user.rank === 2
+                                ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-lg'
+                                : user.rank === 3
+                                  ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg'
+                                  : 'bg-muted text-muted-foreground'
+                            }`}
                         >
                           {user.rank <= 3 ? (
                             <Trophy className="h-5 w-5" />
                           ) : (
-                            <span>{user.rank}</span>
+                            <span>#{user.rank}</span>
                           )}
                         </div>
 
@@ -535,27 +565,6 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                         </div>
                       </motion.div>
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Your Rank Card */}
-              <Card className="border-primary/50 bg-primary/5">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg">
-                        42
-                      </div>
-                      <div>
-                        <p className="font-semibold text-lg">Your Rank</p>
-                        <p className="text-muted-foreground text-sm">Keep solving to climb higher!</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-primary">1,234</div>
-                      <div className="text-sm text-muted-foreground">Points</div>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
