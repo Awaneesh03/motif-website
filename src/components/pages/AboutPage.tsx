@@ -119,18 +119,28 @@ export function AboutPage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="flex gap-6"
+                className="flex gap-6 items-start"
               >
                 <div className="flex-shrink-0">
-                  <div className="gradient-lavender flex h-28 w-28 flex-col items-center justify-center rounded-2xl font-['Poppins'] text-white shadow-lg">
-                    <div className="text-2xl font-bold leading-tight">{item.month}</div>
-                    <div className="mt-1 text-4xl font-bold">{item.year}</div>
+                  <div className="flex h-28 w-28 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-lg">
+                    {/* Month Header */}
+                    <div className="flex h-10 items-center justify-center bg-gradient-to-r from-primary to-purple-600">
+                      <span className="text-xs font-bold uppercase tracking-widest text-white">
+                        {item.month}
+                      </span>
+                    </div>
+                    {/* Year Body */}
+                    <div className="flex flex-1 items-center justify-center bg-card">
+                      <span className="text-3xl font-bold text-foreground">
+                        {item.year}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <Card className="border-border/50 flex-1">
                   <CardContent className="p-6">
                     <h3 className="mb-2 text-xl font-bold">{item.event}</h3>
-                    <p className="text-muted-foreground">{item.desc}</p>
+                    <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
                   </CardContent>
                 </Card>
               </motion.div>
