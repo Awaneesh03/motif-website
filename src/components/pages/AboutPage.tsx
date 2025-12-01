@@ -119,19 +119,19 @@ export function AboutPage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="flex gap-6 items-start"
+                className="flex gap-6 items-center"
               >
                 <div className="flex-shrink-0">
-                  <div className="flex h-28 w-28 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-lg">
+                  <div className="flex h-24 w-24 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-lg">
                     {/* Month Header */}
-                    <div className="flex h-10 items-center justify-center bg-gradient-to-r from-primary to-purple-600">
-                      <span className="text-xs font-bold uppercase tracking-widest text-white">
+                    <div className="flex h-8 items-center justify-center bg-gradient-to-r from-primary to-purple-600">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white">
                         {item.month}
                       </span>
                     </div>
                     {/* Year Body */}
                     <div className="flex flex-1 items-center justify-center bg-card">
-                      <span className="text-3xl font-bold text-foreground">
+                      <span className="text-2xl font-bold text-foreground">
                         {item.year}
                       </span>
                     </div>
@@ -139,7 +139,7 @@ export function AboutPage() {
                 </div>
                 <Card className="border-border/50 flex-1">
                   <CardContent className="p-6">
-                    <h3 className="mb-2 text-xl font-bold">{item.event}</h3>
+                    <h3 className="mb-1 text-xl font-bold">{item.event}</h3>
                     <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
                   </CardContent>
                 </Card>
