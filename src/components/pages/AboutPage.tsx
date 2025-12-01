@@ -122,12 +122,9 @@ export function AboutPage() {
                 className="flex gap-6"
               >
                 <div className="flex-shrink-0">
-                  <div className="gradient-lavender relative flex h-32 w-32 flex-col items-center justify-center rounded-2xl font-['Poppins'] text-white shadow-lg">
-                    <div className="text-3xl font-bold">{item.month}</div>
-                    <div className="mt-1 text-lg font-medium opacity-90">{item.year}</div>
-                    <div className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md">
-                      <span className="text-xl">🚀</span>
-                    </div>
+                  <div className="gradient-lavender flex h-28 w-28 flex-col items-center justify-center rounded-2xl font-['Poppins'] text-white shadow-lg">
+                    <div className="text-2xl font-bold leading-tight">{item.month}</div>
+                    <div className="mt-1 text-4xl font-bold">{item.year}</div>
                   </div>
                 </div>
                 <Card className="border-border/50 flex-1">
