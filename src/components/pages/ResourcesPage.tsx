@@ -177,7 +177,7 @@ export function ResourcesPage() {
             className="mb-12"
           >
             <h2 className="mb-4">Success Stories</h2>
-            <p className="text-muted-foreground">Real results from founders who used Idea Forge</p>
+            <p className="text-muted-foreground">Real results from founders who used Motif</p>
           </motion.div>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {caseStudies.map((study, index) => (

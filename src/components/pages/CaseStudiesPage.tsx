@@ -473,25 +473,30 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-2xl shadow-lg">
-                        #42
-                      </div>
-                      <div>
-                        <p className="font-semibold text-xl">You're doing great!</p>
-                        <p className="text-muted-foreground text-sm">Keep solving to climb higher!</p>
-                        <p className="text-muted-foreground text-xs mt-1">8 cases completed</p>
-                      </div>
+                  <div className="flex items-center gap-6">
+                    {/* Rank Badge */}
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-3xl shadow-lg shrink-0">
+                      #42
                     </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-primary">1,234</div>
-                      <div className="text-sm text-muted-foreground mb-2">Total Points</div>
-                      <div className="flex items-center gap-1 justify-end">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-lg font-semibold">85%</span>
+
+                    {/* User Info and Stats */}
+                    <div className="flex-1">
+                      <p className="font-semibold text-xl mb-1">You're doing great!</p>
+                      <p className="text-muted-foreground text-sm mb-3">Keep solving to climb higher! • 8 cases completed</p>
+
+                      {/* Stats in single line */}
+                      <div className="flex items-center gap-6 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl font-bold text-primary">1,234</span>
+                          <span className="text-muted-foreground">Points</span>
+                        </div>
+                        <div className="h-4 w-px bg-border"></div>
+                        <div className="flex items-center gap-1.5">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-lg font-semibold">85%</span>
+                          <span className="text-muted-foreground">Avg Score</span>
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">Avg Score</div>
                     </div>
                   </div>
                 </CardContent>
@@ -519,12 +524,12 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                         {/* Rank Badge with Emoji Medals for top 3 */}
                         <div
                           className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-xl ${user.rank === 1
-                              ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg'
-                              : user.rank === 2
-                                ? 'bg-gradient-to-br from-gray-300 to-gray-500 shadow-lg'
-                                : user.rank === 3
-                                  ? 'bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg'
-                                  : 'bg-muted text-muted-foreground text-sm'
+                            ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg'
+                            : user.rank === 2
+                              ? 'bg-gradient-to-br from-gray-300 to-gray-500 shadow-lg'
+                              : user.rank === 3
+                                ? 'bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg'
+                                : 'bg-muted text-muted-foreground text-sm'
                             }`}
                         >
                           {user.rank === 1 ? (

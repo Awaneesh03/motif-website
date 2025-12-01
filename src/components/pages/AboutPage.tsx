@@ -46,7 +46,7 @@ export function AboutPage() {
             >
               <h2 className="mb-6">Our Mission</h2>
               <p className="text-muted-foreground mb-4">
-                At Idea Forge, we're on a mission to eliminate the guesswork from starting a
+                At Motif, we're on a mission to eliminate the guesswork from starting a
                 company. Too many brilliant ideas never see the light of day because founders lack
                 the tools and community to validate them properly.
               </p>

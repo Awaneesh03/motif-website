@@ -24,7 +24,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
     {
       id: '1',
       role: 'assistant',
-      content: 'Welcome to Idea Forge! I\'m your AI assistant here to help with startup ideas, business planning, and entrepreneurship questions. What would you like to explore today?',
+      content: 'Welcome to Motif! I\'m your AI assistant here to help with startup ideas, business planning, and entrepreneurship questions. What would you like to explore today?',
       timestamp: new Date()
     }
   ]);
@@ -32,7 +32,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [systemPrompt, setSystemPrompt] = useState(
-    'You are a helpful AI assistant for the Idea Forge website. Help users with their questions about startup ideas, business planning, and entrepreneurship. Be concise but informative.'
+    'You are a helpful AI assistant for the Motif website. Help users with their questions about startup ideas, business planning, and entrepreneurship. Be concise but informative.'
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
@@ -69,8 +69,8 @@ export function Chatbot({ isDark }: ChatbotProps) {
       // Check if click is inside a Dialog portal (settings popup)
       const target = event.target as HTMLElement;
       const isInsideDialog = target.closest('[data-slot="dialog-portal"]') ||
-                            target.closest('[data-slot="dialog-content"]') ||
-                            target.closest('[data-slot="dialog-overlay"]');
+        target.closest('[data-slot="dialog-content"]') ||
+        target.closest('[data-slot="dialog-overlay"]');
 
       if (
         isOpen &&
@@ -161,7 +161,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
       {
         id: '1',
         role: 'assistant',
-        content: 'Welcome to Idea Forge! I\'m your AI assistant here to help with startup ideas, business planning, and entrepreneurship questions. What would you like to explore today?',
+        content: 'Welcome to Motif! I\'m your AI assistant here to help with startup ideas, business planning, and entrepreneurship questions. What would you like to explore today?',
         timestamp: new Date()
       }
     ]);
@@ -279,7 +279,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
                 }}>
-                  Idea Forge AI
+                  Motif AI
                 </div>
                 <div style={{
                   fontSize: '12px',
@@ -305,14 +305,14 @@ export function Chatbot({ isDark }: ChatbotProps) {
                     justifyContent: 'center',
                     transition: 'all 0.2s ease'
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}>
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}>
                     <Settings size={18} />
                   </button>
                 </DialogTrigger>
@@ -436,8 +436,8 @@ export function Chatbot({ isDark }: ChatbotProps) {
                   background: message.role === 'user'
                     ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                     : (isDark
-                        ? 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
-                        : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'),
+                      ? 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
+                      : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'),
                   color: message.role === 'user'
                     ? '#ffffff'
                     : (isDark ? '#f9fafb' : '#1e293b'),
