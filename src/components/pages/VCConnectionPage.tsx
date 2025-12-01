@@ -278,7 +278,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
       </section>
 
       {/* Raise Funding Modal */}
-      <Dialog open={fundingModalOpen} onOpenChange={(open) => {
+      <Dialog open={fundingModalOpen} onOpenChange={(open: boolean) => {
         setFundingModalOpen(open);
         if (!open) {
           setFundingStep(1);
@@ -324,11 +324,10 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                   {validatedIdeas.map((idea) => (
                     <Card
                       key={idea.id}
-                      className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                        selectedIdea === idea.id
-                          ? 'border-primary border-2 bg-primary/5'
-                          : 'border hover:border-primary/50'
-                      }`}
+                      className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${selectedIdea === idea.id
+                        ? 'border-primary border-2 bg-primary/5'
+                        : 'border hover:border-primary/50'
+                        }`}
                       onClick={() => setSelectedIdea(idea.id)}
                     >
                       <CardContent className="p-6">
@@ -342,13 +341,13 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                             </div>
                             <p className="text-muted-foreground text-sm mb-3">{idea.description}</p>
                             <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-muted rounded-full h-2">
+                              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
                                 <div
-                                  className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all"
+                                  className="bg-gradient-to-r from-green-500 to-emerald-600 h-2.5 rounded-full transition-all duration-300"
                                   style={{ width: `${idea.score}%` }}
                                 />
                               </div>
-                              <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                              <span className="text-sm font-bold text-green-600 dark:text-green-400 min-w-[45px] text-right">
                                 {idea.score}%
                               </span>
                             </div>
@@ -848,11 +847,10 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 transition={{ delay: index * 0.1 }}
               >
                 <Card
-                  className={`relative h-full transition-all duration-300 ${
-                    plan.popular
-                      ? 'gradient-lavender border-none text-white shadow-2xl lg:scale-[1.05]'
-                      : 'hover:shadow-xl hover:border-primary/40 border-2'
-                  }`}
+                  className={`relative h-full transition-all duration-300 ${plan.popular
+                    ? 'gradient-lavender border-none text-white shadow-2xl lg:scale-[1.05]'
+                    : 'hover:shadow-xl hover:border-primary/40 border-2'
+                    }`}
                 >
                   {plan.popular && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -886,11 +884,10 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                     </ul>
                     <Button
                       size="lg"
-                      className={`w-full rounded-xl py-6 text-base font-bold transition-all duration-200 ${
-                        plan.popular
-                          ? 'bg-white text-primary hover:bg-white/95 hover:shadow-xl'
-                          : 'gradient-lavender text-white hover:shadow-lg'
-                      }`}
+                      className={`w-full rounded-xl py-6 text-base font-bold transition-all duration-200 ${plan.popular
+                        ? 'bg-white text-primary hover:bg-white/95 hover:shadow-xl'
+                        : 'gradient-lavender text-white hover:shadow-lg'
+                        }`}
                       onClick={() => setSelectedPlan(plan.name)}
                     >
                       {plan.cta}
