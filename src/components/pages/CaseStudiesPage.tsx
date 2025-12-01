@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Search, Trophy, Target, Clock, CheckCircle, Star, TrendingUp } from 'lucide-react';
 
+import { StarRating } from '../ui/star-rating';
+
 import { CaseCard, CaseCardProps } from '../CaseCard';
 import { FilterChip } from '../FilterChip';
 import { Input } from '../ui/input';
@@ -109,6 +111,7 @@ const mockUserAttempts = [
     status: 'completed',
     submittedAt: '2 days ago',
     timeSpent: '45 min',
+    userRating: 4,
   },
   {
     id: '2',
@@ -120,6 +123,7 @@ const mockUserAttempts = [
     status: 'completed',
     submittedAt: '5 days ago',
     timeSpent: '30 min',
+    userRating: 5,
   },
   {
     id: '3',
@@ -131,6 +135,7 @@ const mockUserAttempts = [
     status: 'completed',
     submittedAt: '1 week ago',
     timeSpent: '52 min',
+    userRating: 3,
   },
   {
     id: '4',
@@ -142,6 +147,7 @@ const mockUserAttempts = [
     status: 'in-progress',
     submittedAt: 'In Progress',
     timeSpent: '15 min',
+    userRating: 0,
   },
 ];
 
@@ -168,7 +174,19 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
   const [difficulty, setDifficulty] = useState<string>('All');
   const [category, setCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('recent');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');  
+  const [userAttempts, setUserAttempts] = useState(mockUserAttempts);
+
+  // Function to handle rating changes
+  const handleRatingChange = (attemptId: string, newRating: number) => {
+    setUserAttempts(prev => 
+      prev.map(attempt => 
+        attempt.id === attemptId 
+          ? { ...attempt, userRating: newRating }
+          : attempt
+      )
+    );
+  };
 
   // Listen for custom event to show leaderboard
   useEffect(() => {
@@ -378,7 +396,7 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
 
               {/* Attempts List */}
               <div className="space-y-4">
-                {mockUserAttempts.map((attempt, index) => (
+                {userAttempts.map((attempt, index) => (
                   <motion.div
                     key={attempt.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -424,23 +442,24 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                               </div>
                             </div>
                           </div>
-                          {attempt.status === 'completed' && (
-                            <div className="text-right">
-                              <div className="text-3xl font-bold text-primary">{attempt.score}%</div>
-                              <div className="text-sm text-muted-foreground">Score</div>
-                              <div className="mt-2 flex gap-1">
-                                {[1, 2, 3, 4, 5].map(star => (
-                                  <Star
-                                    key={star}
-                                    className={`h-4 w-4 ${star <= Math.round(attempt.score / 20)
-                                      ? 'fill-yellow-400 text-yellow-400'
-                                      : 'text-gray-300'
-                                      }`}
+                          <div className="text-right">
+                            {attempt.status === 'completed' && (
+                              <>
+                                <div className="text-3xl font-bold text-primary mb-1">{attempt.score}%</div>
+                                <div className="text-sm text-muted-foreground mb-3">AI Score</div>
+                                
+                                {/* Interactive Star Rating */}
+                                <div className="space-y-2">
+                                  <div className="text-sm text-muted-foreground">Rate this case:</div>
+                                  <StarRating 
+                                    rating={attempt.userRating}
+                                    onRatingChange={(rating) => handleRatingChange(attempt.id, rating)}
+                                    size="sm"
                                   />
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

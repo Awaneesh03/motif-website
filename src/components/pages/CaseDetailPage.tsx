@@ -23,6 +23,7 @@ import { LeaderboardWidget } from '../LeaderboardWidget';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Progress } from '../ui/progress';
+import { StarRating } from '../ui/star-rating';
 
 interface CaseDetailPageProps {
   onNavigate?: (page: string) => void;
@@ -37,6 +38,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [evaluationData, setEvaluationData] = useState<any>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [userRating, setUserRating] = useState(0);
 
   // Mock case data - different cases based on caseId
   const allCases: Record<string, any> = {
@@ -672,6 +674,23 @@ Verdict: "Pass" if score >= 70, otherwise "Try Again"`;
                     </ul>
                   </div>
                 )}
+
+                {/* User Rating Section */}
+                <div className="space-y-3 border-t pt-4">
+                  <h4>Rate this case study:</h4>
+                  <div className="flex flex-col items-center gap-3">
+                    <StarRating 
+                      rating={userRating}
+                      onRatingChange={setUserRating}
+                      size="lg"
+                    />
+                    {userRating > 0 && (
+                      <p className="text-sm text-muted-foreground text-center">
+                        Thank you for your feedback! This helps us improve our case studies.
+                      </p>
+                    )}
+                  </div>
+                </div>
 
                 {/* Actions */}
                 <div className="flex gap-3">

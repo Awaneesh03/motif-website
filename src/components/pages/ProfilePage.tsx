@@ -171,10 +171,16 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [selectedEmoji, setSelectedEmoji] = useState('');
   const [editForm, setEditForm] = useState({
-    name: user.name,
-    email: user.email,
-    about: user.about,
-    linkedin: user.linkedin,
+    name: '',
+    email: '',
+    about: '',
+    linkedin: '',
+  });
+  const [formErrors, setFormErrors] = useState({
+    name: '',
+    email: '',
+    about: '',
+    linkedin: '',
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<number | null>(null);
@@ -187,10 +193,88 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     aiInsights: true,
   });
 
+  // Sync form with user data when modal opens
+  useEffect(() => {
+    if (isEditOpen) {
+      setEditForm({
+        name: user.name,
+        email: user.email,
+        about: user.about,
+        linkedin: user.linkedin,
+      });
+      setFormErrors({
+        name: '',
+        email: '',
+        about: '',
+        linkedin: '',
+      });
+    }
+  }, [isEditOpen, user]);
+
+  const validateForm = () => {
+    const errors = {
+      name: '',
+      email: '',
+      about: '',
+      linkedin: '',
+    };
+    let isValid = true;
+
+    // Validate name
+    if (!editForm.name.trim()) {
+      errors.name = 'Name is required';
+      isValid = false;
+    } else if (editForm.name.trim().length < 2) {
+      errors.name = 'Name must be at least 2 characters';
+      isValid = false;
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!editForm.email.trim()) {
+      errors.email = 'Email is required';
+      isValid = false;
+    } else if (!emailRegex.test(editForm.email)) {
+      errors.email = 'Please enter a valid email address';
+      isValid = false;
+    }
+
+    // Validate about (optional but if provided, check length)
+    if (editForm.about.length > 500) {
+      errors.about = 'About section cannot exceed 500 characters';
+      isValid = false;
+    }
+
+    // Validate LinkedIn URL (optional but if provided, check format)
+    if (editForm.linkedin && editForm.linkedin.trim()) {
+      const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-]+\/?$/;
+      if (!linkedinRegex.test(editForm.linkedin)) {
+        errors.linkedin = 'Please enter a valid LinkedIn profile URL';
+        isValid = false;
+      }
+    }
+
+    setFormErrors(errors);
+    return isValid;
+  };
+
   const handleSaveProfile = () => {
+    if (!validateForm()) {
+      toast.error('Please fix the errors before saving');
+      return;
+    }
+
+    // Trim whitespace from form data
+    const cleanedData = {
+      name: editForm.name.trim(),
+      email: editForm.email.trim(),
+      about: editForm.about.trim(),
+      linkedin: editForm.linkedin.trim(),
+    };
+
     setUser({
       ...user,
-      ...editForm,
+      ...cleanedData,
     });
     setIsEditOpen(false);
     toast.success('Profile updated successfully!');
@@ -202,6 +286,12 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       email: user.email,
       about: user.about,
       linkedin: user.linkedin,
+    });
+    setFormErrors({
+      name: '',
+      email: '',
+      about: '',
+      linkedin: '',
     });
     setIsEditOpen(false);
   };
@@ -239,11 +329,29 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
 
   const handleAvatarChange = (type: 'emoji' | 'upload' | 'remove') => {
     if (type === 'emoji' && selectedEmoji) {
-      setUser({ ...user, avatar: '' }); // Would set emoji as avatar
-      toast.success('Profile picture updated to emoji');
+      setUser({ ...user, avatar: selectedEmoji }); // Store emoji as avatar
+      toast.success(`Profile picture updated to ${selectedEmoji}`);
+      setSelectedEmoji('');
       setIsAvatarModalOpen(false);
     } else if (type === 'upload') {
-      toast.info('File upload would be handled here');
+      // Simulate file upload - in real app, this would handle file selection
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/jpeg,image/png,image/jpg';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            toast.error('File size must be less than 5MB');
+            return;
+          }
+          // In real app, upload to server and get URL
+          const mockUploadedUrl = 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&fit=crop';
+          setUser({ ...user, avatar: mockUploadedUrl });
+          toast.success('Profile picture uploaded successfully!');
+        }
+      };
+      input.click();
       setIsAvatarModalOpen(false);
     } else if (type === 'remove') {
       setUser({ ...user, avatar: '' });
@@ -283,13 +391,20 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                     className="h-32 w-32 border-4"
                     style={{ borderColor: 'rgba(181, 199, 255, 0.3)' }}
                   >
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="text-3xl">
-                      {user.name
-                        .split(' ')
-                        .map(n => n[0])
-                        .join('')}
-                    </AvatarFallback>
+                    {user.avatar && user.avatar.startsWith('http') ? (
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                    ) : user.avatar && user.avatar.length === 2 ? (
+                      <div className="flex h-full w-full items-center justify-center text-4xl">
+                        {user.avatar}
+                      </div>
+                    ) : (
+                      <AvatarFallback className="text-3xl">
+                        {user.name
+                          .split(' ')
+                          .map(n => n[0])
+                          .join('')}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   <button
                     onClick={() => setIsAvatarModalOpen(true)}
@@ -326,21 +441,39 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name">Name</Label>
+                        <Label htmlFor="name">Name *</Label>
                         <Input
                           id="name"
                           value={editForm.name}
-                          onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                          onChange={e => {
+                            setEditForm({ ...editForm, name: e.target.value });
+                            if (formErrors.name) {
+                              setFormErrors({ ...formErrors, name: '' });
+                            }
+                          }}
+                          className={formErrors.name ? 'border-destructive' : ''}
                         />
+                        {formErrors.name && (
+                          <p className="text-destructive text-sm">{formErrors.name}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email">Email *</Label>
                         <Input
                           id="email"
                           type="email"
                           value={editForm.email}
-                          onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                          onChange={e => {
+                            setEditForm({ ...editForm, email: e.target.value });
+                            if (formErrors.email) {
+                              setFormErrors({ ...formErrors, email: '' });
+                            }
+                          }}
+                          className={formErrors.email ? 'border-destructive' : ''}
                         />
+                        {formErrors.email && (
+                          <p className="text-destructive text-sm">{formErrors.email}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="about">About</Label>
@@ -348,8 +481,20 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                           id="about"
                           rows={4}
                           value={editForm.about}
-                          onChange={e => setEditForm({ ...editForm, about: e.target.value })}
+                          onChange={e => {
+                            setEditForm({ ...editForm, about: e.target.value });
+                            if (formErrors.about) {
+                              setFormErrors({ ...formErrors, about: '' });
+                            }
+                          }}
+                          className={formErrors.about ? 'border-destructive' : ''}
                         />
+                        <p className="text-muted-foreground text-sm">
+                          {editForm.about.length}/500 characters
+                        </p>
+                        {formErrors.about && (
+                          <p className="text-destructive text-sm">{formErrors.about}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="linkedin">LinkedIn Profile</Label>
@@ -357,8 +502,17 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                           id="linkedin"
                           placeholder="https://linkedin.com/in/yourprofile"
                           value={editForm.linkedin}
-                          onChange={e => setEditForm({ ...editForm, linkedin: e.target.value })}
+                          onChange={e => {
+                            setEditForm({ ...editForm, linkedin: e.target.value });
+                            if (formErrors.linkedin) {
+                              setFormErrors({ ...formErrors, linkedin: '' });
+                            }
+                          }}
+                          className={formErrors.linkedin ? 'border-destructive' : ''}
                         />
+                        {formErrors.linkedin && (
+                          <p className="text-destructive text-sm">{formErrors.linkedin}</p>
+                        )}
                       </div>
                     </div>
                     <DialogFooter className="gap-2">
