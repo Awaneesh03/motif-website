@@ -7,9 +7,10 @@ import { Badge } from '../ui/badge';
 
 const timeline = [
   {
-    year: '2025 November',
+    month: 'November',
+    year: '2025',
     event: 'Motif Founded',
-    desc: 'Started with a vision to democratize startup validation',
+    desc: 'Started with a vision to democratize startup validation and empower founders worldwide',
   },
 ];
 
@@ -113,7 +114,7 @@ export function AboutPage() {
           <div className="space-y-8">
             {timeline.map((item, index) => (
               <motion.div
-                key={item.year}
+                key={`${item.month}-${item.year}`}
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -121,13 +122,17 @@ export function AboutPage() {
                 className="flex gap-6"
               >
                 <div className="flex-shrink-0">
-                  <div className="gradient-lavender flex h-24 w-24 items-center justify-center rounded-2xl font-['Poppins'] text-white">
-                    {item.year}
+                  <div className="gradient-lavender relative flex h-32 w-32 flex-col items-center justify-center rounded-2xl font-['Poppins'] text-white shadow-lg">
+                    <div className="text-3xl font-bold">{item.month}</div>
+                    <div className="mt-1 text-lg font-medium opacity-90">{item.year}</div>
+                    <div className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md">
+                      <span className="text-xl">🚀</span>
+                    </div>
                   </div>
                 </div>
                 <Card className="border-border/50 flex-1">
                   <CardContent className="p-6">
-                    <h3 className="mb-2">{item.event}</h3>
+                    <h3 className="mb-2 text-xl font-bold">{item.event}</h3>
                     <p className="text-muted-foreground">{item.desc}</p>
                   </CardContent>
                 </Card>
