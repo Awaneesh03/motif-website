@@ -22,8 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 
-// Groq API Key - Stored as constant in UI (not secure, for development only)
-const GROQ_API_KEY = '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';
+// Groq API Key - Use environment variable or fallback
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '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';
 
 interface PitchCreatorPageProps {
   onNavigate?: (page: string) => void;
@@ -53,63 +53,77 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
       });
 
       // Create a detailed prompt for the AI
-      const prompt = `You are an expert startup pitch consultant. Generate a professional pitch deck based on the following information:
+      const prompt = `You are an expert startup pitch consultant who has helped 100+ startups raise funding. Generate a professional, investor-ready pitch deck based on the following startup information.
 
+STARTUP DETAILS:
 Idea Name: ${formData.ideaName}
 Problem Statement: ${formData.problem}
 Solution: ${formData.solution}
-Target Audience: ${formData.audience || 'Not specified'}
-Market Opportunity: ${formData.market || 'Not specified'}
-Unique Selling Proposition: ${formData.usp || 'Not specified'}
+Target Audience: ${formData.audience || 'General market - needs specification'}
+Market Opportunity: ${formData.market || 'To be researched'}
+Unique Selling Proposition: ${formData.usp || 'To be defined'}
 
-Please generate a comprehensive pitch deck with the following slides in JSON format:
+CRITICAL INSTRUCTIONS:
+1. Analyze the provided information carefully and identify key insights
+2. Create compelling, specific content that directly relates to THIS startup (not generic advice)
+3. Use concrete language and avoid vague statements
+4. Include relevant numbers, metrics, or market data where applicable
+5. Make each slide tell a story that builds investor confidence
+6. Focus on what makes THIS idea unique and valuable
+
+Generate a comprehensive pitch deck with exactly 6 slides in VALID JSON format (return ONLY JSON, no extra text):
+
 {
   "slides": [
     {
       "title": "The Problem",
-      "content": "<compelling description of the problem, 2-3 sentences>",
+      "content": "<2-3 sentences describing the specific problem this startup solves, using real pain points and market gaps. Be concrete and relatable.>",
       "icon": "problem"
     },
     {
       "title": "Our Solution",
-      "content": "<clear explanation of the solution, 2-3 sentences>",
+      "content": "<2-3 sentences explaining how ${formData.ideaName} solves the problem uniquely. Highlight the innovative approach and key differentiators.>",
       "icon": "solution"
     },
     {
       "title": "Market Opportunity",
-      "content": "<market size, growth potential, and target audience details, 2-3 sentences>",
+      "content": "<2-3 sentences covering market size, growth trends, and target customer segments. Include specific market data or estimates if available.>",
       "icon": "market"
     },
     {
       "title": "The Product",
-      "content": "<product overview, key features, and unique value proposition, 2-3 sentences>",
+      "content": "<2-3 sentences describing core features, user experience, and value delivery. Explain what users will actually get.>",
       "icon": "product"
     },
     {
       "title": "Why Now",
-      "content": "<timing, market trends, and why this is the right moment, 2-3 sentences>",
+      "content": "<2-3 sentences explaining market timing, current trends, and catalysts that make this the perfect moment for this solution.>",
       "icon": "solution"
     },
     {
       "title": "Business Model",
-      "content": "<how the business will make money and scale, 2-3 sentences>",
+      "content": "<2-3 sentences detailing revenue streams, pricing strategy, and path to profitability. Be specific about how money is made.>",
       "icon": "market"
     }
   ]
 }
 
-Make the content compelling, investor-ready, and focused on the value proposition. Keep each slide content concise but impactful.`;
+Remember: Return ONLY the JSON object, no additional text or explanations.`;
 
-      // Call Groq API
+      // Call Groq API with better model and lower temperature for more precise results
       const chatCompletion = await groq.chat.completions.create({
         messages: [
+          {
+            role: 'system',
+            content: 'You are an expert startup pitch consultant. You provide specific, actionable, investor-ready pitch content. Always respond with valid JSON only, no extra text.',
+          },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        model: 'llama-3.1-8b-instant',
-        temperature: 0.8,
+        model: 'llama-3.3-70b-versatile', // Better model for more precise results
+        temperature: 0.3, // Lower temperature for more focused, consistent output
         max_tokens: 2048,
       });
 

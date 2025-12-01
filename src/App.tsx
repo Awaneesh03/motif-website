@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { UserProvider } from './contexts/UserContext';
 
 import { Toaster } from './components/ui/sonner';
 import { Navbar } from './components/Navbar';
@@ -110,40 +111,42 @@ export default function App() {
   };
 
   return (
-    <div className="bg-background text-foreground min-h-screen">
-      <Toaster position="top-right" />
-      <Navbar
-        isDark={isDark}
-        toggleTheme={toggleTheme}
-        currentPage={getCurrentPage()}
-        onNavigate={handleNavigate}
-        isLoggedIn={isLoggedIn}
-        onLogout={handleLogout}
-      />
-      <main>
-        <Routes>
-          <Route path="/" element={<HomePage onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/features" element={<FeaturesPage />} />
-          <Route path="/community" element={<CommunityPage onNavigate={handleNavigate} />} />
-          <Route path="/resources" element={<ResourcesPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/auth" element={<AuthPage onNavigate={handleNavigate} onLogin={handleLogin} />} />
-          <Route path="/case-studies" element={<CaseStudiesPage onNavigate={handleNavigate} />} />
-          <Route path="/case-studies/:caseId" element={<CaseDetailPage onNavigate={handleNavigate} />} />
-          <Route path="/idea-analyser" element={<IdeaAnalyserPage />} />
-          <Route path="/profile" element={<ProfilePage onNavigate={handleNavigate} />} />
-          <Route path="/membership" element={<MembershipPage onNavigate={handleNavigate} />} />
-          <Route path="/pricing" element={<PricingPage onNavigate={handleNavigate} />} />
-          <Route path="/pitch-creator" element={<PitchCreatorPage onNavigate={handleNavigate} />} />
-          <Route path="/dashboard" element={<DashboardPage onNavigate={handleNavigate} />} />
-          <Route path="/get-funded" element={<VCConnectionPage onNavigate={handleNavigate} />} />
-        </Routes>
-      </main>
-      <Footer onNavigate={handleNavigate} />
+    <UserProvider>
+      <div className="bg-background text-foreground min-h-screen">
+        <Toaster position="top-right" />
+        <Navbar
+          isDark={isDark}
+          toggleTheme={toggleTheme}
+          currentPage={getCurrentPage()}
+          onNavigate={handleNavigate}
+          isLoggedIn={isLoggedIn}
+          onLogout={handleLogout}
+        />
+        <main>
+          <Routes>
+            <Route path="/" element={<HomePage onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/community" element={<CommunityPage onNavigate={handleNavigate} />} />
+            <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/auth" element={<AuthPage onNavigate={handleNavigate} onLogin={handleLogin} />} />
+            <Route path="/case-studies" element={<CaseStudiesPage onNavigate={handleNavigate} />} />
+            <Route path="/case-studies/:caseId" element={<CaseDetailPage onNavigate={handleNavigate} />} />
+            <Route path="/idea-analyser" element={<IdeaAnalyserPage onNavigate={handleNavigate} />} />
+            <Route path="/profile" element={<ProfilePage onNavigate={handleNavigate} />} />
+            <Route path="/membership" element={<MembershipPage onNavigate={handleNavigate} />} />
+            <Route path="/pricing" element={<PricingPage onNavigate={handleNavigate} />} />
+            <Route path="/pitch-creator" element={<PitchCreatorPage onNavigate={handleNavigate} />} />
+            <Route path="/dashboard" element={<DashboardPage onNavigate={handleNavigate} />} />
+            <Route path="/get-funded" element={<VCConnectionPage onNavigate={handleNavigate} />} />
+          </Routes>
+        </main>
+        <Footer onNavigate={handleNavigate} />
 
-      {/* Chatbot - Available on all pages except Auth */}
-      {location.pathname !== '/auth' && <Chatbot isDark={isDark} />}
-    </div>
+        {/* Chatbot - Available on all pages except Auth */}
+        {location.pathname !== '/auth' && <Chatbot isDark={isDark} />}
+      </div>
+    </UserProvider>
   );
 }

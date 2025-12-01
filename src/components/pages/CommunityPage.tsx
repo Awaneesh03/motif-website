@@ -166,6 +166,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const [commentPanelOpen, setCommentPanelOpen] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // Post Idea form state
   const [postFormOpen, setPostFormOpen] = useState(false);
@@ -175,11 +176,52 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     tags: '',
   });
 
-  const ideas = allIdeas.slice(0, displayCount);
-  const hasMore = displayCount < allIdeas.length;
+  // Filter and sort ideas based on selected filter and tag
+  const getFilteredIdeas = () => {
+    let filtered = [...allIdeas];
+
+    // Filter by tag if selected
+    if (selectedTag) {
+      filtered = filtered.filter(idea => idea.tags.includes(selectedTag));
+    }
+
+    // Sort based on filter
+    if (filter === 'trending') {
+      filtered.sort((a, b) => b.upvotes - a.upvotes);
+    } else if (filter === 'new') {
+      // Reverse the order to show "newest" first
+      filtered.reverse();
+    } else if (filter === 'discussed') {
+      filtered.sort((a, b) => b.comments - a.comments);
+    }
+
+    return filtered;
+  };
+
+  const filteredIdeas = getFilteredIdeas();
+  const ideas = filteredIdeas.slice(0, displayCount);
+  const hasMore = displayCount < filteredIdeas.length;
 
   const handleLoadMore = () => {
-    setDisplayCount(Math.min(displayCount + 5, allIdeas.length));
+    setDisplayCount(Math.min(displayCount + 5, filteredIdeas.length));
+  };
+
+  const handleTagClick = (tag: string) => {
+    if (selectedTag === tag) {
+      // If clicking the same tag, deselect it
+      setSelectedTag(null);
+    } else {
+      // Select the new tag
+      setSelectedTag(tag);
+    }
+    // Reset display count when tag changes
+    setDisplayCount(5);
+  };
+
+  const handleFilterChange = (newFilter: string) => {
+    setFilter(newFilter);
+    // Reset display count when filter changes
+    setDisplayCount(5);
   };
 
   // Validation for post form
@@ -350,45 +392,93 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
             {/* Ideas Feed */}
             <div className="space-y-6 lg:col-span-2">
               {/* Filters */}
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={filter === 'trending' ? 'default' : 'outline'}
-                  onClick={() => setFilter('trending')}
-                  className="rounded-full"
-                >
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  Trending
-                </Button>
-                <Button
-                  variant={filter === 'new' ? 'default' : 'outline'}
-                  onClick={() => setFilter('new')}
-                  className="rounded-full"
-                >
-                  <Clock className="mr-2 h-4 w-4" />
-                  New
-                </Button>
-                <Button
-                  variant={filter === 'discussed' ? 'default' : 'outline'}
-                  onClick={() => setFilter('discussed')}
-                  className="rounded-full"
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Most Discussed
-                </Button>
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={filter === 'trending' ? 'default' : 'outline'}
+                    onClick={() => handleFilterChange('trending')}
+                    className="rounded-full"
+                  >
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Trending
+                  </Button>
+                  <Button
+                    variant={filter === 'new' ? 'default' : 'outline'}
+                    onClick={() => handleFilterChange('new')}
+                    className="rounded-full"
+                  >
+                    <Clock className="mr-2 h-4 w-4" />
+                    New
+                  </Button>
+                  <Button
+                    variant={filter === 'discussed' ? 'default' : 'outline'}
+                    onClick={() => handleFilterChange('discussed')}
+                    className="rounded-full"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Most Discussed
+                  </Button>
+                </div>
+
+                {/* Active Filter Indicator */}
+                {selectedTag && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Filtering by tag:</span>
+                    <Badge variant="default" className="rounded-full">
+                      {selectedTag}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedTag(null);
+                        setDisplayCount(5);
+                      }}
+                      className="h-6 px-2 text-xs"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Ideas List */}
               <div className="space-y-4">
-                {ideas.map((idea, index) => (
-                  <motion.div
-                    key={idea.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <IdeaCard {...idea} onCommentClick={() => handleCommentClick(idea)} />
-                  </motion.div>
-                ))}
+                {ideas.length === 0 ? (
+                  <Card className="border-dashed border-2">
+                    <CardContent className="p-12 text-center">
+                      <MessageCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                      <h3 className="mb-2 text-lg font-semibold">No ideas found</h3>
+                      <p className="text-muted-foreground mb-4">
+                        {selectedTag
+                          ? `No ideas match the "${selectedTag}" tag. Try selecting a different tag.`
+                          : 'No ideas match the current filter.'}
+                      </p>
+                      {selectedTag && (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedTag(null);
+                            setDisplayCount(5);
+                          }}
+                        >
+                          Clear tag filter
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  ideas.map((idea, index) => (
+                    <motion.div
+                      key={idea.title}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <IdeaCard {...idea} onCommentClick={() => handleCommentClick(idea)} />
+                    </motion.div>
+                  ))
+                )}
               </div>
 
               {/* Load More Button */}
@@ -422,13 +512,27 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     ].map(tag => (
                       <Badge
                         key={tag}
-                        variant="secondary"
-                        className="hover:bg-primary hover:text-primary-foreground cursor-pointer rounded-full"
+                        variant={selectedTag === tag ? 'default' : 'secondary'}
+                        className="hover:bg-primary hover:text-primary-foreground cursor-pointer rounded-full transition-all"
+                        onClick={() => handleTagClick(tag)}
                       >
                         {tag}
                       </Badge>
                     ))}
                   </div>
+                  {selectedTag && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedTag(null);
+                        setDisplayCount(5);
+                      }}
+                      className="mt-4 w-full text-xs"
+                    >
+                      Clear filter
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 

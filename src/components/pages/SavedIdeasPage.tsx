@@ -1,7 +1,9 @@
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Edit, BarChart3, Trash2, Filter } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
+import { supabase } from '../../lib/supabase';
+import { useUser } from '../../contexts/UserContext';
 
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
@@ -28,87 +30,95 @@ interface SavedIdea {
   shared: boolean;
 }
 
-const mockSavedIdeas: SavedIdea[] = [
-  {
-    id: '1',
-    title: 'AI-powered meal planning app for busy professionals',
-    description:
-      'An AI-powered assistant that helps users manage daily meal planning using predictive nutrition analysis.',
-    tags: ['AI', 'HealthTech', 'Mobile'],
-    createdDate: '2024-11-05',
-    score: 85,
-    shared: true,
-  },
-  {
-    id: '2',
-    title: 'Sustainable packaging marketplace',
-    description:
-      'Connect e-commerce brands with eco-friendly packaging suppliers featuring carbon footprint tracking.',
-    tags: ['Sustainability', 'E-commerce', 'B2B'],
-    createdDate: '2024-11-03',
-    score: 78,
-    shared: false,
-  },
-  {
-    id: '3',
-    title: 'Virtual reality training for medical students',
-    description:
-      'Immersive VR simulations for medical procedures in a safe, controlled environment.',
-    tags: ['VR', 'EdTech', 'Healthcare'],
-    createdDate: '2024-11-01',
-    score: 92,
-    shared: true,
-  },
-  {
-    id: '4',
-    title: 'No-code platform for building internal tools',
-    description: 'Empower teams to build custom workflows without writing code.',
-    tags: ['SaaS', 'No-Code', 'B2B'],
-    createdDate: '2024-10-28',
-    score: 81,
-    shared: false,
-  },
-  {
-    id: '5',
-    title: 'Mental health chatbot for college students',
-    description: 'AI-powered 24/7 mental health support with crisis intervention.',
-    tags: ['AI', 'HealthTech', 'EdTech'],
-    createdDate: '2024-10-25',
-    shared: false,
-  },
-  {
-    id: '6',
-    title: 'Smart parking solution for urban areas',
-    description: 'IoT-enabled parking with real-time availability and dynamic pricing.',
-    tags: ['IoT', 'Smart City', 'Mobile'],
-    createdDate: '2024-10-20',
-    score: 76,
-    shared: true,
-  },
-];
-
 interface SavedIdeasPageProps {
   onNavigate?: (page: string) => void;
 }
 
 export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
-  const [ideas, setIdeas] = useState<SavedIdea[]>(mockSavedIdeas);
+  const { user } = useUser();
+  const [ideas, setIdeas] = useState<SavedIdea[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'az' | 'tags'>('date');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const handleDelete = (id: string) => {
-    setIdeas(ideas.filter(idea => idea.id !== id));
-    setDeleteId(null);
-    toast.success('Idea deleted successfully');
+  // Load ideas from database
+  useEffect(() => {
+    if (user) {
+      loadIdeas();
+    } else {
+      setIdeas([]);
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  const loadIdeas = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('idea_analyses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading ideas:', error);
+        toast.error('Failed to load your ideas');
+        setIdeas([]);
+      } else {
+        // Transform database data to match SavedIdea interface
+        const transformedIdeas: SavedIdea[] = (data || []).map(analysis => ({
+          id: analysis.id,
+          title: analysis.idea_title,
+          description: analysis.idea_description,
+          tags: [], // Tags can be added later if needed
+          createdDate: analysis.created_at,
+          score: analysis.score,
+          shared: false, // Default to private
+        }));
+        setIdeas(transformedIdeas);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to load your ideas');
+      setIdeas([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAnalyzeAgain = (idea: SavedIdea) => {
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('idea_analyses')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting idea:', error);
+        toast.error('Failed to delete idea');
+      } else {
+        setIdeas(ideas.filter(idea => idea.id !== id));
+        setDeleteId(null);
+        toast.success('Idea deleted successfully');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to delete idea');
+    }
+  };
+
+  const handleAnalyzeAgain = () => {
     toast.success('Redirecting to Idea Analyzer...');
     onNavigate?.('idea-analyzer');
   };
 
-  const handleEdit = (idea: SavedIdea) => {
+  const handleEdit = () => {
     toast.info('Opening editor...');
   };
 
@@ -215,7 +225,15 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
           </motion.div>
 
           {/* Ideas Grid */}
-          {filteredIdeas.length === 0 ? (
+          {isLoading ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="py-12 text-center"
+            >
+              <p className="text-muted-foreground text-xl">Loading your ideas...</p>
+            </motion.div>
+          ) : filteredIdeas.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -280,7 +298,7 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEdit(idea)}
+                          onClick={() => handleEdit()}
                           className="flex-1 rounded-xl"
                         >
                           <Edit className="mr-1 h-3 w-3" />
@@ -289,7 +307,7 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
                         <Button
                           variant="default"
                           size="sm"
-                          onClick={() => handleAnalyzeAgain(idea)}
+                          onClick={() => handleAnalyzeAgain()}
                           className="gradient-lavender flex-1 rounded-xl hover:opacity-90"
                         >
                           <BarChart3 className="mr-1 h-3 w-3" />

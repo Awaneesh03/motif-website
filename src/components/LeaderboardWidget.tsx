@@ -51,7 +51,11 @@ const mockData: LeaderboardEntry[] = [
   },
 ];
 
-export function LeaderboardWidget() {
+interface LeaderboardWidgetProps {
+  onViewLeaderboard?: () => void;
+}
+
+export function LeaderboardWidget({ onViewLeaderboard }: LeaderboardWidgetProps) {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
@@ -89,7 +93,11 @@ export function LeaderboardWidget() {
             </div>
           ))}
         </div>
-        <Button variant="outline" className="mt-6 w-full rounded-xl">
+        <Button
+          variant="outline"
+          className="mt-6 w-full rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all"
+          onClick={onViewLeaderboard}
+        >
           View Full Leaderboard
         </Button>
       </CardContent>

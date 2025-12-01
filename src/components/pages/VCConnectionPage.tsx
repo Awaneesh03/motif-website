@@ -705,7 +705,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
           >
             <h2 className="mb-4 text-3xl sm:text-4xl font-bold">How It Works</h2>
             <p className="text-muted-foreground mx-auto max-w-2xl text-base sm:text-lg">
-              From qualification to VC introduction in 5-7 business days
+              From qualification to VC introduction
             </p>
           </motion.div>
 
@@ -901,33 +901,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
               </motion.div>
             ))}
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-12 text-center"
-          >
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="p-6">
-                <h3 className="mb-4 text-xl font-semibold">Add-On Services</h3>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <p className="font-semibold">Additional Introductions</p>
-                    <p className="text-muted-foreground text-sm">₹16,500 each</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Pitch Deck Teardown</p>
-                    <p className="text-muted-foreground text-sm">₹24,900</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Financial Model Review</p>
-                    <p className="text-muted-foreground text-sm">₹33,200</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
         </div>
       </section>
 

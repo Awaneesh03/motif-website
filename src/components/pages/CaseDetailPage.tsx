@@ -38,23 +38,59 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
   const [evaluationData, setEvaluationData] = useState<any>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
-  // Mock case data
-  const caseData = {
-    id: caseId || '1',
-    company: 'TechFlow',
-    logo: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=100&h=100&fit=crop',
-    title: 'Scaling User Acquisition on a Limited Budget',
-    description:
-      "TechFlow is a B2B SaaS platform that helps companies manage their workflow automation. They've found initial product-market fit with 100 paying customers, but growth has plateaued.",
-    problem:
-      'The company needs to grow from 100 to 1000 users in 3 months with only $5,000 marketing budget. Traditional paid advertising channels are too expensive for their current CAC:LTV ratio. The team consists of 2 founders and 1 developer - no dedicated marketing expertise.',
-    difficulty: 'Medium' as const,
-    category: 'Marketing',
-    tags: ['Growth', 'Marketing', 'B2B', 'SaaS'],
-    estimatedTime: '45 minutes',
-    reward: '500 points',
-    publishedDate: 'Nov 5, 2025',
+  // Mock case data - different cases based on caseId
+  const allCases: Record<string, any> = {
+    '1': {
+      id: '1',
+      company: 'PayStream',
+      logo: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100&h=100&fit=crop',
+      title: 'Scaling User Acquisition',
+      description:
+        "PayStream is a B2B SaaS platform that helps companies manage their workflow automation. They've found initial product-market fit with 100 paying customers, but growth has plateaued.",
+      problem:
+        'The company needs to grow from 100 to 1000 users in 3 months with only $5,000 marketing budget. Traditional paid advertising channels are too expensive for their current CAC:LTV ratio. The team consists of 2 founders and 1 developer - no dedicated marketing expertise.',
+      difficulty: 'Medium' as const,
+      category: 'Marketing',
+      tags: ['Growth', 'Marketing', 'B2B', 'SaaS'],
+      estimatedTime: '45 minutes',
+      reward: '500 points',
+      publishedDate: 'Nov 5, 2025',
+    },
+    '2': {
+      id: '2',
+      company: 'DevHub',
+      logo: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=100&h=100&fit=crop',
+      title: 'Product-Market Fit Crisis',
+      description:
+        'DevHub built an innovative AI-powered code review tool with impressive technical capabilities, but struggles to identify the right customer segment and use case.',
+      problem:
+        'Despite having great technology, the product is failing to gain traction. Customer feedback is mixed, churn is high (45% monthly), and the team is unsure which features to prioritize. They need to find the right market segment and refine their value proposition within 60 days or risk running out of runway.',
+      difficulty: 'Hard' as const,
+      category: 'Product',
+      tags: ['Product', 'Strategy', 'AI', 'Developer Tools'],
+      estimatedTime: '60 minutes',
+      reward: '750 points',
+      publishedDate: 'Nov 10, 2025',
+    },
+    '3': {
+      id: '3',
+      company: 'ShipFast',
+      logo: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100&h=100&fit=crop',
+      title: 'Optimizing Operations',
+      description:
+        'ShipFast is a last-mile delivery service experiencing rapid growth but struggling with operational inefficiencies that are hurting margins and customer satisfaction.',
+      problem:
+        'Current average delivery time is 90 minutes, but customers expect 60 minutes or less. Operating costs are 35% higher than competitors. The company needs to reduce delivery time by 30% while cutting operational costs by 20%, all without compromising service quality or increasing prices.',
+      difficulty: 'Medium' as const,
+      category: 'Operations',
+      tags: ['Operations', 'Logistics', 'Optimization', 'Marketplace'],
+      estimatedTime: '50 minutes',
+      reward: '600 points',
+      publishedDate: 'Nov 15, 2025',
+    },
   };
+
+  const caseData = allCases[caseId || '1'] || allCases['1'];
 
   // Auto-save simulation
   useEffect(() => {
@@ -78,22 +114,172 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     }, 500);
   };
 
-  const handleSubmit = () => {
-    setIsEvaluating(true);
-    // Simulate AI evaluation
-    setTimeout(() => {
-      setEvaluationData({
-        score: Math.floor(Math.random() * 30) + 70, // 70-100
-        verdict: Math.random() > 0.3 ? 'Pass' : 'Try Again',
-        feedback: [
-          'Strong understanding of low-cost acquisition channels',
-          'Good emphasis on content marketing and SEO strategy',
-          'Consider adding more detail on measurement and KPIs',
-        ],
+  const evaluateSolutionWithAI = async (userSolution: string) => {
+    try {
+      const prompt = `You are an expert startup advisor and business case evaluator. Evaluate the following business case solution.
+
+CASE STUDY: ${caseData.title}
+COMPANY: ${caseData.company}
+PROBLEM: ${caseData.problem}
+
+USER'S SOLUTION:
+${userSolution}
+
+Evaluate this solution based on:
+1. Strategic thinking and problem analysis
+2. Feasibility and practicality of proposed solutions
+3. Budget allocation and resource management
+4. Metrics and measurement approach
+5. Risk awareness and mitigation
+
+Provide your evaluation in the following JSON format:
+{
+  "score": <number between 0-100>,
+  "verdict": "<Pass or Try Again>",
+  "feedback": [
+    "<specific feedback point 1>",
+    "<specific feedback point 2>",
+    "<specific feedback point 3>"
+  ],
+  "strengths": [
+    "<strength 1>",
+    "<strength 2>"
+  ],
+  "improvements": [
+    "<area for improvement 1>",
+    "<area for improvement 2>"
+  ]
+}
+
+Score Guidelines:
+- 90-100: Exceptional solution with innovative thinking
+- 80-89: Strong solution with good strategic thinking
+- 70-79: Good solution but missing some details
+- 60-69: Decent attempt but needs significant improvement
+- Below 60: Solution lacks depth or understanding
+
+Verdict: "Pass" if score >= 70, otherwise "Try Again"`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY || 'gsk_your_api_key_here'}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert startup advisor who evaluates business case solutions. Always respond with valid JSON only.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.3,
+          max_tokens: 1000,
+        }),
       });
-      setIsEvaluating(false);
+
+      if (!response.ok) {
+        throw new Error('AI evaluation failed');
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content;
+
+      // Parse the JSON response
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const evaluation = JSON.parse(jsonMatch[0]);
+        return {
+          score: evaluation.score,
+          verdict: evaluation.verdict,
+          feedback: evaluation.feedback || [],
+          strengths: evaluation.strengths || [],
+          improvements: evaluation.improvements || [],
+        };
+      }
+
+      throw new Error('Invalid response format');
+    } catch (error) {
+      console.error('AI evaluation error:', error);
+      // Fallback to a basic evaluation based on solution length and keywords
+      return getFallbackEvaluation(userSolution);
+    }
+  };
+
+  const getFallbackEvaluation = (solution: string) => {
+    const words = solution.split(/\s+/).length;
+    const hasStrategy = /strateg|plan|approach|method/i.test(solution);
+    const hasMetrics = /metric|kpi|measure|track|analytics/i.test(solution);
+    const hasBudget = /budget|cost|spend|allocat|investment/i.test(solution);
+    const hasTimeline = /timeline|week|month|phase|quarter/i.test(solution);
+
+    let score = 60; // Base score
+
+    if (words > 100) score += 10;
+    if (words > 200) score += 5;
+    if (hasStrategy) score += 10;
+    if (hasMetrics) score += 10;
+    if (hasBudget) score += 10;
+    if (hasTimeline) score += 5;
+
+    score = Math.min(score, 100);
+
+    const feedback = [];
+    const strengths = [];
+    const improvements = [];
+
+    if (hasStrategy) {
+      strengths.push('Clear strategic approach identified');
+    } else {
+      improvements.push('Add more strategic thinking and overall approach');
+    }
+
+    if (hasMetrics) {
+      strengths.push('Good focus on metrics and measurement');
+    } else {
+      improvements.push('Include specific KPIs and success metrics');
+    }
+
+    if (hasBudget) {
+      strengths.push('Budget considerations addressed');
+    } else {
+      improvements.push('Provide detailed budget allocation breakdown');
+    }
+
+    if (words < 100) {
+      improvements.push('Expand your solution with more detailed analysis');
+    }
+
+    feedback.push(...strengths, ...improvements.slice(0, 3 - strengths.length));
+
+    return {
+      score,
+      verdict: score >= 70 ? 'Pass' : 'Try Again',
+      feedback: feedback.slice(0, 3),
+      strengths,
+      improvements,
+    };
+  };
+
+  const handleSubmit = async () => {
+    setIsEvaluating(true);
+
+    try {
+      const evaluation = await evaluateSolutionWithAI(solution);
+      setEvaluationData(evaluation);
       setShowEvaluationModal(true);
-    }, 2000);
+    } catch (error) {
+      console.error('Evaluation error:', error);
+      // Show error to user
+      alert('Failed to evaluate solution. Please try again.');
+    } finally {
+      setIsEvaluating(false);
+    }
   };
 
   const handleBack = () => {
@@ -278,7 +464,19 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
 
           {/* Right Sidebar */}
           <div className="space-y-6">
-            <LeaderboardWidget />
+            <LeaderboardWidget
+              onViewLeaderboard={() => {
+                // Navigate to Case Studies page with leaderboard tab active
+                window.scrollTo(0, 0);
+                onNavigate?.('Case Studies');
+                // After navigation, we can use a URL parameter or state to show leaderboard tab
+                setTimeout(() => {
+                  // Trigger leaderboard tab selection if on Case Studies page
+                  const event = new CustomEvent('showLeaderboard');
+                  window.dispatchEvent(event);
+                }, 100);
+              }}
+            />
 
             {/* Progress Card */}
             <Card className="glass-surface border-border/50">
@@ -424,18 +622,56 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                   )}
                 </div>
 
-                {/* Feedback */}
-                <div className="space-y-2">
-                  <h4>Feedback:</h4>
-                  <ul className="space-y-2">
-                    {evaluationData.feedback.map((item: string, index: number) => (
-                      <li key={index} className="text-muted-foreground flex gap-2 text-sm">
-                        <span className="text-primary">•</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {/* Strengths */}
+                {evaluationData.strengths && evaluationData.strengths.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <CheckCircle2 className="h-5 w-5" />
+                      Strengths:
+                    </h4>
+                    <ul className="space-y-2">
+                      {evaluationData.strengths.map((item: string, index: number) => (
+                        <li key={index} className="text-muted-foreground flex gap-2 text-sm">
+                          <span className="text-green-600 dark:text-green-400">✓</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Areas for Improvement */}
+                {evaluationData.improvements && evaluationData.improvements.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                      <AlertCircle className="h-5 w-5" />
+                      Areas for Improvement:
+                    </h4>
+                    <ul className="space-y-2">
+                      {evaluationData.improvements.map((item: string, index: number) => (
+                        <li key={index} className="text-muted-foreground flex gap-2 text-sm">
+                          <span className="text-orange-600 dark:text-orange-400">→</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* General Feedback */}
+                {evaluationData.feedback && evaluationData.feedback.length > 0 && (
+                  <div className="space-y-2">
+                    <h4>Overall Feedback:</h4>
+                    <ul className="space-y-2">
+                      {evaluationData.feedback.map((item: string, index: number) => (
+                        <li key={index} className="text-muted-foreground flex gap-2 text-sm">
+                          <span className="text-primary">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-3">

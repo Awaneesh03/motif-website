@@ -324,9 +324,10 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
               Practice solving real-world startup problems and learn from the best
             </p>
           </motion.div>
-          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
+                id: '1',
                 company: 'PayStream',
                 logo: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100&h=100&fit=crop',
                 title: 'Scaling User Acquisition',
@@ -336,6 +337,7 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
                 attempts: 234,
               },
               {
+                id: '2',
                 company: 'DevHub',
                 logo: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=100&h=100&fit=crop',
                 title: 'Product-Market Fit Crisis',
@@ -345,6 +347,7 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
                 attempts: 189,
               },
               {
+                id: '3',
                 company: 'ShipFast',
                 logo: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100&h=100&fit=crop',
                 title: 'Optimizing Operations',
@@ -355,44 +358,46 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
               },
             ].map((caseItem, index) => (
               <motion.div
-                key={caseItem.title}
+                key={caseItem.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
+                className="h-full"
               >
-                <Card className="glass-surface border-border/50 hover:shadow-lavender h-full transition-all">
-                  <CardContent className="p-6">
-                    <div className="mb-4 flex gap-4">
+                <Card className="glass-surface border-border/50 hover:shadow-lavender flex h-full flex-col transition-all hover:border-primary/30">
+                  <CardContent className="flex flex-col p-6 h-full">
+                    <div className="mb-4 flex gap-4 items-start">
                       <img
                         src={caseItem.logo}
                         alt={caseItem.company}
-                        className="h-12 w-12 rounded-lg object-cover"
+                        className="h-14 w-14 flex-shrink-0 rounded-lg object-cover ring-2 ring-primary/10"
                       />
                       <div className="min-w-0 flex-1">
-                        <h3 className="mb-1 truncate">{caseItem.title}</h3>
-                        <p className="text-muted-foreground text-sm">{caseItem.description}</p>
+                        <p className="text-muted-foreground text-xs mb-1">{caseItem.company}</p>
+                        <h3 className="mb-2 font-semibold text-lg leading-tight">{caseItem.title}</h3>
+                        <p className="text-muted-foreground text-sm leading-relaxed">{caseItem.description}</p>
                       </div>
                     </div>
                     <div className="mb-4 flex flex-wrap items-center gap-2">
                       <Badge
-                        className={
-                          caseItem.difficulty === 'Hard'
-                            ? 'bg-[#FF7C7C] text-white'
-                            : 'bg-[#FFD19C] text-[#0E1020]'
-                        }
+                        variant={caseItem.difficulty === 'Easy' ? 'secondary' : caseItem.difficulty === 'Medium' ? 'default' : 'destructive'}
+                        className="rounded-full"
                       >
                         {caseItem.difficulty}
                       </Badge>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs rounded-full">
                         {caseItem.category}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs rounded-full ml-auto">
+                        {caseItem.attempts} attempts
                       </Badge>
                     </div>
                     <Button
-                      className="gradient-lavender shadow-lavender w-full rounded-lg text-white hover:opacity-90"
-                      onClick={() => onNavigate?.('CaseDetail')}
+                      className="gradient-lavender shadow-lavender w-full rounded-xl text-white hover:opacity-90 hover:scale-105 transition-all mt-auto"
+                      onClick={() => onNavigate?.('CaseDetail', caseItem.id)}
                     >
-                      Start the Challenge
+                      Start the Challenge →
                     </Button>
                   </CardContent>
                 </Card>
@@ -403,8 +408,8 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
             <Button
               variant="outline"
               size="lg"
-              className="rounded-[16px] px-8"
-              onClick={() => onNavigate?.('CaseStudies')}
+              className="rounded-[16px] px-8 border-2 hover:border-primary/50 hover:bg-primary/5 hover:text-foreground transition-all"
+              onClick={() => onNavigate?.('Case Studies')}
             >
               View All Case Studies
             </Button>

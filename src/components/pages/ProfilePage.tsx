@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner@2.0.3';
 import {
   Camera,
@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   Shield,
   Bell,
-  Palette,
   Trash2,
   Upload,
   X,
@@ -181,12 +180,11 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
   const [selectedConnection, setSelectedConnection] = useState<number | null>(null);
   const [chatMessage, setChatMessage] = useState('');
 
-  // Settings state
+  // Settings state (removed darkMode)
   const [settings, setSettings] = useState({
     makeIdeasPublic: true,
     emailUpdates: true,
     aiInsights: true,
-    darkMode: false,
   });
 
   const handleSaveProfile = () => {
@@ -195,6 +193,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       ...editForm,
     });
     setIsEditOpen(false);
+    toast.success('Profile updated successfully!');
   };
 
   const handleCancel = () => {
@@ -493,11 +492,16 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                     {upvotedIdeas.map(idea => (
                       <div
                         key={idea.id}
-                        className="border-border/50 hover:border-primary/50 rounded-xl border p-4 transition-colors"
+                        onClick={() => {
+                          // Navigate to idea analyser with idea details
+                          onNavigate?.('Idea Analyser');
+                          toast.info('Opening idea details...');
+                        }}
+                        className="border-border/50 hover:border-primary/50 hover:bg-primary/5 cursor-pointer rounded-xl border p-4 transition-all"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
-                            <h4 className="mb-2">{idea.title}</h4>
+                            <h4 className="mb-2 hover:text-primary transition-colors">{idea.title}</h4>
                             <div className="text-muted-foreground flex items-center gap-4 text-sm">
                               <span className="flex items-center gap-1">
                                 <ThumbsUp className="h-4 w-4" />
@@ -515,12 +519,17 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                     {solvedCases.map(caseStudy => (
                       <div
                         key={caseStudy.id}
-                        className="border-border/50 hover:border-primary/50 rounded-xl border p-4 transition-colors"
+                        onClick={() => {
+                          // Navigate to Case Studies page with results
+                          onNavigate?.('Case Studies');
+                          toast.info('Loading case study results...');
+                        }}
+                        className="border-border/50 hover:border-primary/50 hover:bg-primary/5 cursor-pointer rounded-xl border p-4 transition-all"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="mb-2 flex items-center gap-2">
-                              <h4>{caseStudy.title}</h4>
+                              <h4 className="hover:text-primary transition-colors">{caseStudy.title}</h4>
                               <Badge
                                 variant="outline"
                                 className={`${getDifficultyColor(caseStudy.difficulty)} rounded-full`}
@@ -594,24 +603,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                       </div>
                     </div>
 
-                    {/* Theme Section */}
-                    <div className="space-y-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <Palette className="text-primary h-5 w-5" />
-                        <h4>Theme</h4>
-                      </div>
-                      <div className="bg-muted/30 flex items-center justify-between rounded-xl p-4">
-                        <div>
-                          <p className="mb-1">Dark mode</p>
-                          <p className="text-muted-foreground text-sm">Switch to dark theme</p>
-                        </div>
-                        <Switch
-                          checked={settings.darkMode}
-                          onCheckedChange={() => handleSettingChange('darkMode')}
-                        />
-                      </div>
-                    </div>
-
                     {/* Account Section */}
                     <div className="space-y-4">
                       <div className="mb-3 flex items-center gap-2">
@@ -619,12 +610,15 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                         <h4>Account</h4>
                       </div>
                       <div className="space-y-2">
-                        <Button variant="outline" className="w-full justify-start rounded-xl">
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start rounded-xl hover:bg-primary/10 hover:border-primary/50 hover:text-foreground transition-all"
+                        >
                           Change Password
                         </Button>
                         <Button
                           variant="outline"
-                          className="text-destructive hover:text-destructive w-full justify-start rounded-xl"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/50 w-full justify-start rounded-xl transition-all"
                           onClick={() => setShowDeleteModal(true)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -701,21 +695,14 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
               <CardContent className="space-y-2">
                 <Button
                   variant="outline"
-                  className="w-full justify-start rounded-xl"
-                  onClick={() => onNavigate?.('Membership')}
-                >
-                  View Your Plan
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start rounded-xl"
+                  className="w-full justify-start rounded-xl hover:bg-primary/10 hover:border-primary/50 hover:text-foreground transition-all"
                   onClick={() => onNavigate?.('Community')}
                 >
                   Browse Community
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start rounded-xl"
+                  className="w-full justify-start rounded-xl hover:bg-primary/10 hover:border-primary/50 hover:text-foreground transition-all"
                   onClick={() => onNavigate?.('Case Studies')}
                 >
                   Explore Case Studies

@@ -7,17 +7,9 @@ import { Badge } from '../ui/badge';
 
 const timeline = [
   {
-    year: '2023',
-    event: 'Motif founded',
+    year: '2025 November',
+    event: 'Motif Founded',
     desc: 'Started with a vision to democratize startup validation',
-  },
-  { year: '2023 Q3', event: 'Beta Launch', desc: 'Released to 100 early adopter founders' },
-  { year: '2024 Q1', event: 'AI Integration', desc: 'Launched advanced AI analysis engine' },
-  { year: '2024 Q3', event: 'Community Milestone', desc: 'Reached 10,000+ active founders' },
-  {
-    year: '2025',
-    event: 'Series A Funding',
-    desc: 'Raised to expand globally and add more features',
   },
 ];
 
