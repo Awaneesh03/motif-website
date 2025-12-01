@@ -53,6 +53,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showDemoReportModal, setShowDemoReportModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Validation checks
   const isTitleValid = ideaTitle.trim().length >= 5;
@@ -176,7 +177,7 @@ BE SPECIFIC AND HONEST. Avoid generic statements. Base your analysis on the actu
       }
 
       setAnalysisResult(analysisData);
-      
+
       // Save analysis to database if user is logged in
       if (user) {
         try {
@@ -219,6 +220,59 @@ BE SPECIFIC AND HONEST. Avoid generic statements. Base your analysis on the actu
     }
 
     setIsAnalyzing(false);
+  };
+
+  const handleGenerateIdea = async () => {
+    setIsGenerating(true);
+    try {
+      const groq = new Groq({
+        apiKey: GROQ_API_KEY,
+        dangerouslyAllowBrowser: true,
+      });
+
+      const prompt = `Generate a unique, innovative, and viable startup idea. 
+      Provide the response in valid JSON format with the following fields:
+      {
+        "title": "Catchy startup name or title",
+        "description": "Detailed description of the problem and solution (at least 2 sentences)",
+        "targetMarket": "Specific target audience"
+      }
+      Make it sound professional and exciting.`;
+
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a creative startup ideator. Generate unique business ideas. Return ONLY JSON.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.9, // Higher temperature for creativity
+        max_tokens: 500,
+      });
+
+      const response = chatCompletion.choices[0]?.message?.content || '';
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+
+      if (jsonMatch) {
+        const generatedIdea = JSON.parse(jsonMatch[0]);
+        setIdeaTitle(generatedIdea.title);
+        setIdeaDescription(generatedIdea.description);
+        setTargetMarket(generatedIdea.targetMarket);
+        toast.success('New idea generated! Click "Analyze" to see its potential.');
+      } else {
+        throw new Error('Failed to parse generated idea');
+      }
+    } catch (error) {
+      console.error('Generation error:', error);
+      toast.error('Failed to generate idea. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const getScoreColor = (score: number) => {
@@ -284,6 +338,40 @@ BE SPECIFIC AND HONEST. Avoid generic statements. Base your analysis on the actu
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {/* Idea Generator Banner */}
+                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-purple-500/10 to-primary/10 p-4 border border-primary/10">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                          <Lightbulb className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm">Stuck for ideas?</h4>
+                          <p className="text-xs text-muted-foreground">Let AI spark your imagination</p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleGenerateIdea}
+                        disabled={isGenerating}
+                        variant="secondary"
+                        size="sm"
+                        className="w-full sm:w-auto bg-background/80 hover:bg-background shadow-sm"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Zap className="mr-2 h-3.5 w-3.5 animate-pulse text-primary" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-2 h-3.5 w-3.5 text-primary" />
+                            Generate Random Idea
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
                   {/* Idea Title */}
                   <div className="space-y-2">
                     <Label htmlFor="ideaTitle">Idea Title *</Label>

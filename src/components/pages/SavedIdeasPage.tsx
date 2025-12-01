@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { Search, Edit, BarChart3, Trash2, Filter } from 'lucide-react';
+import { Search, Edit, BarChart3, Trash2, Filter, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
@@ -167,38 +167,47 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
       </section>
 
       {/* Main Content */}
-      <section className="bg-background py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="bg-background relative min-h-[80vh] py-12">
+        {/* Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -left-[10%] top-[20%] h-[500px] w-[500px] rounded-full bg-primary/5 blur-3xl" />
+          <div className="absolute -right-[10%] bottom-[20%] h-[500px] w-[500px] rounded-full bg-purple-500/5 blur-3xl" />
+        </div>
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Filters & Search */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="mb-8"
+            className="mb-10"
           >
-            <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+            <div className="glass-card mb-6 flex flex-col items-start justify-between gap-4 rounded-2xl border border-border/50 p-4 md:flex-row md:items-center">
               <div className="flex flex-wrap items-center gap-2">
-                <Filter className="text-muted-foreground h-5 w-5" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Filter className="h-4 w-4" />
+                </div>
+                <div className="h-6 w-px bg-border/50 mx-2" />
                 <Button
-                  variant={sortBy === 'date' ? 'default' : 'outline'}
+                  variant={sortBy === 'date' ? 'secondary' : 'ghost'}
                   onClick={() => setSortBy('date')}
-                  className="rounded-full"
+                  className="rounded-full text-sm font-medium transition-all"
                   size="sm"
                 >
-                  Sort by Date
+                  Newest First
                 </Button>
                 <Button
-                  variant={sortBy === 'az' ? 'default' : 'outline'}
+                  variant={sortBy === 'az' ? 'secondary' : 'ghost'}
                   onClick={() => setSortBy('az')}
-                  className="rounded-full"
+                  className="rounded-full text-sm font-medium transition-all"
                   size="sm"
                 >
                   A–Z
                 </Button>
                 <Button
-                  variant={sortBy === 'tags' ? 'default' : 'outline'}
+                  variant={sortBy === 'tags' ? 'secondary' : 'ghost'}
                   onClick={() => setSortBy('tags')}
-                  className="rounded-full"
+                  className="rounded-full text-sm font-medium transition-all"
                   size="sm"
                 >
                   Tags
@@ -208,19 +217,22 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
               <div className="relative w-full md:w-80">
                 <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
                 <Input
-                  placeholder="Search your ideas..."
+                  placeholder="Search your vault..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="rounded-xl pl-10"
+                  className="h-10 rounded-xl border-border/50 bg-background/50 pl-10 focus:bg-background transition-all"
                 />
               </div>
             </div>
 
-            <div className="text-muted-foreground flex items-center justify-between text-sm">
-              <p>
-                {filteredIdeas.length} {filteredIdeas.length === 1 ? 'idea' : 'ideas'} saved
+            <div className="flex items-center justify-between px-2">
+              <p className="text-muted-foreground text-sm font-medium">
+                Showing {filteredIdeas.length} {filteredIdeas.length === 1 ? 'idea' : 'ideas'}
               </p>
-              <p>{filteredIdeas.filter(i => !i.shared).length} private</p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+                {filteredIdeas.filter(i => !i.shared).length} Private
+              </div>
             </div>
           </motion.div>
 
@@ -229,23 +241,36 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="py-12 text-center"
+              className="flex h-64 items-center justify-center"
             >
-              <p className="text-muted-foreground text-xl">Loading your ideas...</p>
+              <div className="flex flex-col items-center gap-4">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                <p className="text-muted-foreground font-medium">Unlockng your vault...</p>
+              </div>
             </motion.div>
           ) : filteredIdeas.length === 0 ? (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="py-12 text-center"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center justify-center py-20 text-center"
             >
-              <p className="text-muted-foreground mb-4 text-xl">
-                {searchQuery ? 'No ideas match your search' : 'No saved ideas yet'}
+              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/10 to-purple-500/10 shadow-xl shadow-primary/5">
+                <Lightbulb className="h-12 w-12 text-primary/80" />
+              </div>
+              <h3 className="mb-2 text-2xl font-bold text-foreground">
+                {searchQuery ? 'No ideas found' : 'Your vault is empty'}
+              </h3>
+              <p className="text-muted-foreground mb-8 max-w-md text-lg">
+                {searchQuery
+                  ? "We couldn't find any ideas matching your search. Try different keywords."
+                  : "Every great unicorn started as a simple idea. Ready to find yours?"}
               </p>
               <Button
-                onClick={() => onNavigate?.('idea-analyzer')}
-                className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90"
+                onClick={() => onNavigate?.('idea-analyser')}
+                size="lg"
+                className="gradient-lavender shadow-lavender h-12 rounded-xl px-8 text-base font-semibold transition-transform hover:scale-105 active:scale-95"
               >
+                <span className="mr-2 text-xl">✨</span>
                 Generate Your First Idea
               </Button>
             </motion.div>
@@ -257,69 +282,97 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
+                  layout
                 >
-                  <Card className="border-border/50 hover:border-primary/50 h-full transition-all hover:shadow-lg">
-                    <CardContent className="p-6">
-                      <div className="mb-3 flex items-start justify-between">
-                        <h3 className="mb-2 line-clamp-2 flex-1">{idea.title}</h3>
+                  <Card className="group relative h-full overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5">
+                    {/* Gradient Overlay on Hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+                    <CardContent className="relative flex h-full flex-col p-6">
+                      <div className="mb-4 flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="line-clamp-2 text-lg font-bold leading-tight text-foreground transition-colors group-hover:text-primary">
+                            {idea.title}
+                          </h3>
+                        </div>
                         {!idea.shared && (
-                          <Badge variant="secondary" className="ml-2 rounded-full text-xs">
-                            Private
+                          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-background/80 shadow-sm ring-1 ring-border/50" title="Private Idea">
+                            <div className="h-2 w-2 rounded-full bg-green-500" />
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="text-muted-foreground mb-6 line-clamp-3 flex-1 text-sm leading-relaxed">
+                        {idea.description}
+                      </p>
+
+                      <div className="mb-6 flex flex-wrap gap-2">
+                        {idea.tags.length > 0 ? (
+                          idea.tags.slice(0, 3).map(tag => (
+                            <Badge key={tag} variant="secondary" className="bg-secondary/50 font-normal text-xs hover:bg-secondary">
+                              {tag}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge variant="secondary" className="bg-secondary/30 text-muted-foreground font-normal text-xs">
+                            No tags
+                          </Badge>
+                        )}
+                        {idea.tags.length > 3 && (
+                          <Badge variant="secondary" className="bg-secondary/30 text-xs">
+                            +{idea.tags.length - 3}
                           </Badge>
                         )}
                       </div>
 
-                      <p className="text-muted-foreground mb-4 line-clamp-3 text-sm">
-                        {idea.description}
-                      </p>
+                      <div className="mt-auto space-y-4">
+                        {idea.score && (
+                          <div className="flex items-center justify-between rounded-xl bg-secondary/30 p-3 ring-1 ring-border/50">
+                            <span className="text-xs font-medium text-muted-foreground">Viability Score</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-sm font-bold ${idea.score >= 80 ? 'text-green-600' :
+                                idea.score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                                }`}>
+                                {idea.score}
+                              </span>
+                              <span className="text-xs text-muted-foreground">/100</span>
+                            </div>
+                          </div>
+                        )}
 
-                      <div className="mb-4 flex flex-wrap gap-2">
-                        {idea.tags.map(tag => (
-                          <Badge key={tag} variant="outline" className="rounded-full text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
+                        <div className="flex items-center justify-between gap-2 pt-2">
+                          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                            {formatDate(idea.createdDate)}
+                          </span>
 
-                      {idea.score && (
-                        <div className="bg-primary/10 mb-4 rounded-xl p-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground text-sm">Validation Score</span>
-                            <span className="text-primary font-medium">{idea.score}/100</span>
+                          <div className="flex gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit()}
+                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                              title="Edit Idea"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteId(idea.id)}
+                              className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive"
+                              title="Delete Idea"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </div>
-                      )}
 
-                      <div className="text-muted-foreground mb-4 text-xs">
-                        Created {formatDate(idea.createdDate)}
-                      </div>
-
-                      <div className="flex gap-2">
                         <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit()}
-                          className="flex-1 rounded-xl"
-                        >
-                          <Edit className="mr-1 h-3 w-3" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
                           onClick={() => handleAnalyzeAgain()}
-                          className="gradient-lavender flex-1 rounded-xl hover:opacity-90"
+                          className="w-full rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-medium transition-all duration-300"
                         >
-                          <BarChart3 className="mr-1 h-3 w-3" />
-                          Analyze
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setDeleteId(idea.id)}
-                          className="text-destructive hover:text-destructive rounded-xl"
-                        >
-                          <Trash2 className="h-3 w-3" />
+                          <BarChart3 className="mr-2 h-4 w-4" />
+                          View Analysis
                         </Button>
                       </div>
                     </CardContent>

@@ -22,6 +22,7 @@ import { PricingPage } from './components/pages/PricingPage';
 import { PitchCreatorPage } from './components/pages/PitchCreatorPage';
 import { DashboardPage } from './components/pages/DashboardPage';
 import { VCConnectionPage } from './components/pages/VCConnectionPage';
+import { SavedIdeasPage } from './components/pages/SavedIdeasPage';
 
 export default function App() {
   const [isDark, setIsDark] = useState(false);
@@ -62,7 +63,8 @@ export default function App() {
       'Pricing': '/pricing',
       'Pitch Creator': '/pitch-creator',
       'Dashboard': '/dashboard',
-      'Get Funded': '/get-funded'
+      'Get Funded': '/get-funded',
+      'saved-ideas': '/saved-ideas'
     };
 
     if (caseId) {
@@ -99,7 +101,8 @@ export default function App() {
       '/pricing': 'Pricing',
       '/pitch-creator': 'Pitch Creator',
       '/dashboard': 'Dashboard',
-      '/get-funded': 'Get Funded'
+      '/get-funded': 'Get Funded',
+      '/saved-ideas': 'Saved Ideas'
     };
 
     // Handle case detail pages
@@ -140,6 +143,7 @@ export default function App() {
             <Route path="/pitch-creator" element={<PitchCreatorPage onNavigate={handleNavigate} />} />
             <Route path="/dashboard" element={<DashboardPage onNavigate={handleNavigate} />} />
             <Route path="/get-funded" element={<VCConnectionPage onNavigate={handleNavigate} />} />
+            <Route path="/saved-ideas" element={<SavedIdeasPage onNavigate={handleNavigate} />} />
           </Routes>
         </main>
         <Footer onNavigate={handleNavigate} />
