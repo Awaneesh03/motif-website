@@ -341,10 +341,20 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                             </div>
                             <p className="text-muted-foreground text-sm mb-3">{idea.description}</p>
                             <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                              <div
+                                className="flex-1 rounded-full overflow-hidden"
+                                style={{
+                                  backgroundColor: '#e5e7eb',
+                                  height: '10px'
+                                }}
+                              >
                                 <div
-                                  className="bg-gradient-to-r from-green-500 to-emerald-600 h-2.5 rounded-full transition-all duration-300"
-                                  style={{ width: `${idea.score}%` }}
+                                  className="rounded-full transition-all duration-300"
+                                  style={{
+                                    width: `${idea.score}%`,
+                                    height: '10px',
+                                    background: 'linear-gradient(to right, #10b981, #059669)'
+                                  }}
                                 />
                               </div>
                               <span className="text-sm font-bold text-green-600 dark:text-green-400 min-w-[45px] text-right">
