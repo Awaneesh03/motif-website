@@ -266,7 +266,7 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
                   : "Every great unicorn started as a simple idea. Ready to find yours?"}
               </p>
               <Button
-                onClick={() => onNavigate?.('idea-analyser')}
+                onClick={() => onNavigate?.('Idea Analyser')}
                 size="lg"
                 className="gradient-lavender shadow-lavender h-12 rounded-xl px-8 text-base font-semibold transition-transform hover:scale-105 active:scale-95"
               >
