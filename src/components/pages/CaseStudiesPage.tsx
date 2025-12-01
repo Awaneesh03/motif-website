@@ -433,8 +433,8 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                                   <Star
                                     key={star}
                                     className={`h-4 w-4 ${star <= Math.round(attempt.score / 20)
-                                        ? 'fill-yellow-400 text-yellow-400'
-                                        : 'text-gray-300'
+                                      ? 'fill-yellow-400 text-yellow-400'
+                                      : 'text-gray-300'
                                       }`}
                                   />
                                 ))}
@@ -456,7 +456,7 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
               {/* Leaderboard Header */}
               <Card className="gradient-lavender border-none text-white">
                 <CardContent className="p-8 text-center">
-                  <Trophy className="mx-auto mb-4 h-16 w-16" />
+                  <div className="text-6xl mb-4">🏆</div>
                   <h2 className="text-3xl font-bold mb-2">Top Performers</h2>
                   <p className="text-white/90">
                     Compete with the best minds in startup strategy and problem-solving
@@ -468,7 +468,7 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
               <Card className="border-primary/50 bg-primary/5">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Trophy className="text-primary h-5 w-5" />
+                    <span className="text-2xl">🏅</span>
                     Your Rank
                   </CardTitle>
                 </CardHeader>
@@ -501,7 +501,7 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Trophy className="text-primary h-5 w-5" />
+                    <span className="text-xl">🏆</span>
                     Global Leaderboard
                   </CardTitle>
                 </CardHeader>
@@ -516,19 +516,23 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                         className={`flex items-center gap-4 p-4 rounded-lg transition-all hover:bg-muted/50 ${user.rank <= 3 ? 'bg-muted/30' : ''
                           }`}
                       >
-                        {/* Rank Badge with Trophy for top 3 */}
+                        {/* Rank Badge with Emoji Medals for top 3 */}
                         <div
-                          className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${user.rank === 1
-                              ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-lg'
+                          className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-xl ${user.rank === 1
+                              ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg'
                               : user.rank === 2
-                                ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-lg'
+                                ? 'bg-gradient-to-br from-gray-300 to-gray-500 shadow-lg'
                                 : user.rank === 3
-                                  ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg'
-                                  : 'bg-muted text-muted-foreground'
+                                  ? 'bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg'
+                                  : 'bg-muted text-muted-foreground text-sm'
                             }`}
                         >
-                          {user.rank <= 3 ? (
-                            <Trophy className="h-5 w-5" />
+                          {user.rank === 1 ? (
+                            <span>🥇</span>
+                          ) : user.rank === 2 ? (
+                            <span>🥈</span>
+                          ) : user.rank === 3 ? (
+                            <span>🥉</span>
                           ) : (
                             <span>#{user.rank}</span>
                           )}
