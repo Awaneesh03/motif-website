@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import {
   Camera,
   Users,
@@ -8,7 +8,6 @@ import {
   BookOpen,
   Mail,
   Linkedin,
-  ThumbsUp,
   CheckCircle2,
   Shield,
   Bell,
@@ -16,200 +15,463 @@ import {
   Upload,
   X,
   Smile,
-  MessageCircle,
-  Send,
+  Target,
+  TrendingUp,
+  AlertCircle,
+  ChevronRight,
+  Award,
+  Clock,
+  Sparkles,
+  ArrowRight,
+  Loader2,
+  Bug,
 } from 'lucide-react';
 
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Badge } from '../ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
-
-// Mock user data
-const mockUser = {
-  name: 'Alex Johnson',
-  email: 'alex.johnson@example.com',
-  about:
-    'Founder & entrepreneur passionate about AI, SaaS, and building products that matter. Always looking to connect with fellow innovators.',
-  linkedin: 'https://linkedin.com/in/alexjohnson',
-  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-  connections: 342,
-  ideasSaved: 28,
-  caseStudiesSaved: 15,
-};
-
-const upvotedIdeas = [
-  {
-    id: 1,
-    title: 'AI-powered meal planning app for busy professionals',
-    date: '2024-11-05',
-    upvotes: 234,
-  },
-  {
-    id: 2,
-    title: 'Blockchain-based freelancer marketplace with escrow',
-    date: '2024-11-03',
-    upvotes: 189,
-  },
-  {
-    id: 3,
-    title: 'No-code platform for building internal tools',
-    date: '2024-11-01',
-    upvotes: 156,
-  },
-  {
-    id: 4,
-    title: 'Virtual reality training platform for medical students',
-    date: '2024-10-28',
-    upvotes: 142,
-  },
-  {
-    id: 5,
-    title: 'Sustainable packaging marketplace for e-commerce',
-    date: '2024-10-25',
-    upvotes: 128,
-  },
-];
-
-const solvedCases = [
-  {
-    id: 1,
-    title: 'Uber - Urban Transportation Disruption',
-    completedDate: '2024-11-04',
-    difficulty: 'Advanced',
-    score: 95,
-  },
-  {
-    id: 2,
-    title: 'Airbnb - Trust in Peer-to-Peer Marketplace',
-    completedDate: '2024-10-30',
-    difficulty: 'Advanced',
-    score: 88,
-  },
-  {
-    id: 3,
-    title: 'Spotify - Music Streaming Revolution',
-    completedDate: '2024-10-22',
-    difficulty: 'Intermediate',
-    score: 92,
-  },
-  {
-    id: 4,
-    title: 'Slack - Team Communication Platform',
-    completedDate: '2024-10-18',
-    difficulty: 'Beginner',
-    score: 100,
-  },
-];
+import { Progress } from '../ui/progress';
+import { Badge } from '../ui/badge';
+import { useUser } from '../../contexts/UserContext';
+import { supabase } from '../../lib/supabase';
 
 interface ProfilePageProps {
   onNavigate?: (page: string) => void;
 }
 
 const emojis = [
-  '😊',
-  '🚀',
-  '💡',
-  '🎯',
-  '⭐',
-  '🔥',
-  '💪',
-  '🌟',
-  '🎨',
-  '🧠',
-  '👨‍💼',
-  '👩‍💼',
-  '🦄',
-  '🌈',
-  '⚡',
+  '😊', '🚀', '💡', '🎯', '⭐', '🔥', '💪', '🌟',
+  '🎨', '🧠', '👨‍💼', '👩‍💼', '🦄', '🌈', '⚡',
 ];
 
-const mockConnections = [
-  {
-    id: 1,
-    name: 'Sarah Chen',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-    lastMessage: 'That sounds like a great idea!',
-    unread: 2,
-    online: true,
-  },
-  {
-    id: 2,
-    name: 'Mike Rodriguez',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
-    lastMessage: 'Let\'s schedule a call',
-    unread: 0,
-    online: false,
-  },
-  {
-    id: 3,
-    name: 'Emma Thompson',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
-    lastMessage: 'Thanks for the feedback!',
-    unread: 1,
-    online: true,
-  },
-];
+// ============================================================================
+// 🔒 EXPLICIT STATE MACHINE (5 STATES - DETERMINISTIC)
+// ============================================================================
+type RenderState =
+  | 'auth_loading'
+  | 'unauthenticated'
+  | 'authenticated_no_profile'
+  | 'authenticated_with_profile'
+  | 'fatal_error_fallback';
 
+interface ProfileCompletion {
+  percentage: number;
+  completedSteps: string[];
+  pendingSteps: string[];
+}
+
+interface InvestorReadiness {
+  score: number;
+  level: 'Not Ready' | 'Getting Started' | 'In Progress' | 'Nearly Ready' | 'Ready';
+  strengths: string[];
+  improvements: string[];
+}
+
+// ============================================================================
+// SAFE CALCULATION FUNCTIONS (ALWAYS RETURN VALID DATA)
+// ============================================================================
+function calculateProfileCompletion(profile: any, userIdeas: any[]): ProfileCompletion {
+  const safeUserIdeas = Array.isArray(userIdeas) ? userIdeas : [];
+
+  const steps = [
+    { key: 'basicInfo', label: 'Basic info', check: () => profile?.name && profile?.email },
+    { key: 'background', label: 'Founder background', check: () => profile?.about && profile?.about.length > 20 },
+    { key: 'linkedin', label: 'LinkedIn profile', check: () => profile?.linkedin },
+    { key: 'startupGoals', label: 'Startup goals', check: () => Array.isArray(profile?.startup_goals) && profile?.startup_goals?.length > 0 },
+    { key: 'ideaAdded', label: 'Startup idea basics', check: () => safeUserIdeas.length > 0 },
+  ];
+
+  const completedSteps = steps.filter(step => {
+    try {
+      return step.check();
+    } catch {
+      return false;
+    }
+  }).map(s => s.label);
+
+  const pendingSteps = steps.filter(step => {
+    try {
+      return !step.check();
+    } catch {
+      return true;
+    }
+  }).map(s => s.label);
+
+  const percentage = Math.round((completedSteps.length / steps.length) * 100);
+
+  return { percentage, completedSteps, pendingSteps };
+}
+
+function calculateInvestorReadiness(profile: any, userIdeas: any[]): InvestorReadiness {
+  const safeUserIdeas = Array.isArray(userIdeas) ? userIdeas : [];
+  const strengths: string[] = [];
+  const improvements: string[] = [];
+  let score = 0;
+
+  try {
+    if (profile?.about && profile?.about?.length > 50) {
+      score += 15;
+      strengths.push('Strong founder background');
+    } else {
+      improvements.push('Add detailed founder background');
+    }
+
+    if (profile?.linkedin) {
+      score += 10;
+      strengths.push('LinkedIn profile connected');
+    } else {
+      improvements.push('Connect LinkedIn profile');
+    }
+
+    if (Array.isArray(profile?.startup_goals) && profile?.startup_goals?.length >= 2) {
+      score += 10;
+      strengths.push('Clear startup goals defined');
+    } else {
+      improvements.push('Define startup goals');
+    }
+
+    if (safeUserIdeas.length > 0) {
+      score += 20;
+      strengths.push('Ideas documented');
+
+      if (safeUserIdeas.length >= 3) {
+        score += 15;
+        strengths.push('Multiple ideas explored');
+      }
+    } else {
+      improvements.push('Add and analyze startup ideas');
+    }
+
+    if (safeUserIdeas.some(idea => idea?.user_validation)) {
+      score += 30;
+      strengths.push('Ideas validated with users');
+    } else if (safeUserIdeas.length > 0) {
+      improvements.push('Validate ideas with potential users');
+    }
+  } catch (error) {
+    console.error('Error calculating investor readiness:', error);
+  }
+
+  let level: InvestorReadiness['level'] = 'Not Ready';
+  if (score >= 80) level = 'Ready';
+  else if (score >= 60) level = 'Nearly Ready';
+  else if (score >= 40) level = 'In Progress';
+  else if (score >= 20) level = 'Getting Started';
+
+  return { score, level, strengths, improvements };
+}
+
+// ============================================================================
+// MAIN PROFILE PAGE COMPONENT
+// ============================================================================
 export function ProfilePage({ onNavigate }: ProfilePageProps) {
-  const [user, setUser] = useState(mockUser);
+  const { user: authUser, profile, setProfile, isLoading: authLoading } = useUser();
+
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
+  const [currentRenderState, setCurrentRenderState] = useState<RenderState>('auth_loading');
+  const [userIdeas, setUserIdeas] = useState<any[]>([]);
+  const [userCases, setUserCases] = useState<any[]>([]);
+  const [activityTimeline, setActivityTimeline] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [profileCreationAttempted, setProfileCreationAttempted] = useState(false);
+  const [fatalError, setFatalError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    connections: 0,
+    ideasSaved: 0,
+    caseStudiesSaved: 0,
+  });
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
   const [selectedEmoji, setSelectedEmoji] = useState('');
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
     about: '',
     linkedin: '',
+    role: '',
+    location: '',
+    education: '',
   });
+
   const [formErrors, setFormErrors] = useState({
     name: '',
     email: '',
     about: '',
     linkedin: '',
+    role: '',
+    location: '',
+    education: '',
   });
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedConnection, setSelectedConnection] = useState<number | null>(null);
-  const [chatMessage, setChatMessage] = useState('');
 
-  // Settings state (removed darkMode)
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [settings, setSettings] = useState({
     makeIdeasPublic: true,
     emailUpdates: true,
     aiInsights: true,
   });
 
-  // Sync form with user data when modal opens
+  // ============================================================================
+  // 🔒 DETERMINISTIC STATE CALCULATION (ALWAYS RUNS)
+  // ============================================================================
   useEffect(() => {
-    if (isEditOpen) {
-      setEditForm({
-        name: user.name,
-        email: user.email,
-        about: user.about,
-        linkedin: user.linkedin,
-      });
-      setFormErrors({
-        name: '',
-        email: '',
+    try {
+      // STATE 1: Auth still loading
+      if (authLoading) {
+        setCurrentRenderState('auth_loading');
+        return;
+      }
+
+      // STATE 2: Not authenticated
+      if (!authUser) {
+        setCurrentRenderState('unauthenticated');
+        return;
+      }
+
+      // STATE 3 & 4: Authenticated - check profile
+      if (authUser && !profile && !profileCreationAttempted) {
+        // Force create profile for new users
+        setCurrentRenderState('authenticated_no_profile');
+        forceCreateProfile(authUser);
+        return;
+      }
+
+      // STATE 4: Authenticated with profile
+      if (authUser && profile) {
+        setCurrentRenderState('authenticated_with_profile');
+        return;
+      }
+
+      // STATE 3: Authenticated but no profile (after creation attempt)
+      if (authUser && !profile && profileCreationAttempted) {
+        setCurrentRenderState('authenticated_no_profile');
+        return;
+      }
+
+      // STATE 5: Fallback for any edge case
+      setCurrentRenderState('fatal_error_fallback');
+    } catch (error) {
+      console.error('Error in state calculation:', error);
+      setFatalError(String(error));
+      setCurrentRenderState('fatal_error_fallback');
+    }
+  }, [authLoading, authUser, profile, profileCreationAttempted]);
+
+  // ============================================================================
+  // FORCE PROFILE CREATION ON FIRST VISIT
+  // ============================================================================
+  const forceCreateProfile = async (user: any) => {
+    if (profileCreationAttempted) return;
+
+    try {
+      setProfileCreationAttempted(true);
+      setDataLoading(true);
+
+      const defaultProfile = {
+        id: user.id,
+        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+        email: user.email || '',
         about: '',
         linkedin: '',
-      });
+        avatar: user.user_metadata?.avatar_url || '',
+        role: '',
+        location: '',
+        education: '',
+        startup_goals: [],
+        connections: 0,
+        ideasSaved: 0,
+        caseStudiesSaved: 0,
+        profileCompleted: false,
+        currentStage: 'onboarding',
+      };
+
+      // Set profile immediately in memory
+      setProfile(defaultProfile as any);
+
+      // Try to save to database (non-blocking)
+      const { error } = await supabase
+        .from('profiles')
+        .upsert([defaultProfile], { onConflict: 'id' });
+
+      if (error) {
+        console.error('Failed to save profile to database:', error);
+        // Continue anyway - we have in-memory profile
+      } else {
+        console.log('✅ Profile auto-created in database');
+      }
+    } catch (error) {
+      console.error('Error creating profile:', error);
+      // Continue anyway - profile might exist in memory
+    } finally {
+      setDataLoading(false);
     }
-  }, [isEditOpen, user]);
+  };
+
+  // ============================================================================
+  // LOAD USER DATA (NON-BLOCKING)
+  // ============================================================================
+  useEffect(() => {
+    if (authUser && currentRenderState === 'authenticated_with_profile') {
+      loadUserData();
+    }
+  }, [authUser, currentRenderState]);
+
+  const loadUserData = async () => {
+    if (!authUser) return;
+
+    try {
+      setDataLoading(true);
+
+      // Load ideas
+      const { data: ideas, error: ideasError } = await supabase
+        .from('idea_analyses')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .order('created_at', { ascending: false });
+
+      if (!ideasError && Array.isArray(ideas)) {
+        setUserIdeas(ideas);
+        setStats(prev => ({ ...prev, ideasSaved: ideas.length }));
+      } else {
+        setUserIdeas([]);
+      }
+
+      // Load case studies
+      const { data: cases, error: casesError } = await supabase
+        .from('user_attempts')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .order('attempted_at', { ascending: false });
+
+      if (!casesError && Array.isArray(cases)) {
+        setUserCases(cases);
+        setStats(prev => ({ ...prev, caseStudiesSaved: cases.length }));
+      } else {
+        setUserCases([]);
+      }
+
+      // Build timeline
+      const timeline: any[] = [];
+      if (Array.isArray(ideas)) {
+        ideas.forEach(idea => {
+          timeline.push({
+            type: 'idea',
+            title: 'Idea analyzed',
+            description: idea?.idea_title || 'Untitled idea',
+            date: idea?.created_at || new Date().toISOString(),
+            icon: 'lightbulb',
+          });
+        });
+      }
+      if (Array.isArray(cases)) {
+        cases.forEach(caseItem => {
+          timeline.push({
+            type: 'case',
+            title: 'Case study completed',
+            description: caseItem?.case_id || 'Case study',
+            date: caseItem?.attempted_at || new Date().toISOString(),
+            icon: 'book',
+          });
+        });
+      }
+
+      timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setActivityTimeline(timeline.slice(0, 5));
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      // Continue with empty data
+      setUserIdeas([]);
+      setUserCases([]);
+      setActivityTimeline([]);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  // ============================================================================
+  // SAFE PROFILE WITH FALLBACKS
+  // ============================================================================
+  const displayProfile = useMemo(() => {
+    return profile || {
+      id: authUser?.id || '',
+      name: authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'User',
+      email: authUser?.email || '',
+      about: '',
+      linkedin: '',
+      avatar: authUser?.user_metadata?.avatar_url || '',
+      role: '',
+      location: '',
+      education: '',
+      startup_goals: [],
+      connections: 0,
+      ideasSaved: 0,
+      caseStudiesSaved: 0,
+    };
+  }, [profile, authUser]);
+
+  // ============================================================================
+  // CALCULATIONS (WITH SAFE DEFAULTS)
+  // ============================================================================
+  const profileCompletion = useMemo(
+    () => calculateProfileCompletion(displayProfile, userIdeas),
+    [displayProfile, userIdeas]
+  );
+
+  const investorReadiness = useMemo(
+    () => calculateInvestorReadiness(displayProfile, userIdeas),
+    [displayProfile, userIdeas]
+  );
+
+  const isFirstTimeUser = profileCompletion.percentage < 50;
+
+  // ============================================================================
+  // HELPER: Safe display name (never empty)
+  // ============================================================================
+  const getDisplayName = () => {
+    const name = displayProfile?.name?.trim();
+    if (name && name.length > 0) return name;
+    return 'there'; // Fallback for "Welcome, there!"
+  };
+
+  const getFirstName = () => {
+    const fullName = getDisplayName();
+    if (fullName === 'there') return fullName;
+    return fullName.split(' ')[0];
+  };
+
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+  const handleEditProfile = () => {
+    setEditForm({
+      name: displayProfile.name || '',
+      email: displayProfile.email || '',
+      about: displayProfile.about || '',
+      linkedin: displayProfile.linkedin || '',
+      role: displayProfile.role || '',
+      location: displayProfile.location || '',
+      education: displayProfile.education || '',
+    });
+    setSelectedGoals(Array.isArray(displayProfile.startup_goals) ? displayProfile.startup_goals : []);
+    setIsEditOpen(true);
+  };
 
   const validateForm = () => {
     const errors = {
@@ -217,837 +479,847 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       email: '',
       about: '',
       linkedin: '',
+      role: '',
+      location: '',
+      education: '',
     };
+
     let isValid = true;
 
-    // Validate name
-    if (!editForm.name.trim()) {
-      errors.name = 'Name is required';
-      isValid = false;
-    } else if (editForm.name.trim().length < 2) {
+    if (!editForm.name || editForm.name.trim().length < 2) {
       errors.name = 'Name must be at least 2 characters';
       isValid = false;
     }
 
-    // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!editForm.email.trim()) {
-      errors.email = 'Email is required';
+    if (!editForm.email || !emailRegex.test(editForm.email)) {
+      errors.email = 'Please enter a valid email';
       isValid = false;
-    } else if (!emailRegex.test(editForm.email)) {
-      errors.email = 'Please enter a valid email address';
-      isValid = false;
-    }
-
-    // Validate about (optional but if provided, check length)
-    if (editForm.about.length > 500) {
-      errors.about = 'About section cannot exceed 500 characters';
-      isValid = false;
-    }
-
-    // Validate LinkedIn URL (optional but if provided, check format)
-    if (editForm.linkedin && editForm.linkedin.trim()) {
-      const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-]+\/?$/;
-      if (!linkedinRegex.test(editForm.linkedin)) {
-        errors.linkedin = 'Please enter a valid LinkedIn profile URL';
-        isValid = false;
-      }
     }
 
     setFormErrors(errors);
     return isValid;
   };
 
-  const handleSaveProfile = () => {
-    if (!validateForm()) {
-      toast.error('Please fix the errors before saving');
-      return;
+  const handleSaveProfile = async () => {
+    if (!validateForm()) return;
+    if (!authUser) return;
+
+    try {
+      const updatedProfile = {
+        ...displayProfile,
+        name: editForm.name,
+        email: editForm.email,
+        about: editForm.about,
+        linkedin: editForm.linkedin,
+        role: editForm.role,
+        location: editForm.location,
+        education: editForm.education,
+        startup_goals: selectedGoals,
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(updatedProfile)
+        .eq('id', authUser.id);
+
+      if (error) throw error;
+
+      setProfile(updatedProfile as any);
+      setIsEditOpen(false);
+      toast.success('Profile updated successfully!');
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error(error.message || 'Failed to update profile');
     }
-
-    // Trim whitespace from form data
-    const cleanedData = {
-      name: editForm.name.trim(),
-      email: editForm.email.trim(),
-      about: editForm.about.trim(),
-      linkedin: editForm.linkedin.trim(),
-    };
-
-    setUser({
-      ...user,
-      ...cleanedData,
-    });
-    setIsEditOpen(false);
-    toast.success('Profile updated successfully!');
   };
 
-  const handleCancel = () => {
-    setEditForm({
-      name: user.name,
-      email: user.email,
-      about: user.about,
-      linkedin: user.linkedin,
-    });
-    setFormErrors({
-      name: '',
-      email: '',
-      about: '',
-      linkedin: '',
-    });
-    setIsEditOpen(false);
+  const handleAvatarChange = async (emoji: string) => {
+    if (!authUser) return;
+
+    try {
+      const updatedProfile = { ...displayProfile, avatar: emoji };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar: emoji })
+        .eq('id', authUser.id);
+
+      if (error) throw error;
+
+      setProfile(updatedProfile as any);
+      setIsAvatarModalOpen(false);
+      toast.success('Avatar updated!');
+    } catch (error: any) {
+      console.error('Error updating avatar:', error);
+      toast.error(error.message || 'Failed to update avatar');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!authUser) return;
+
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(authUser.id);
+      if (error) throw error;
+
+      toast.success('Account deleted successfully');
+      onNavigate?.('Auth');
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      toast.error(error.message || 'Failed to delete account');
+    }
+  };
+
+  const toggleGoal = (goal: string) => {
+    setSelectedGoals(prev =>
+      prev.includes(goal) ? prev.filter(g => g !== goal) : [...prev, goal]
+    );
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Beginner':
-        return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case 'Intermediate':
-        return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-      case 'Advanced':
-        return 'bg-red-500/10 text-red-500 border-red-500/20';
-      default:
-        return 'bg-muted text-muted-foreground';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return 'Invalid date';
     }
   };
 
-  const handleSettingChange = (key: keyof typeof settings) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-    toast.success('Settings saved');
+  // ============================================================================
+  // 🐛 DEBUG PANEL (DEV MODE ONLY)
+  // ============================================================================
+  const DebugPanel = () => {
+    // Only show in development mode
+    if (import.meta.env.PROD) return null;
+
+    return (
+      <Card className="mb-4 border-yellow-500/50 bg-yellow-500/5">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Bug className="h-5 w-5 text-yellow-500" />
+            <h3 className="font-semibold text-yellow-500">Debug Panel (Dev Only)</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="text-muted-foreground">Auth Status:</span>{' '}
+              <Badge variant={authLoading ? 'secondary' : 'default'}>
+                {authLoading ? 'LOADING' : 'LOADED'}
+              </Badge>
+            </div>
+            <div>
+              <span className="text-muted-foreground">User Exists:</span>{' '}
+              <Badge variant={authUser ? 'default' : 'destructive'}>
+                {authUser ? 'YES' : 'NO'}
+              </Badge>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Profile Exists:</span>{' '}
+              <Badge variant={profile ? 'default' : 'destructive'}>
+                {profile ? 'YES' : 'NO'}
+              </Badge>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Current State:</span>{' '}
+              <Badge variant="outline" className="font-mono text-xs">
+                {currentRenderState}
+              </Badge>
+            </div>
+          </div>
+          {fatalError && (
+            <div className="mt-2 p-2 bg-red-500/10 border border-red-500/50 rounded text-xs text-red-500">
+              Error: {fatalError}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
 
-  const handleDeleteAccount = () => {
-    setShowDeleteModal(false);
-    toast.success('Account deletion request submitted');
-  };
+  // ============================================================================
+  // SHARED MODALS
+  // ============================================================================
+  const renderModals = () => (
+    <>
+      {/* Goals Selection Modal */}
+      <Dialog open={isGoalsModalOpen} onOpenChange={setIsGoalsModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Select Startup Goals</DialogTitle>
+            <DialogDescription>Choose the goals that resonate with your startup journey</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-4">
+            {[
+              'Build an MVP',
+              'Get first users',
+              'Raise funding',
+              'Find co-founder',
+              'Validate idea',
+              'Launch product',
+              'Grow revenue',
+              'Scale team',
+            ].map(goal => (
+              <Button
+                key={goal}
+                variant={selectedGoals.includes(goal) ? 'default' : 'outline'}
+                className="justify-start"
+                onClick={() => toggleGoal(goal)}
+              >
+                {selectedGoals.includes(goal) && <CheckCircle2 className="mr-2 h-4 w-4" />}
+                {goal}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-  const handleAvatarChange = (type: 'emoji' | 'upload' | 'remove') => {
-    if (type === 'emoji' && selectedEmoji) {
-      setUser({ ...user, avatar: selectedEmoji }); // Store emoji as avatar
-      toast.success(`Profile picture updated to ${selectedEmoji}`);
-      setSelectedEmoji('');
-      setIsAvatarModalOpen(false);
-    } else if (type === 'upload') {
-      // Simulate file upload - in real app, this would handle file selection
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/jpeg,image/png,image/jpg';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          if (file.size > 5 * 1024 * 1024) { // 5MB limit
-            toast.error('File size must be less than 5MB');
-            return;
-          }
-          // In real app, upload to server and get URL
-          const mockUploadedUrl = 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&fit=crop';
-          setUser({ ...user, avatar: mockUploadedUrl });
-          toast.success('Profile picture uploaded successfully!');
-        }
-      };
-      input.click();
-      setIsAvatarModalOpen(false);
-    } else if (type === 'remove') {
-      setUser({ ...user, avatar: '' });
-      toast.success('Profile picture removed');
-      setIsAvatarModalOpen(false);
-    }
-  };
+      {/* Avatar Selection Modal */}
+      <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose Your Avatar</DialogTitle>
+            <DialogDescription>Pick an emoji that represents you</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-5 gap-2 py-4">
+            {emojis.map(emoji => (
+              <Button
+                key={emoji}
+                variant="outline"
+                className="h-16 text-3xl hover:scale-110 transition-transform"
+                onClick={() => {
+                  setSelectedEmoji(emoji);
+                  handleAvatarChange(emoji);
+                }}
+              >
+                {emoji}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-  const handleSendMessage = () => {
-    if (chatMessage.trim() && selectedConnection) {
-      toast.success('Message sent!');
-      setChatMessage('');
-    }
-  };
-
-  return (
-    <div className="bg-background min-h-screen">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Card
-            className="border-border/50 relative mb-8 overflow-hidden shadow-lg"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(181, 199, 255, 0.05) 0%, rgba(162, 108, 253, 0.05) 100%)',
-            }}
-          >
-            <CardContent className="p-8">
-              <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
-                {/* Profile Picture */}
-                <div className="group relative">
-                  <Avatar
-                    className="h-32 w-32 border-4"
-                    style={{ borderColor: 'rgba(181, 199, 255, 0.3)' }}
-                  >
-                    {user.avatar && user.avatar.startsWith('http') ? (
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                    ) : user.avatar && user.avatar.length === 2 ? (
-                      <div className="flex h-full w-full items-center justify-center text-4xl">
-                        {user.avatar}
-                      </div>
-                    ) : (
-                      <AvatarFallback className="text-3xl">
-                        {user.name
-                          .split(' ')
-                          .map(n => n[0])
-                          .join('')}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <button
-                    onClick={() => setIsAvatarModalOpen(true)}
-                    className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <Camera className="h-8 w-8 text-white" />
-                  </button>
-                </div>
-
-                {/* User Info */}
-                <div className="flex-1">
-                  <h1 className="mb-2 text-3xl" style={{ color: '#D8E0FF' }}>
-                    {user.name}
-                  </h1>
-                  <p className="text-muted-foreground mb-4 max-w-2xl">{user.about}</p>
-                </div>
-
-                {/* Edit Button */}
-                <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      className="gradient-lavender shadow-lavender rounded-[16px] px-6 hover:opacity-90"
-                      style={{ boxShadow: '0 0 12px rgba(165, 187, 255, 0.25)' }}
-                    >
-                      Edit Profile
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                      <DialogTitle>Edit Profile</DialogTitle>
-                      <DialogDescription>
-                        Update your profile information and social links.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Name *</Label>
-                        <Input
-                          id="name"
-                          value={editForm.name}
-                          onChange={e => {
-                            setEditForm({ ...editForm, name: e.target.value });
-                            if (formErrors.name) {
-                              setFormErrors({ ...formErrors, name: '' });
-                            }
-                          }}
-                          className={formErrors.name ? 'border-destructive' : ''}
-                        />
-                        {formErrors.name && (
-                          <p className="text-destructive text-sm">{formErrors.name}</p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={editForm.email}
-                          onChange={e => {
-                            setEditForm({ ...editForm, email: e.target.value });
-                            if (formErrors.email) {
-                              setFormErrors({ ...formErrors, email: '' });
-                            }
-                          }}
-                          className={formErrors.email ? 'border-destructive' : ''}
-                        />
-                        {formErrors.email && (
-                          <p className="text-destructive text-sm">{formErrors.email}</p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="about">About</Label>
-                        <Textarea
-                          id="about"
-                          rows={4}
-                          value={editForm.about}
-                          onChange={e => {
-                            setEditForm({ ...editForm, about: e.target.value });
-                            if (formErrors.about) {
-                              setFormErrors({ ...formErrors, about: '' });
-                            }
-                          }}
-                          className={formErrors.about ? 'border-destructive' : ''}
-                        />
-                        <p className="text-muted-foreground text-sm">
-                          {editForm.about.length}/500 characters
-                        </p>
-                        {formErrors.about && (
-                          <p className="text-destructive text-sm">{formErrors.about}</p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="linkedin">LinkedIn Profile</Label>
-                        <Input
-                          id="linkedin"
-                          placeholder="https://linkedin.com/in/yourprofile"
-                          value={editForm.linkedin}
-                          onChange={e => {
-                            setEditForm({ ...editForm, linkedin: e.target.value });
-                            if (formErrors.linkedin) {
-                              setFormErrors({ ...formErrors, linkedin: '' });
-                            }
-                          }}
-                          className={formErrors.linkedin ? 'border-destructive' : ''}
-                        />
-                        {formErrors.linkedin && (
-                          <p className="text-destructive text-sm">{formErrors.linkedin}</p>
-                        )}
-                      </div>
-                    </div>
-                    <DialogFooter className="gap-2">
-                      <Button variant="outline" onClick={handleCancel} className="rounded-[16px]">
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSaveProfile}
-                        className="gradient-lavender shadow-lavender rounded-[16px] hover:opacity-90"
-                      >
-                        Save Changes
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+      {/* Edit Profile Modal */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>Update your founder profile information</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  value={editForm.name}
+                  onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="Your full name"
+                />
+                {formErrors.name && <p className="text-sm text-red-500">{formErrors.name}</p>}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Stats Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3"
-        >
-          <Card
-            className="border-border/50 shadow-md transition-shadow hover:shadow-lg"
-            style={{ background: 'rgba(180, 200, 255, 0.05)' }}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div
-                  className="rounded-2xl p-3"
-                  style={{ background: 'rgba(181, 199, 255, 0.15)' }}
-                >
-                  <Users className="text-primary h-8 w-8" />
-                </div>
-                <div>
-                  <p className="mb-1 text-3xl">{user.connections}</p>
-                  <p className="text-muted-foreground">Connections</p>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                  placeholder="your@email.com"
+                />
+                {formErrors.email && <p className="text-sm text-red-500">{formErrors.email}</p>}
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card
-            className="border-border/50 shadow-md transition-shadow hover:shadow-lg"
-            style={{ background: 'rgba(180, 200, 255, 0.05)' }}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div
-                  className="rounded-2xl p-3"
-                  style={{ background: 'rgba(181, 199, 255, 0.15)' }}
-                >
-                  <Lightbulb className="text-secondary h-8 w-8" />
-                </div>
-                <div>
-                  <p className="mb-1 text-3xl">{user.ideasSaved}</p>
-                  <p className="text-muted-foreground">Ideas Saved</p>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="about">About</Label>
+              <Textarea
+                id="about"
+                value={editForm.about}
+                onChange={e => setEditForm({ ...editForm, about: e.target.value })}
+                placeholder="Tell us about yourself..."
+                rows={4}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Input
+                  id="role"
+                  value={editForm.role}
+                  onChange={e => setEditForm({ ...editForm, role: e.target.value })}
+                  placeholder="e.g., Founder, CEO"
+                />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            className="border-border/50 shadow-md transition-shadow hover:shadow-lg"
-            style={{ background: 'rgba(180, 200, 255, 0.05)' }}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div
-                  className="rounded-2xl p-3"
-                  style={{ background: 'rgba(181, 199, 255, 0.15)' }}
-                >
-                  <BookOpen className="text-accent h-8 w-8" />
-                </div>
-                <div>
-                  <p className="mb-1 text-3xl">{user.caseStudiesSaved}</p>
-                  <p className="text-muted-foreground">Cases Saved</p>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={editForm.location}
+                  onChange={e => setEditForm({ ...editForm, location: e.target.value })}
+                  placeholder="e.g., San Francisco, CA"
+                />
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            </div>
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* History Section - Tabbed View */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:col-span-2"
-          >
-            <Card
-              className="border-border/50 shadow-lg"
-              style={{ background: 'rgba(180, 200, 255, 0.05)' }}
-            >
-              <CardHeader>
-                <CardTitle style={{ color: '#D8E0FF' }}>Activity History & Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="ideas" className="w-full">
-                  <TabsList className="mb-6 grid w-full grid-cols-3">
-                    <TabsTrigger
-                      value="ideas"
-                      style={{ borderBottom: '2px solid transparent' }}
-                      className="data-[state=active]:border-b-2 data-[state=active]:border-[rgba(181,199,255,0.6)]"
-                    >
-                      Ideas
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="cases"
-                      style={{ borderBottom: '2px solid transparent' }}
-                      className="data-[state=active]:border-b-2 data-[state=active]:border-[rgba(181,199,255,0.6)]"
-                    >
-                      Cases
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="settings"
-                      style={{ borderBottom: '2px solid transparent' }}
-                      className="data-[state=active]:border-b-2 data-[state=active]:border-[rgba(181,199,255,0.6)]"
-                    >
-                      Settings
-                    </TabsTrigger>
-                  </TabsList>
+            <div className="space-y-2">
+              <Label htmlFor="education">Education</Label>
+              <Input
+                id="education"
+                value={editForm.education}
+                onChange={e => setEditForm({ ...editForm, education: e.target.value })}
+                placeholder="e.g., Stanford University"
+              />
+            </div>
 
-                  <TabsContent value="ideas" className="space-y-3">
-                    {upvotedIdeas.map(idea => (
-                      <div
-                        key={idea.id}
-                        onClick={() => {
-                          // Navigate to idea analyser with idea details
-                          onNavigate?.('Idea Analyser');
-                          toast.info('Opening idea details...');
-                        }}
-                        className="border-border/50 hover:border-primary/50 hover:bg-primary/5 cursor-pointer rounded-xl border p-4 transition-all"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <h4 className="mb-2 hover:text-primary transition-colors">{idea.title}</h4>
-                            <div className="text-muted-foreground flex items-center gap-4 text-sm">
-                              <span className="flex items-center gap-1">
-                                <ThumbsUp className="h-4 w-4" />
-                                {idea.upvotes} upvotes
-                              </span>
-                              <span>{formatDate(idea.date)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </TabsContent>
+            <div className="space-y-2">
+              <Label htmlFor="linkedin">LinkedIn</Label>
+              <Input
+                id="linkedin"
+                value={editForm.linkedin}
+                onChange={e => setEditForm({ ...editForm, linkedin: e.target.value })}
+                placeholder="https://linkedin.com/in/yourprofile"
+              />
+            </div>
 
-                  <TabsContent value="cases" className="space-y-3">
-                    {solvedCases.map(caseStudy => (
-                      <div
-                        key={caseStudy.id}
-                        onClick={() => {
-                          // Navigate to Case Studies page with results
-                          onNavigate?.('Case Studies');
-                          toast.info('Loading case study results...');
-                        }}
-                        className="border-border/50 hover:border-primary/50 hover:bg-primary/5 cursor-pointer rounded-xl border p-4 transition-all"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="mb-2 flex items-center gap-2">
-                              <h4 className="hover:text-primary transition-colors">{caseStudy.title}</h4>
-                              <Badge
-                                variant="outline"
-                                className={`${getDifficultyColor(caseStudy.difficulty)} rounded-full`}
-                              >
-                                {caseStudy.difficulty}
-                              </Badge>
-                            </div>
-                            <div className="text-muted-foreground flex items-center gap-4 text-sm">
-                              <span className="flex items-center gap-1">
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                Score: {caseStudy.score}%
-                              </span>
-                              <span>{formatDate(caseStudy.completedDate)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </TabsContent>
-
-                  <TabsContent value="settings" className="space-y-6">
-                    {/* Privacy Section */}
-                    <div className="space-y-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <Shield className="text-primary h-5 w-5" />
-                        <h4>Privacy</h4>
-                      </div>
-                      <div className="bg-muted/30 flex items-center justify-between rounded-xl p-4">
-                        <div>
-                          <p className="mb-1">Make my ideas public</p>
-                          <p className="text-muted-foreground text-sm">
-                            Allow others to see your submitted ideas
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.makeIdeasPublic}
-                          onCheckedChange={() => handleSettingChange('makeIdeasPublic')}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Notifications Section */}
-                    <div className="space-y-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <Bell className="text-primary h-5 w-5" />
-                        <h4>Notifications</h4>
-                      </div>
-                      <div className="bg-muted/30 flex items-center justify-between rounded-xl p-4">
-                        <div>
-                          <p className="mb-1">Email updates</p>
-                          <p className="text-muted-foreground text-sm">
-                            Receive email notifications about your activity
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.emailUpdates}
-                          onCheckedChange={() => handleSettingChange('emailUpdates')}
-                        />
-                      </div>
-                      <div className="bg-muted/30 flex items-center justify-between rounded-xl p-4">
-                        <div>
-                          <p className="mb-1">AI insights</p>
-                          <p className="text-muted-foreground text-sm">
-                            Get AI-powered tips and recommendations
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.aiInsights}
-                          onCheckedChange={() => handleSettingChange('aiInsights')}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Account Section */}
-                    <div className="space-y-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <Shield className="text-primary h-5 w-5" />
-                        <h4>Account</h4>
-                      </div>
-                      <div className="space-y-2">
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start rounded-xl hover:bg-primary/10 hover:border-primary/50 hover:text-foreground transition-all"
-                        >
-                          Change Password
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/50 w-full justify-start rounded-xl transition-all"
-                          onClick={() => setShowDeleteModal(true)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Account
-                        </Button>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Contact Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="space-y-6 lg:col-span-1"
-          >
-            <Card
-              className="border-border/50 shadow-lg"
-              style={{ background: 'rgba(180, 200, 255, 0.05)' }}
-            >
-              <CardHeader>
-                <CardTitle style={{ color: '#D8E0FF' }}>Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-muted/50 hover:bg-muted flex items-center gap-3 rounded-xl p-3 transition-colors">
-                  <div
-                    className="rounded-lg p-2"
-                    style={{ background: 'rgba(181, 199, 255, 0.15)' }}
-                  >
-                    <Mail className="text-primary h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-muted-foreground mb-1 text-sm">Email</p>
-                    <a
-                      href={`mailto:${user.email}`}
-                      className="hover:text-primary block truncate text-sm transition-colors"
-                    >
-                      {user.email}
-                    </a>
-                  </div>
-                </div>
-
-                <div className="bg-muted/50 hover:bg-muted flex items-center gap-3 rounded-xl p-3 transition-colors">
-                  <div
-                    className="rounded-lg p-2"
-                    style={{ background: 'rgba(181, 199, 255, 0.15)' }}
-                  >
-                    <Linkedin className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-muted-foreground mb-1 text-sm">LinkedIn</p>
-                    <a
-                      href={user.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block truncate text-sm text-blue-500 transition-colors hover:text-blue-600"
-                    >
-                      View Profile
-                    </a>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card className="border-border/50 shadow-lg">
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start rounded-xl hover:bg-primary/10 hover:border-primary/50 hover:text-foreground transition-all"
-                  onClick={() => onNavigate?.('Community')}
-                >
-                  Browse Community
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start rounded-xl hover:bg-primary/10 hover:border-primary/50 hover:text-foreground transition-all"
-                  onClick={() => onNavigate?.('Case Studies')}
-                >
-                  Explore Case Studies
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Personal Chat Section */}
-            <Card
-              className="border-border/50 shadow-lg"
-              style={{ background: 'rgba(180, 200, 255, 0.05)' }}
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="text-primary h-5 w-5" />
-                  <span style={{ color: '#D8E0FF' }}>Connections Chat</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Connections List */}
-                <div className="space-y-2">
-                  {mockConnections.map(connection => (
-                    <div
-                      key={connection.id}
-                      onClick={() => setSelectedConnection(connection.id)}
-                      className={`border-border/50 hover:bg-primary/5 cursor-pointer rounded-xl border p-3 transition-all ${
-                        selectedConnection === connection.id ? 'bg-primary/10 border-primary/30' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={connection.avatar} alt={connection.name} />
-                            <AvatarFallback>
-                              {connection.name
-                                .split(' ')
-                                .map(n => n[0])
-                                .join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          {connection.online && (
-                            <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="truncate text-sm font-medium">{connection.name}</p>
-                            {connection.unread > 0 && (
-                              <Badge className="h-5 w-5 rounded-full bg-primary p-0 text-xs">
-                                {connection.unread}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-muted-foreground truncate text-xs">
-                            {connection.lastMessage}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+            <div className="space-y-2">
+              <Label>Startup Goals</Label>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setIsGoalsModalOpen(true)}
+              >
+                <Target className="mr-2 h-4 w-4" />
+                {selectedGoals.length > 0 ? `${selectedGoals.length} goals selected` : 'Select your goals'}
+              </Button>
+              {selectedGoals.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedGoals.map(goal => (
+                    <Badge key={goal} variant="secondary">
+                      {goal}
+                    </Badge>
                   ))}
                 </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProfile}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-                {/* Chat Input */}
-                {selectedConnection && (
-                  <div className="border-border/50 space-y-3 rounded-xl border p-4">
-                    <p className="text-sm font-medium">
-                      Chat with{' '}
-                      {mockConnections.find(c => c.id === selectedConnection)?.name}
-                    </p>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Type a message..."
-                        value={chatMessage}
-                        onChange={e => setChatMessage(e.target.value)}
-                        onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
-                        className="rounded-xl"
-                      />
-                      <Button
-                        onClick={handleSendMessage}
-                        className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90"
-                        size="icon"
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Delete Account Confirmation Modal */}
+      {/* Delete Account Modal */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Account</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete your account? This action cannot be undone and all
-              your data will be permanently removed.
+              Are you sure you want to delete your account? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4 flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1 rounded-xl"
-              onClick={() => setShowDeleteModal(false)}
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              className="flex-1 rounded-xl"
-              onClick={handleDeleteAccount}
-            >
-              Confirm Delete
+            <Button variant="destructive" onClick={handleDeleteAccount}>
+              Delete Account
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  );
 
-      {/* Edit Profile Picture Modal */}
-      <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Profile Picture</DialogTitle>
-            <DialogDescription>
-              Choose an emoji, upload a photo, or remove your current picture.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            {/* Option 1: Choose Emoji */}
-            <div>
-              <Label className="mb-3 block">Choose an Emoji</Label>
-              <div className="grid grid-cols-5 gap-2">
-                {emojis.map(emoji => (
-                  <button
-                    key={emoji}
-                    onClick={() => setSelectedEmoji(emoji)}
-                    className={`hover:bg-primary/10 rounded-xl border-2 p-3 text-3xl transition-colors ${
-                      selectedEmoji === emoji
-                        ? 'border-primary bg-primary/10'
-                        : 'border-transparent'
-                    }`}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-              {selectedEmoji && (
-                <Button
-                  onClick={() => handleAvatarChange('emoji')}
-                  className="gradient-lavender shadow-lavender mt-3 w-full rounded-xl hover:opacity-90"
-                >
-                  <Smile className="mr-2 h-4 w-4" />
-                  Use {selectedEmoji} as Avatar
-                </Button>
-              )}
-            </div>
+  // ============================================================================
+  // 🎨 RENDER STATE MACHINE - NO EARLY RETURNS, ALWAYS SHOWS UI
+  // ============================================================================
+  const pageBackground = { background: '#0a0a0a' };
+  const containerClass = "mx-auto min-h-screen w-full max-w-7xl px-4 py-8";
 
-            {/* Option 2: Upload Photo */}
-            <div>
-              <Label className="mb-3 block">Upload Photo</Label>
-              <Button
-                variant="outline"
-                onClick={() => handleAvatarChange('upload')}
-                className="w-full rounded-xl"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Choose File
-              </Button>
-              <p className="text-muted-foreground mt-2 text-xs">
-                Supported formats: JPG, PNG (Max 5MB)
+  return (
+    <div style={pageBackground}>
+      <div className={containerClass}>
+        {/* Debug panel (dev mode only) */}
+        <DebugPanel />
+
+        {/* ============================================================================ */}
+        {/* STATE 1: AUTH LOADING */}
+        {/* ============================================================================ */}
+        {currentRenderState === 'auth_loading' && (
+          <Card className="w-full max-w-md mx-auto border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
+            <CardContent className="p-12 text-center">
+              <Loader2 className="text-primary mx-auto mb-4 h-12 w-12 animate-spin" />
+              <h2 className="mb-2 text-xl font-semibold" style={{ color: '#D8E0FF' }}>
+                Loading your profile...
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Please wait while we fetch your information
               </p>
-            </div>
+            </CardContent>
+          </Card>
+        )}
 
-            {/* Option 3: Remove Current */}
-            <div>
+        {/* ============================================================================ */}
+        {/* STATE 2: UNAUTHENTICATED */}
+        {/* ============================================================================ */}
+        {currentRenderState === 'unauthenticated' && (
+          <Card className="w-full max-w-md mx-auto border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
+            <CardContent className="p-8 text-center">
+              <Users className="text-muted-foreground mx-auto mb-4 h-16 w-16" />
+              <h2 className="mb-2 text-2xl font-bold" style={{ color: '#D8E0FF' }}>Profile Not Available</h2>
+              <p className="text-muted-foreground mb-6">
+                Please log in to view your profile.
+              </p>
               <Button
-                variant="outline"
-                onClick={() => handleAvatarChange('remove')}
-                className="text-destructive hover:text-destructive w-full rounded-xl"
+                className="gradient-lavender shadow-lavender rounded-[16px] hover:opacity-90"
+                onClick={() => onNavigate?.('Auth')}
               >
-                <X className="mr-2 h-4 w-4" />
-                Remove Current Picture
+                Go to Login
               </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ============================================================================ */}
+        {/* STATE 3: AUTHENTICATED BUT NO PROFILE (ONBOARDING) */}
+        {/* ============================================================================ */}
+        {currentRenderState === 'authenticated_no_profile' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="w-full max-w-2xl mx-auto border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
+              <CardContent className="p-12 text-center">
+                <Sparkles className="text-primary mx-auto mb-6 h-20 w-20" />
+                <h1 className="mb-4 text-4xl font-bold" style={{ color: '#D8E0FF' }}>
+                  Welcome to Motif
+                </h1>
+                <p className="text-muted-foreground mb-8 text-lg">
+                  Let's get your founder profile set up
+                </p>
+
+                {dataLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Setting up your profile...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-8 grid gap-4 text-left">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="text-primary mt-1 h-5 w-5 flex-shrink-0" />
+                        <div>
+                          <h3 className="font-semibold">Build Your Founder Profile</h3>
+                          <p className="text-muted-foreground text-sm">Share your background and startup goals</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="text-primary mt-1 h-5 w-5 flex-shrink-0" />
+                        <div>
+                          <h3 className="font-semibold">Analyze Startup Ideas</h3>
+                          <p className="text-muted-foreground text-sm">Get AI-powered insights on your concepts</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="text-primary mt-1 h-5 w-5 flex-shrink-0" />
+                        <div>
+                          <h3 className="font-semibold">Connect with VCs</h3>
+                          <p className="text-muted-foreground text-sm">Find investors aligned with your vision</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button
+                      size="lg"
+                      className="gradient-lavender shadow-lavender rounded-[16px] hover:opacity-90"
+                      onClick={handleEditProfile}
+                    >
+                      Start Profile Setup
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* ============================================================================ */}
+        {/* STATE 4: AUTHENTICATED WITH PROFILE (MAIN DASHBOARD) */}
+        {/* ============================================================================ */}
+        {currentRenderState === 'authenticated_with_profile' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            {isFirstTimeUser ? (
+              // FIRST-TIME USER ONBOARDING VIEW
+              <div className="space-y-6">
+                {/* Welcome Header */}
+                <Card className="border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16 cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>
+                          <AvatarImage src={displayProfile.avatar} />
+                          <AvatarFallback className="text-2xl">{getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h1 className="text-2xl font-bold" style={{ color: '#D8E0FF' }}>
+                            Welcome, {getFirstName()}!
+                          </h1>
+                          <p className="text-muted-foreground">Let's build your founder profile together</p>
+                        </div>
+                      </div>
+                      <Button variant="outline" onClick={handleEditProfile}>
+                        Edit Profile
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Profile Completion */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Target className="h-5 w-5" />
+                        Profile Completion
+                      </CardTitle>
+                      <Badge variant="secondary">{profileCompletion.percentage}% Complete</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Progress value={profileCompletion.percentage} className="h-2" />
+                    <div className="grid gap-3">
+                      {profileCompletion.completedSteps.map(step => (
+                        <div key={step} className="flex items-center gap-2">
+                          <CheckCircle2 className="text-primary h-4 w-4" />
+                          <span className="text-sm">{step}</span>
+                        </div>
+                      ))}
+                      {profileCompletion.pendingSteps.map(step => (
+                        <div key={step} className="flex items-center gap-2">
+                          <AlertCircle className="text-muted-foreground h-4 w-4" />
+                          <span className="text-muted-foreground text-sm">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Button className="w-full" onClick={handleEditProfile}>
+                      Complete Your Profile
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Quick Actions */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card className="cursor-pointer transition-all hover:shadow-lg" onClick={() => onNavigate?.('IdeaAnalyser')}>
+                    <CardContent className="p-6">
+                      <Lightbulb className="text-primary mb-4 h-10 w-10" />
+                      <h3 className="mb-2 text-lg font-semibold">Analyze Your First Idea</h3>
+                      <p className="text-muted-foreground text-sm">
+                        Get AI-powered insights on your startup concept
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="cursor-pointer transition-all hover:shadow-lg" onClick={() => onNavigate?.('VCConnection')}>
+                    <CardContent className="p-6">
+                      <Users className="text-primary mb-4 h-10 w-10" />
+                      <h3 className="mb-2 text-lg font-semibold">Connect with VCs</h3>
+                      <p className="text-muted-foreground text-sm">
+                        Find investors who match your vision
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            ) : (
+              // RETURNING USER DASHBOARD VIEW
+              <div className="space-y-6">
+                {/* Profile Header */}
+                <Card className="border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-6">
+                        <Avatar className="h-20 w-20 cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>
+                          <AvatarImage src={displayProfile.avatar} />
+                          <AvatarFallback className="text-3xl">{getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h1 className="text-3xl font-bold" style={{ color: '#D8E0FF' }}>
+                            {getDisplayName()}
+                          </h1>
+                          {displayProfile.role && (
+                            <p className="text-muted-foreground text-lg">{displayProfile.role}</p>
+                          )}
+                          {displayProfile.location && (
+                            <p className="text-muted-foreground text-sm">{displayProfile.location}</p>
+                          )}
+                          <div className="mt-2 flex gap-2">
+                            {displayProfile.email && (
+                              <Button variant="ghost" size="sm" asChild>
+                                <a href={`mailto:${displayProfile.email}`}>
+                                  <Mail className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            )}
+                            {displayProfile.linkedin && (
+                              <Button variant="ghost" size="sm" asChild>
+                                <a href={displayProfile.linkedin} target="_blank" rel="noopener noreferrer">
+                                  <Linkedin className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <Button variant="outline" onClick={handleEditProfile}>
+                        Edit Profile
+                      </Button>
+                    </div>
+
+                    {displayProfile.about && (
+                      <div className="mt-6">
+                        <p className="text-muted-foreground">{displayProfile.about}</p>
+                      </div>
+                    )}
+
+                    {Array.isArray(displayProfile?.startup_goals) && displayProfile?.startup_goals?.length > 0 && (
+                      <div className="mt-4">
+                        <p className="mb-2 text-sm font-medium">Startup Goals:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {displayProfile.startup_goals.map(goal => (
+                            <Badge key={goal} variant="secondary">
+                              {goal}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Stats Grid */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-muted-foreground text-sm">Ideas Analyzed</p>
+                          <p className="text-3xl font-bold">{stats.ideasSaved}</p>
+                        </div>
+                        <Lightbulb className="text-primary h-10 w-10" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-muted-foreground text-sm">Case Studies</p>
+                          <p className="text-3xl font-bold">{stats.caseStudiesSaved}</p>
+                        </div>
+                        <BookOpen className="text-primary h-10 w-10" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-muted-foreground text-sm">Connections</p>
+                          <p className="text-3xl font-bold">{stats.connections}</p>
+                        </div>
+                        <Users className="text-primary h-10 w-10" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Investor Readiness */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="h-5 w-5" />
+                      Investor Readiness
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-2xl font-bold">{investorReadiness.score}/100</p>
+                        <p className="text-muted-foreground text-sm">{investorReadiness.level}</p>
+                      </div>
+                      <Progress value={investorReadiness.score} className="h-2 w-48" />
+                    </div>
+
+                    {investorReadiness.strengths.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-sm font-medium">Strengths:</p>
+                        <div className="space-y-1">
+                          {investorReadiness.strengths.map(strength => (
+                            <div key={strength} className="flex items-center gap-2">
+                              <CheckCircle2 className="text-primary h-4 w-4" />
+                              <span className="text-sm">{strength}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {investorReadiness.improvements.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-sm font-medium">Areas to Improve:</p>
+                        <div className="space-y-1">
+                          {investorReadiness.improvements.map(improvement => (
+                            <div key={improvement} className="flex items-center gap-2">
+                              <TrendingUp className="text-muted-foreground h-4 w-4" />
+                              <span className="text-muted-foreground text-sm">{improvement}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Activity Timeline */}
+                {activityTimeline.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        Recent Activity
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {activityTimeline.map((activity, index) => (
+                          <div key={index} className="flex items-start gap-3">
+                            <div className="bg-primary/10 mt-1 rounded-full p-2">
+                              {activity.icon === 'lightbulb' && <Lightbulb className="text-primary h-4 w-4" />}
+                              {activity.icon === 'book' && <BookOpen className="text-primary h-4 w-4" />}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">{activity.title}</p>
+                              <p className="text-muted-foreground text-sm">{activity.description}</p>
+                              <p className="text-muted-foreground text-xs mt-1">{formatDate(activity.date)}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Account Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Account Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Make ideas public</p>
+                        <p className="text-muted-foreground text-sm">Allow others to view your analyzed ideas</p>
+                      </div>
+                      <Switch
+                        checked={settings.makeIdeasPublic}
+                        onCheckedChange={checked => setSettings({ ...settings, makeIdeasPublic: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Email updates</p>
+                        <p className="text-muted-foreground text-sm">Receive updates about your startup journey</p>
+                      </div>
+                      <Switch
+                        checked={settings.emailUpdates}
+                        onCheckedChange={checked => setSettings({ ...settings, emailUpdates: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">AI insights</p>
+                        <p className="text-muted-foreground text-sm">Get personalized recommendations</p>
+                      </div>
+                      <Switch
+                        checked={settings.aiInsights}
+                        onCheckedChange={checked => setSettings({ ...settings, aiInsights: checked })}
+                      />
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <Button
+                        variant="destructive"
+                        className="w-full"
+                        onClick={() => setShowDeleteModal(true)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Account
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ============================================================================ */}
+        {/* STATE 5: FATAL ERROR FALLBACK (HARDCODED - ALWAYS WORKS) */}
+        {/* ============================================================================ */}
+        {currentRenderState === 'fatal_error_fallback' && (
+          <Card className="w-full max-w-2xl mx-auto border-red-500/50 bg-red-500/5">
+            <CardContent className="p-12 text-center">
+              <AlertCircle className="mx-auto mb-6 h-20 w-20 text-red-500" />
+              <h1 className="mb-4 text-4xl font-bold text-red-500">
+                Something Went Wrong
+              </h1>
+              <p className="text-muted-foreground mb-8 text-lg">
+                We encountered an unexpected error, but don't worry - your data is safe.
+              </p>
+
+              <div className="mb-8 rounded-lg bg-red-500/10 p-4 text-left">
+                <p className="text-sm font-mono text-red-400">
+                  {fatalError || 'Unknown error occurred'}
+                </p>
+              </div>
+
+              <div className="flex gap-4 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.reload()}
+                >
+                  Reload Page
+                </Button>
+                <Button
+                  className="gradient-lavender shadow-lavender rounded-[16px]"
+                  onClick={() => onNavigate?.('Home')}
+                >
+                  Go to Home
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Modals - Always Rendered */}
+        {renderModals()}
+      </div>
     </div>
   );
 }

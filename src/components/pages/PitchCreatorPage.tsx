@@ -197,6 +197,56 @@ Remember: Return ONLY the JSON object, no additional text or explanations.`;
     product: Sparkles,
   };
 
+  // Random sample data for testing
+  const sampleIdeas = [
+    {
+      ideaName: 'AI-Powered Fitness Coach',
+      problem: 'Most people struggle to maintain consistent workout routines and proper form without expensive personal trainers. Generic workout apps lack personalization and real-time feedback, leading to injuries and poor results.',
+      solution: 'An AI-powered fitness coach that uses computer vision to analyze your form in real-time, provides personalized workout plans based on your goals and fitness level, and adapts to your progress automatically.',
+      audience: 'Busy professionals aged 25-45 who want to stay fit but cannot afford personal trainers',
+      market: '$96 billion global fitness industry with 23% annual growth in digital fitness',
+      usp: 'Real-time form correction using computer vision, personalized AI coaching at 1/10th the cost of a personal trainer, and seamless integration with popular fitness trackers.',
+    },
+    {
+      ideaName: 'EcoCart - Sustainable Shopping Assistant',
+      problem: 'Consumers want to make environmentally friendly purchases but lack the time and knowledge to research product sustainability. Greenwashing makes it difficult to identify truly eco-friendly products.',
+      solution: 'A browser extension and mobile app that instantly shows the environmental impact of products while shopping online, provides sustainable alternatives, and tracks your carbon footprint reduction.',
+      audience: 'Environmentally conscious millennials and Gen Z shoppers who actively seek sustainable products',
+      market: '$150 billion sustainable products market growing at 20% CAGR, with 73% of consumers willing to pay more for sustainable goods',
+      usp: 'Real-time sustainability scoring powered by blockchain-verified supply chain data, instant eco-friendly alternatives, and gamified carbon footprint tracking.',
+    },
+    {
+      ideaName: 'MindfulMeet - AI Meeting Optimizer',
+      problem: 'Companies waste 31 hours per month in unproductive meetings. Poor scheduling, lack of agendas, and ineffective follow-ups result in billions of dollars in lost productivity annually.',
+      solution: 'An AI-powered meeting management platform that automatically schedules optimal meeting times, generates smart agendas, takes notes, assigns action items, and measures meeting effectiveness.',
+      audience: 'Mid-size to enterprise companies (100-10,000 employees) looking to improve team productivity',
+      market: '$4.5 billion enterprise productivity software market with remote work driving 35% annual growth',
+      usp: 'AI-driven meeting effectiveness scoring, automatic action item extraction and follow-up, and seamless integration with Slack, Teams, Zoom, and Google Workspace.',
+    },
+    {
+      ideaName: 'FoodSnap - AI Meal Planning & Grocery Assistant',
+      problem: 'Families waste 30-40% of food they buy and spend hours planning meals and creating grocery lists. Dietary restrictions and picky eaters make meal planning even more challenging.',
+      solution: 'An AI app that generates personalized weekly meal plans based on dietary preferences, creates smart grocery lists, tracks pantry inventory, and suggests recipes using ingredients you already have.',
+      audience: 'Busy families and health-conscious individuals who want to reduce food waste and eat healthier',
+      market: '$12 billion meal kit and food planning market with growing demand for sustainable food solutions',
+      usp: 'Pantry tracking with smart expiration alerts, AI-generated meal plans that adapt to what you already have, and integration with major grocery delivery services.',
+    },
+    {
+      ideaName: 'CareerPath AI - Personalized Career Development',
+      problem: 'Professionals struggle to navigate career transitions and skill development without personalized guidance. Traditional career counseling is expensive and generic online courses lack personalization.',
+      solution: 'An AI-powered career development platform that analyzes your skills, industry trends, and career goals to create personalized learning paths, recommend opportunities, and connect you with mentors.',
+      audience: 'Mid-career professionals (5-15 years experience) seeking career advancement or transitions',
+      market: '$366 billion global e-learning market with professional development being the fastest-growing segment',
+      usp: 'AI-driven skill gap analysis, personalized learning roadmaps with industry-specific certifications, and automated mentor matching based on career trajectories.',
+    },
+  ];
+
+  const handleFillRandom = () => {
+    const randomIdea = sampleIdeas[Math.floor(Math.random() * sampleIdeas.length)];
+    setFormData(randomIdea);
+    toast.success('Form filled with sample data! Feel free to edit and generate.');
+  };
+
   return (
     <div className="bg-background min-h-screen">
       {/* Hero Section */}
@@ -333,28 +383,41 @@ Remember: Return ONLY the JSON object, no additional text or explanations.`;
                     />
                   </div>
 
-                  {/* Generate Button */}
-                  <Button
-                    onClick={handleGeneratePitch}
-                    disabled={!isFormValid || isGenerating}
-                    className="gradient-lavender shadow-lavender h-12 w-full rounded-xl hover:opacity-90"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          className="mr-2 h-4 w-4 rounded-full border-2 border-white border-t-transparent"
-                        />
-                        Generating Pitch...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Generate Pitch
-                      </>
-                    )}
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="space-y-3">
+                    {/* Fill Random Button for Testing */}
+                    <Button
+                      onClick={handleFillRandom}
+                      variant="outline"
+                      className="h-12 w-full rounded-xl hover:bg-primary/10 hover:border-primary/50"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Fill with Sample Data (For Testing)
+                    </Button>
+
+                    {/* Generate Button */}
+                    <Button
+                      onClick={handleGeneratePitch}
+                      disabled={!isFormValid || isGenerating}
+                      className="gradient-lavender shadow-lavender h-12 w-full rounded-xl hover:opacity-90"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            className="mr-2 h-4 w-4 rounded-full border-2 border-white border-t-transparent"
+                          />
+                          Generating Pitch...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Generate Pitch
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>

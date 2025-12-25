@@ -167,7 +167,7 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
         if (error) throw error;
 
         console.log('Login successful:', data);
-        toast.success('Welcome back!');
+        // Welcome notification is now handled by UserContext
         onLogin?.();
       } else {
         // Handle signup
@@ -238,11 +238,11 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
         const userData = JSON.parse(jsonPayload);
         console.log('User Data:', userData);
 
-        toast.success(`Welcome, ${userData.name}!`);
+        // Welcome notification is now handled by UserContext
         onLogin?.();
       } catch (error) {
         console.error('Error decoding token:', error);
-        toast.success('Signed in with Google!');
+        // Welcome notification is now handled by UserContext
         onLogin?.();
       }
     }

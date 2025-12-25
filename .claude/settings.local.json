@@ -6,7 +6,11 @@
       "Bash(npm run dev:*)",
       "Bash(npm run lint)",
       "Bash(npm run lint:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(cat:*)",
+      "Bash(taskkill:*)",
+      "Bash(timeout 10 cmd:*)",
+      "Bash(ping:*)"
     ],
     "deny": [],
     "ask": []

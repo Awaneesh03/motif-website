@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import {
   Rocket,
   Target,
@@ -11,10 +12,8 @@ import {
   BarChart3,
   ArrowRight,
   DollarSign,
-  Calendar,
   MessageCircle,
   FileText,
-  Star,
   Upload,
   X,
   ChevronRight,
@@ -248,17 +247,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 </DialogContent>
               </Dialog>
 
-              <Button
-                size="lg"
-                variant="outline"
-                className="rounded-xl border-2 border-white px-8 py-5 text-base sm:text-lg font-medium text-white hover:bg-white/10 hover:border-white/90 transition-all"
-                onClick={() => {
-                  const pricingSection = document.getElementById('pricing');
-                  pricingSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                View Pricing
-              </Button>
             </div>
 
             {/* Raise Funding Request Button */}
@@ -462,8 +450,8 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 if (fundingStep === 1 && selectedIdea) {
                   setFundingStep(2);
                 } else if (fundingStep === 2 && pitchFile) {
-                  // Submit the funding request
-                  alert('Funding request submitted successfully!');
+                  // TODO: Submit the funding request to backend
+                  toast.success('Funding request submitted successfully!');
                   setFundingModalOpen(false);
                   setFundingStep(1);
                   setSelectedIdea(null);
@@ -775,134 +763,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                     </div>
                     <h3 className="mb-3 text-xl font-bold">{step.title}</h3>
                     <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="bg-muted/30 py-12 md:py-16" id="pricing">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-12 text-center"
-          >
-            <Badge className="mb-3 bg-primary/10 text-primary px-4 py-1.5 text-sm font-medium">
-              Pricing Plans
-            </Badge>
-            <h2 className="mb-4 text-3xl sm:text-4xl font-bold text-foreground">Pricing</h2>
-            <p className="text-muted-foreground mx-auto max-w-3xl text-base sm:text-lg">
-              Pay only when we deliver introductions. No equity. No success fees. 60-day money-back guarantee.
-            </p>
-          </motion.div>
-
-          <div className="grid gap-6 md:gap-8 lg:grid-cols-3">
-            {[
-              {
-                name: 'Standard',
-                price: '₹5,499',
-                description: 'Perfect for first-time founders',
-                features: [
-                  'Up to 3 VC introductions',
-                  '1 submission review',
-                  'Basic profile listing',
-                  'Email support',
-                  '60-day money-back guarantee',
-                ],
-                cta: 'Get Started',
-                popular: false,
-              },
-              {
-                name: 'Premium',
-                price: '₹7,499',
-                description: 'Best for serious founders',
-                features: [
-                  'Up to 5 VC introductions',
-                  '2 submission reviews',
-                  'Featured profile placement',
-                  '1-hour pitch coaching',
-                  'Priority matching (3-day turnaround)',
-                  '60-day money-back guarantee',
-                ],
-                cta: 'Most Popular',
-                popular: true,
-              },
-              {
-                name: 'Accelerated',
-                price: '₹10,499',
-                description: 'Maximum support & exposure',
-                features: [
-                  'Up to 10 VC introductions',
-                  'Unlimited resubmissions (90 days)',
-                  'Dedicated analyst review',
-                  '3 pitch coaching sessions',
-                  'Investor Q&A prep',
-                  'Follow-up email templates',
-                  'Priority support',
-                ],
-                cta: 'Premium Access',
-                popular: false,
-              },
-            ].map((plan, index) => (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card
-                  className={`relative h-full transition-all duration-300 ${plan.popular
-                    ? 'gradient-lavender border-none text-white shadow-2xl lg:scale-[1.05]'
-                    : 'hover:shadow-xl hover:border-primary/40 border-2'
-                    }`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-yellow-500 px-6 py-2 text-white font-bold text-sm shadow-lg">
-                        Most Popular
-                      </Badge>
-                    </div>
-                  )}
-                  <CardHeader className="pb-8 pt-8">
-                    <CardTitle className="text-2xl font-bold mb-2">{plan.name}</CardTitle>
-                    <p className={`text-sm mb-6 ${plan.popular ? 'text-white/80' : 'text-muted-foreground'}`}>
-                      {plan.description}
-                    </p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-bold">{plan.price}</span>
-                      <span className="text-base opacity-70">one-time</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-8">
-                    <ul className="mb-8 space-y-4">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <CheckCircle
-                            className={`mt-0.5 h-5 w-5 flex-shrink-0 ${plan.popular ? 'text-white' : 'text-primary'}`}
-                          />
-                          <span className={`text-base ${plan.popular ? 'text-white' : ''}`}>
-                            {feature}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      size="lg"
-                      className={`w-full rounded-xl py-6 text-base font-bold transition-all duration-200 ${plan.popular
-                        ? 'bg-white text-primary hover:bg-white/95 hover:shadow-xl'
-                        : 'gradient-lavender text-white hover:shadow-lg'
-                        }`}
-                      onClick={() => setSelectedPlan(plan.name)}
-                    >
-                      {plan.cta}
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
                   </CardContent>
                 </Card>
               </motion.div>

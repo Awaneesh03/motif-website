@@ -8,18 +8,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 
-import { groqService, type ChatMessage } from '../lib/groq';
+import { apiClient, ChatResponse } from '../lib/api-client';
+import { useUser } from '../contexts/UserContext';
 
-// Default Groq API Key - Pre-configured
-const DEFAULT_GROQ_API_KEY = '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';
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
 
 interface ChatbotProps {
   isDark: boolean;
 }
 
 export function Chatbot({ isDark }: ChatbotProps) {
+  const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -30,31 +35,10 @@ export function Chatbot({ isDark }: ChatbotProps) {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [systemPrompt, setSystemPrompt] = useState(
-    'You are a helpful AI assistant for the Motif website. Help users with their questions about startup ideas, business planning, and entrepreneurship. Be concise but informative.'
-  );
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const chatButtonRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Load saved settings or use default API key
-    const savedApiKey = localStorage.getItem('groq_api_key') || DEFAULT_GROQ_API_KEY;
-    const savedSystemPrompt = localStorage.getItem('groq_system_prompt') || systemPrompt;
-    setApiKey(savedApiKey);
-    setSystemPrompt(savedSystemPrompt);
-
-    if (savedApiKey) {
-      groqService.setApiKey(savedApiKey);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (apiKey) {
-      groqService.setApiKey(apiKey);
-    }
-  }, [apiKey]);
 
   useEffect(() => {
     // Scroll to bottom when new messages are added
@@ -93,9 +77,8 @@ export function Chatbot({ isDark }: ChatbotProps) {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
-    if (!groqService.isConfigured()) {
-      toast.error('Please configure your Groq API key in settings first.');
-      setIsSettingsOpen(true);
+    if (!user) {
+      toast.error('Please login to use the chatbot');
       return;
     }
 
@@ -111,29 +94,37 @@ export function Chatbot({ isDark }: ChatbotProps) {
     setIsLoading(true);
 
     try {
-      const messagesToSend = [
-        {
-          id: 'system',
-          role: 'user' as const,
-          content: systemPrompt,
-          timestamp: new Date()
-        },
-        ...messages.slice(1),
-        userMessage
-      ];
+      // Send message to backend API
+      const response = await apiClient.post<ChatResponse>('/api/ai/chat', {
+        message: inputValue,
+        conversationId,
+        history: messages.slice(1, -1).map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }))
+      });
 
-      const response = await groqService.sendMessage(messagesToSend);
+      setConversationId(response.conversationId);
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: response.message,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send message');
+      console.error('Chat error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+
+      if (errorMessage.includes('Rate limit')) {
+        toast.error('Rate limit exceeded. Please try again in an hour.');
+      } else if (errorMessage.includes('Authentication')) {
+        toast.error('Please login to use the chatbot');
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -146,16 +137,6 @@ export function Chatbot({ isDark }: ChatbotProps) {
     }
   };
 
-  const saveSettings = () => {
-    localStorage.setItem('groq_api_key', apiKey);
-    localStorage.setItem('groq_system_prompt', systemPrompt);
-    if (apiKey) {
-      groqService.setApiKey(apiKey);
-    }
-    setIsSettingsOpen(false);
-    toast.success('Settings saved successfully!');
-  };
-
   const clearChat = () => {
     setMessages([
       {
@@ -165,6 +146,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
         timestamp: new Date()
       }
     ]);
+    setConversationId(null);
     toast.success('Chat cleared!');
   };
 

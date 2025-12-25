@@ -147,9 +147,9 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
               <Button
                 size="lg"
                 className="text-primary shadow-lavender rounded-[16px] bg-white px-8 hover:bg-white/90"
-                onClick={() => onNavigate?.(isLoggedIn ? 'Pricing' : 'Auth')}
+                onClick={() => onNavigate?.(isLoggedIn ? 'Dashboard' : 'Auth')}
               >
-                {isLoggedIn ? 'Subscribe' : 'Start Free'}
+                {isLoggedIn ? 'Go to Dashboard' : 'Start Free'}
               </Button>
               <Button
                 size="lg"

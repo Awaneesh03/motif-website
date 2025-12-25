@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { UserProvider } from './contexts/UserContext';
+import { UserProvider, useUser } from './contexts/UserContext';
 
 import { Toaster } from './components/ui/sonner';
 import { Navbar } from './components/Navbar';
@@ -23,12 +23,34 @@ import { PitchCreatorPage } from './components/pages/PitchCreatorPage';
 import { DashboardPage } from './components/pages/DashboardPage';
 import { VCConnectionPage } from './components/pages/VCConnectionPage';
 import { SavedIdeasPage } from './components/pages/SavedIdeasPage';
+import { supabase } from './lib/supabase';
 
-export default function App() {
+// Role-based routing
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { UserRole } from './types/roles';
+import { VCLayout } from './layouts/VCLayout';
+import { AdminLayout } from './layouts/AdminLayout';
+
+// VC Pages
+import VCDashboard from './components/pages/vc/VCDashboard';
+import VCStartups from './components/pages/vc/VCStartups';
+import VCStartupDetail from './components/pages/vc/VCStartupDetail';
+
+// Admin Pages
+import AdminDashboard from './components/pages/admin/AdminDashboard';
+import AdminStartups from './components/pages/admin/AdminStartups';
+
+// Founder Pages
+import SubmitStartupPage from './components/pages/SubmitStartupPage';
+
+function AppContent() {
   const [isDark, setIsDark] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useUser();
+
+  // isLoggedIn is now derived from UserContext's user state
+  const isLoggedIn = !!user;
 
   useEffect(() => {
     if (isDark) {
@@ -75,12 +97,12 @@ export default function App() {
   };
 
   const handleLogin = () => {
-    setIsLoggedIn(true);
+    // User is automatically logged in via Supabase/UserContext
     navigate('/');
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate('/');
   };
 
@@ -113,44 +135,186 @@ export default function App() {
     return pathMap[location.pathname] || 'Home';
   };
 
+  // Check if we're in VC portal
+  const isVCPortal = location.pathname.startsWith('/vc/');
+
+  return (
+    <div className="bg-background text-foreground min-h-screen">
+      <Toaster position="top-right" />
+
+      <Routes>
+        {/* ADMIN ROUTES (Separate Layout) */}
+        <Route element={<AdminLayout />}>
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/startups"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                <AdminStartups />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+
+        {/* VC PORTAL ROUTES (Separate Layout) */}
+        <Route element={<VCLayout />}>
+          <Route
+            path="/vc/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.VC, UserRole.SUPER_ADMIN]}>
+                <VCDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vc/startups"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.VC, UserRole.SUPER_ADMIN]}>
+                <VCStartups />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vc/startups/:id"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.VC, UserRole.SUPER_ADMIN]}>
+                <VCStartupDetail />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+
+        {/* MAIN APP ROUTES (Founder + Public) */}
+        <Route
+          path="/*"
+          element={
+            <>
+              <Navbar
+                isDark={isDark}
+                toggleTheme={toggleTheme}
+                currentPage={getCurrentPage()}
+                onNavigate={handleNavigate}
+                isLoggedIn={isLoggedIn}
+                onLogout={handleLogout}
+              />
+              <main>
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<HomePage onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/features" element={<FeaturesPage />} />
+                  <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/auth" element={<AuthPage onNavigate={handleNavigate} onLogin={handleLogin} />} />
+                  <Route path="/case-studies" element={<CaseStudiesPage onNavigate={handleNavigate} />} />
+                  <Route path="/case-studies/:caseId" element={<CaseDetailPage onNavigate={handleNavigate} />} />
+                  <Route path="/pricing" element={<PricingPage onNavigate={handleNavigate} />} />
+
+                  {/* Founder Protected Routes */}
+                  <Route
+                    path="/community"
+                    element={
+                      <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                        <CommunityPage onNavigate={handleNavigate} />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/resources"
+                    element={
+                      <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                        <ResourcesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/idea-analyser"
+                    element={
+                      <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                        <IdeaAnalyserPage onNavigate={handleNavigate} />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                        <ProfilePage onNavigate={handleNavigate} />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/membership"
+                    element={
+                      <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                        <MembershipPage onNavigate={handleNavigate} />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/pitch-creator"
+                    element={
+                      <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                        <PitchCreatorPage onNavigate={handleNavigate} />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                        <DashboardPage onNavigate={handleNavigate} />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/submit-startup"
+                    element={
+                      <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                        <SubmitStartupPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/get-funded"
+                    element={
+                      <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                        <VCConnectionPage onNavigate={handleNavigate} />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/saved-ideas"
+                    element={
+                      <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                        <SavedIdeasPage onNavigate={handleNavigate} />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Routes>
+              </main>
+              <Footer onNavigate={handleNavigate} />
+
+              {/* Chatbot - Available on all pages except Auth and VC Portal */}
+              {location.pathname !== '/auth' && <Chatbot isDark={isDark} />}
+            </>
+          }
+        />
+      </Routes>
+    </div>
+  );
+}
+
+export default function App() {
   return (
     <UserProvider>
-      <div className="bg-background text-foreground min-h-screen">
-        <Toaster position="top-right" />
-        <Navbar
-          isDark={isDark}
-          toggleTheme={toggleTheme}
-          currentPage={getCurrentPage()}
-          onNavigate={handleNavigate}
-          isLoggedIn={isLoggedIn}
-          onLogout={handleLogout}
-        />
-        <main>
-          <Routes>
-            <Route path="/" element={<HomePage onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/features" element={<FeaturesPage />} />
-            <Route path="/community" element={<CommunityPage onNavigate={handleNavigate} />} />
-            <Route path="/resources" element={<ResourcesPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/auth" element={<AuthPage onNavigate={handleNavigate} onLogin={handleLogin} />} />
-            <Route path="/case-studies" element={<CaseStudiesPage onNavigate={handleNavigate} />} />
-            <Route path="/case-studies/:caseId" element={<CaseDetailPage onNavigate={handleNavigate} />} />
-            <Route path="/idea-analyser" element={<IdeaAnalyserPage onNavigate={handleNavigate} />} />
-            <Route path="/profile" element={<ProfilePage onNavigate={handleNavigate} />} />
-            <Route path="/membership" element={<MembershipPage onNavigate={handleNavigate} />} />
-            <Route path="/pricing" element={<PricingPage onNavigate={handleNavigate} />} />
-            <Route path="/pitch-creator" element={<PitchCreatorPage onNavigate={handleNavigate} />} />
-            <Route path="/dashboard" element={<DashboardPage onNavigate={handleNavigate} />} />
-            <Route path="/get-funded" element={<VCConnectionPage onNavigate={handleNavigate} />} />
-            <Route path="/saved-ideas" element={<SavedIdeasPage onNavigate={handleNavigate} />} />
-          </Routes>
-        </main>
-        <Footer onNavigate={handleNavigate} />
-
-        {/* Chatbot - Available on all pages except Auth */}
-        {location.pathname !== '/auth' && <Chatbot isDark={isDark} />}
-      </div>
+      <AppContent />
     </UserProvider>
   );
 }

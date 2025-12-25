@@ -26,10 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Progress } from '../ui/progress';
-import Groq from 'groq-sdk';
-
-// Groq API Key - Use environment variable or fallback
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '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';
+import { apiClient, AnalysisResponse } from '../../lib/api-client';
 
 interface AnalysisResult {
   score: number;
@@ -66,155 +63,46 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       return;
     }
 
+    if (!user) {
+      toast.error('Please login to analyze your idea');
+      return;
+    }
+
     setIsAnalyzing(true);
 
     try {
-      // Initialize Groq client with constant API key
-      const groq = new Groq({
-        apiKey: GROQ_API_KEY,
-        dangerouslyAllowBrowser: true,
+      // Call the secure backend API
+      const response = await apiClient.post<AnalysisResponse>('/api/ai/analyze-idea', {
+        title: ideaTitle,
+        description: ideaDescription,
+        targetMarket: targetMarket || null,
       });
 
-      // Create a detailed prompt for the AI
-      const prompt = `You are a senior startup analyst and venture capital advisor with 15+ years of experience evaluating startups. Analyze the following startup idea comprehensively and provide an honest, data-driven assessment.
-
-STARTUP IDEA DETAILS:
-Title: ${ideaTitle}
-Description: ${ideaDescription}
-Target Market: ${targetMarket || 'Not specified - needs definition'}
-
-ANALYSIS FRAMEWORK:
-Evaluate this idea based on:
-1. Market Opportunity - Size, growth trends, accessibility
-2. Problem-Solution Fit - How well does it address a real pain point?
-3. Competitive Landscape - Existing solutions, barriers to entry
-4. Execution Feasibility - Technical complexity, resource requirements
-5. Business Model Potential - Revenue opportunities, scalability
-6. Risk Factors - Regulatory, technical, market risks
-
-SCORING GUIDELINES:
-- 85-100: Exceptional idea with clear market need and strong execution potential
-- 70-84: Strong idea with good potential, some areas need work
-- 55-69: Decent concept but significant challenges to address
-- 40-54: Weak idea with major flaws or limited market potential
-- 0-39: Fundamental issues that likely prevent success
-
-Provide your analysis in VALID JSON format (return ONLY JSON, no extra text):
-
-{
-  "score": <number between 0-100 based on thorough analysis>,
-  "strengths": [
-    "<Specific strength 1 with concrete reasoning>",
-    "<Specific strength 2 with concrete reasoning>",
-    "<Specific strength 3 with concrete reasoning>",
-    "<Specific strength 4 if applicable>"
-  ],
-  "weaknesses": [
-    "<Specific weakness 1 with impact assessment>",
-    "<Specific weakness 2 with impact assessment>",
-    "<Specific weakness 3 if applicable>"
-  ],
-  "recommendations": [
-    "<Actionable recommendation 1 - be specific about what to do>",
-    "<Actionable recommendation 2 - be specific about what to do>",
-    "<Actionable recommendation 3 - be specific about what to do>",
-    "<Actionable recommendation 4 - be specific about what to do>",
-    "<Actionable recommendation 5 if applicable>"
-  ],
-  "marketSize": "<Estimate the Total Addressable Market (TAM) with specific numbers or ranges. Include market growth rate if relevant.>",
-  "competition": "<Identify 2-3 key competitors or alternative solutions. Assess competitive intensity (low/medium/high) and explain why.>",
-  "viability": "<Honest assessment of execution feasibility covering: technical complexity, required resources, time to market, and key success factors.>"
-}
-
-BE SPECIFIC AND HONEST. Avoid generic statements. Base your analysis on the actual details provided about THIS specific idea.`;
-
-      // Call Groq API with better model and parameters
-      const chatCompletion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert startup analyst providing detailed, honest assessments. Always respond with valid JSON only, no extra text. Be specific and actionable in your analysis.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        model: 'llama-3.3-70b-versatile', // Better model for more precise analysis
-        temperature: 0.3, // Lower temperature for more consistent, focused analysis
-        max_tokens: 1500, // More tokens for detailed analysis
-      });
-
-      const response = chatCompletion.choices[0]?.message?.content || '';
-
-      // Try to parse the JSON response
-      let analysisData;
-      try {
-        // Extract JSON from response (in case there's extra text)
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          analysisData = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON found in response');
-        }
-      } catch (parseError) {
-        console.error('Failed to parse AI response:', response);
-        // Fallback: Create a basic analysis from the text response
-        analysisData = {
-          score: 75,
-          strengths: ['Detailed concept', 'Market opportunity identified'],
-          weaknesses: ['Needs more market validation'],
-          recommendations: [
-            'Conduct user interviews',
-            'Build a minimal viable product',
-            'Test with early adopters',
-          ],
-          marketSize: 'Requires market research',
-          competition: 'Needs competitive analysis',
-          viability: response.substring(0, 100) + '...',
-        };
-        toast.warning('AI response format unexpected. Using basic analysis.');
-      }
+      // Convert backend response to frontend format
+      const analysisData: AnalysisResult = {
+        score: response.score,
+        strengths: response.strengths,
+        weaknesses: response.weaknesses,
+        recommendations: response.recommendations,
+        marketSize: response.marketSize,
+        competition: response.competition,
+        viability: response.viability,
+      };
 
       setAnalysisResult(analysisData);
+      toast.success('Analysis complete and saved to your account!');
 
-      // Save analysis to database if user is logged in
-      if (user) {
-        try {
-          const { error: dbError } = await supabase
-            .from('idea_analyses')
-            .insert({
-              user_id: user.id,
-              idea_title: ideaTitle,
-              idea_description: ideaDescription,
-              target_market: targetMarket || null,
-              score: analysisData.score,
-              strengths: analysisData.strengths,
-              weaknesses: analysisData.weaknesses,
-              recommendations: analysisData.recommendations,
-              market_size: analysisData.marketSize,
-              competition: analysisData.competition,
-              viability: analysisData.viability,
-            });
-
-          if (dbError) {
-            console.error('Error saving analysis to database:', dbError);
-            toast.warning('Analysis completed but failed to save to your account');
-          } else {
-            toast.success('Analysis complete and saved to your account!');
-          }
-        } catch (dbError) {
-          console.error('Database error:', dbError);
-          toast.success('Analysis complete!');
-        }
-      } else {
-        toast.success('Analysis complete! Sign in to save your analyses.');
-      }
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to analyze idea. Please try again.'
-      );
+      const errorMessage = error instanceof Error ? error.message : 'Failed to analyze idea. Please try again.';
+
+      if (errorMessage.includes('Rate limit')) {
+        toast.error('Rate limit exceeded. Please try again in an hour.');
+      } else if (errorMessage.includes('Authentication')) {
+        toast.error('Please login to analyze your idea');
+      } else {
+        toast.error(errorMessage);
+      }
       setIsAnalyzing(false);
       return;
     }
