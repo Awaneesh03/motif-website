@@ -8,20 +8,27 @@ import {
   Users,
   CheckCircle2,
   Sparkles,
+  Rocket,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { useUser } from '@/contexts/UserContext';
+import { getUserIdeas, type Idea } from '@/lib/ideasService';
 
 interface DashboardPageProps {
   onNavigate?: (page: string) => void;
 }
 
 export function DashboardPage({ onNavigate }: DashboardPageProps) {
+  const { user, profile } = useUser();
+  const navigate = useNavigate();
   const [userName] = useState('Alex Johnson');
   const [currentTip, setCurrentTip] = useState(0);
+  const [myStartups, setMyStartups] = useState<Idea[]>([]);
 
   const stats = [
     {
@@ -100,6 +107,16 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const fetchStartups = async () => {
+      if (user?.id) {
+        const ideas = await getUserIdeas(user.id);
+        setMyStartups(ideas);
+      }
+    };
+    fetchStartups();
+  }, [user]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -161,11 +178,77 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                 ))}
               </div>
 
-              {/* Recent Activity */}
+              {/* My Startups */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
+              >
+                <Card className="glass-surface border-border/50">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Rocket className="h-5 w-5 text-primary" />
+                        My Startups
+                      </CardTitle>
+                      <span className="text-sm text-muted-foreground">
+                        {myStartups.length} {myStartups.length === 1 ? 'startup' : 'startups'}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {myStartups.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Rocket className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p className="mb-2">No startups yet</p>
+                        <p className="text-sm">Create your first idea to get started</p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {myStartups.map((startup, index) => (
+                          <motion.div
+                            key={startup.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.4 + index * 0.05 }}
+                            className="bg-muted/30 hover:bg-muted/50 border border-border/50 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md"
+                            onClick={() => navigate(`/dashboard/startups/${startup.id}`)}
+                          >
+                            <h4 className="font-semibold mb-2 truncate">
+                              {startup.title || startup.name || 'Untitled'}
+                            </h4>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {startup.stage || 'N/A'}
+                              </Badge>
+                              <Badge
+                                className={`text-xs capitalize border-0 ${
+                                  startup.status === 'active'
+                                    ? 'bg-green-100 text-green-800'
+                                    : startup.status === 'pending'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}
+                              >
+                                {startup.status || 'N/A'}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Created {new Date(startup.created_at).toLocaleDateString()}
+                            </p>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Recent Activity */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
               >
                 <Card className="glass-surface border-border/50">
                   <CardHeader>
@@ -204,7 +287,7 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.6 }}
               >
                 <Card className="glass-surface border-border/50 bg-gradient-to-br from-[#C9A7EB]/10 to-[#B084E8]/10">
                   <CardContent className="p-6">
