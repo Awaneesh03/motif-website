@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import { toast } from 'sonner';
 import { UserRole } from '@/types/roles';
 
 interface UserProfile {
@@ -20,7 +19,7 @@ interface UserProfile {
   caseStudiesSaved: number;
 }
 
-interface UserContextType {
+type UserContextValue = {
   user: User | null;
   profile: UserProfile | null;
   setProfile: (profile: UserProfile) => void;
@@ -30,22 +29,148 @@ interface UserContextType {
   isVC: boolean;
   isAdmin: boolean;
   hasRole: (role: UserRole) => boolean;
+  displayName: string;
+  loadingUser: boolean;
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [displayName, setDisplayName] = useState<string>('there');
+  const [loadingUser, setLoadingUser] = useState<boolean>(true);
+
+  const resolveDisplayName = (profile?: { full_name?: string }, authUser?: User | null) => {
+    return (
+      profile?.full_name ||
+      authUser?.user_metadata?.full_name ||
+      authUser?.user_metadata?.name ||
+      'there'
+    );
+  };
+
+  const loadUser = useCallback(async (explicitUser?: User | null) => {
+    setLoadingUser(true);
+    try {
+      let authUser = explicitUser;
+
+      // If no user passed, try to get it from session with timeout
+      if (authUser === undefined) {
+        const getSessionWithTimeout = async () => {
+          const timeoutPromise = new Promise<{ data: { session: null }, error: any }>((resolve) => {
+            setTimeout(() => {
+              console.warn('[UserContext] loadUser getSession timed out');
+              resolve({ data: { session: null }, error: 'Timeout' });
+            }, 2000);
+          });
+          return Promise.race([supabase.auth.getSession(), timeoutPromise]);
+        };
+
+        const { data: sessionData } = await getSessionWithTimeout();
+        authUser = sessionData.session?.user ?? null;
+      }
+
+      setUser(authUser);
+
+      if (authUser) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+
+        if (!error && profile) {
+          // Profile exists - use it
+          setProfile(profile);
+          setDisplayName(resolveDisplayName(profile, authUser));
+        } else {
+          // Profile doesn't exist - create one with default founder role
+          console.log('[UserContext] Profile not found, creating default profile...');
+
+          const defaultProfile = {
+            id: authUser.id,
+            name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+            email: authUser.email || '',
+            about: '',
+            linkedin: '',
+            avatar: authUser.user_metadata?.avatar_url || '',
+            role: 'founder', // Default to founder role
+            location: '',
+            education: '',
+            startup_goals: [],
+            connections: 0,
+            ideasSaved: 0,
+            caseStudiesSaved: 0,
+          };
+
+          // Try to insert the profile into the database
+          const { data: newProfile, error: insertError } = await supabase
+            .from('profiles')
+            .insert([defaultProfile])
+            .select()
+            .single();
+
+          if (!insertError && newProfile) {
+            console.log('✅ Profile auto-created successfully');
+            setProfile(newProfile);
+            setDisplayName(resolveDisplayName(newProfile, authUser));
+          } else {
+            // If insert fails (e.g., RLS policy), use in-memory profile
+            console.warn('⚠️ Failed to create profile in database, using in-memory profile:', insertError);
+            setProfile(defaultProfile as any);
+            setDisplayName(resolveDisplayName(defaultProfile as any, authUser));
+          }
+        }
+      } else {
+        setProfile(null);
+        setDisplayName('there');
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+      setDisplayName('there');
+    } finally {
+      setLoadingUser(false);
+    }
+  }, []);
 
   useEffect(() => {
+    console.log('[UserContext] Initializing auth listener...');
+
+    // Wrap getSession in a race with timeout to prevent hanging
+    const getSessionWithTimeout = async () => {
+      const timeoutPromise = new Promise<{ data: { session: null }, error: any }>((resolve) => {
+        setTimeout(() => {
+          console.warn('[UserContext] getSession timed out - defaulting to no user');
+          resolve({ data: { session: null }, error: 'Timeout' });
+        }, 2000);
+      });
+
+      const sessionPromise = supabase.auth.getSession();
+
+      return Promise.race([sessionPromise, timeoutPromise]);
+    };
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserProfile(session.user);
+    getSessionWithTimeout().then(async ({ data: { session } }) => {
+      console.log('[UserContext] Initial session:', session?.user?.email);
+      const user = session?.user ?? null;
+      setUser(user);
+
+      if (user) {
+        console.log('[UserContext] User found, loading profile...');
+        try {
+          // Pass user explicitly to avoid re-fetching
+          await loadUser(user);
+        } catch (err) {
+          console.error('[UserContext] Error in initial loadUser:', err);
+        } finally {
+          console.log('[UserContext] Setting isLoading false (initial)');
+          setIsLoading(false);
+        }
       } else {
+        console.log('[UserContext] No user, setting isLoading false');
         setIsLoading(false);
       }
     });
@@ -53,10 +178,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserProfile(session.user);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[UserContext] Auth change: ${event}`, session?.user?.email);
+      const user = session?.user ?? null;
+      setUser(user);
+
+      if (user) {
+        try {
+          // Pass user explicitly - CRITICAL FIX for login hang
+          await loadUser(user);
+        } catch (err) {
+          console.error('[UserContext] Error in auth change loadUser:', err);
+        } finally {
+          console.log('[UserContext] Setting isLoading false (auth change)');
+          setIsLoading(false);
+        }
       } else {
         setProfile(null);
         setIsLoading(false);
@@ -64,122 +200,33 @@ export function UserProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadUser]);
 
-  const loadUserProfile = async (user: User) => {
-    try {
-      // Try to load profile from database
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading profile:', error);
-      }
-
-      // Check if this is a new user (no profile in database)
-      const isNewUser = !data;
-
-      // Create default profile object from user data
-      let userProfile: UserProfile = data || {
-        id: user.id,
-        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-        email: user.email || '',
-        about: '',
-        linkedin: '',
-        avatar: user.user_metadata?.avatar_url || '',
-        role: 'founder', // Default role for new users
-        location: '',
-        education: '',
-        startup_goals: [],
-        connections: 0,
-        ideasSaved: 0,
-        caseStudiesSaved: 0,
-      };
-
-      // Auto-create profile in database for new users
-      if (isNewUser) {
-        const { data: newProfile, error: insertError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: userProfile.id,
-            name: userProfile.name,
-            email: userProfile.email,
-            about: userProfile.about,
-            linkedin: userProfile.linkedin,
-            avatar: userProfile.avatar,
-            role: userProfile.role,
-            location: userProfile.location,
-            education: userProfile.education,
-            startup_goals: userProfile.startup_goals,
-            connections: userProfile.connections,
-            ideasSaved: userProfile.ideasSaved,
-            caseStudiesSaved: userProfile.caseStudiesSaved,
-          }])
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error('Error creating profile in database:', insertError);
-          // Continue with in-memory profile even if database insert fails
-        } else if (newProfile) {
-          // Use the newly created database profile
-          userProfile = newProfile;
-          console.log('✅ Profile auto-created in database for new user');
-        }
-      }
-
-      setProfile(userProfile);
-
-      // Show welcome notification
-      setTimeout(() => {
-        if (isNewUser) {
-          toast.success(`Welcome, ${userProfile.name}! 🎉`, {
-            duration: 3000,
-            description: 'Get started by exploring ideas and case studies',
-          });
-        } else {
-          toast.success(`Welcome back, ${userProfile.name}! 👋`, {
-            duration: 3000,
-          });
-        }
-      }, 500);
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Role helpers
+  // Role helpers (using normalized role values)
   const isFounder = profile?.role === UserRole.FOUNDER || profile?.role === 'founder';
   const isVC = profile?.role === UserRole.VC || profile?.role === 'vc';
-  const isAdmin = profile?.role === UserRole.SUPER_ADMIN || profile?.role === 'super_admin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'; // Both admin and super_admin
 
   const hasRole = (role: UserRole) => {
     if (!profile) return false;
     return profile.role === role;
   };
 
-  return (
-    <UserContext.Provider
-      value={{
-        user,
-        profile,
-        setProfile,
-        isLoading,
-        loading: isLoading, // Alias
-        isFounder,
-        isVC,
-        isAdmin,
-        hasRole,
-      }}
-    >
-      {children}
-    </UserContext.Provider>
-  );
+  const value: UserContextValue = {
+    user,
+    profile,
+    setProfile,
+    isLoading,
+    loading: isLoading, // Alias
+    isFounder,
+    isVC,
+    isAdmin,
+    hasRole,
+    displayName,
+    loadingUser,
+  };
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
 export function useUser() {

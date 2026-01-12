@@ -29,23 +29,18 @@ export function StarRating({
 
   const handleClick = (value: number) => {
     if (readonly) return;
-    console.log('Star clicked:', value); // Debug log
     onRatingChange?.(value);
   };
 
   const handleMouseEnter = (value: number) => {
     if (readonly) return;
-    console.log('Star hovered:', value); // Debug log
     setHoverRating(value);
   };
 
   const handleMouseLeave = () => {
     if (readonly) return;
-    console.log('Mouse left stars'); // Debug log
     setHoverRating(0);
   };
-
-  console.log('StarRating render:', { rating, hoverRating, readonly }); // Debug log
 
   return (
     <div 

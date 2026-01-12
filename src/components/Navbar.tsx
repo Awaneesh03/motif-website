@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { NotificationBell } from './NotificationBell';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,8 +101,11 @@ export function Navbar({
             </div>
           </div>
 
-          {/* Right side - Mobile menu + Theme toggle + Auth/Profile */}
+          {/* Right side - Mobile menu + Notifications + Theme toggle + Auth/Profile */}
           <div className="flex items-center gap-3">
+            {/* Notification Bell - Only shown when logged in */}
+            {isLoggedIn && <NotificationBell />}
+
             {/* Mobile Menu - Three Dots */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>

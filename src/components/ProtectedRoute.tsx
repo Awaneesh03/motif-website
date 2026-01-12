@@ -2,7 +2,6 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import { UserRole, hasAccess, getRoleDefaultRoute } from '@/types/roles';
 import { toast } from 'sonner';
-import { useEffect } from 'react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,6 +19,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Loading state
   if (loading) {
+    console.log('[ProtectedRoute] Stuck in loading state...', { user: !!user, profile: !!profile });
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

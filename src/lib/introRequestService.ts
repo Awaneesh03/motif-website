@@ -2,17 +2,39 @@
 // Maps to vc_applications table with joins for VC and startup names
 
 import { supabase } from './supabase';
+import { verifyVCRole, verifyFounderRole, verifyAdminRole, getCurrentUserRole } from './roleVerification';
+import { safeFetchList, safeFetchCount, safeFetchExists } from './safeFetch';
 
 export type IntroRequestStatus = 'requested' | 'approved' | 'rejected';
 
 export interface IntroRequest {
   id: string;
   startupId: string;
-  vcId: string;
+  vcId: string | null;
   vcName: string;
   startupName: string;
   status: IntroRequestStatus;
   createdAt: string;
+}
+
+export interface ConnectedVC {
+  id: string;
+  vcId: string;
+  vcName: string;
+  vcFirm?: string;
+  vcRole?: string;
+  connectedAt: string;
+}
+
+export interface ConnectedStartup {
+  id: string;
+  startupId: string;
+  startupName: string;
+  startupDescription?: string;
+  stage?: string;
+  industry?: string;
+  founderName?: string;
+  connectedAt: string;
 }
 
 // Helper to transform DB row to IntroRequest
@@ -20,9 +42,9 @@ const transformToIntroRequest = (row: any): IntroRequest => {
   return {
     id: row.id,
     startupId: row.idea_id,
-    vcId: row.vc_id,
-    vcName: row.vc_profile?.name || row.vc_profile?.full_name || '',
-    startupName: row.startup?.name || '',
+    vcId: row.vc_id || null,
+    vcName: row.vc_profile?.name || row.vc_profile?.full_name || 'Any VC',
+    startupName: row.idea?.title || row.idea?.name || 'Untitled',
     status: row.status,
     createdAt: row.created_at,
   };
@@ -36,7 +58,7 @@ export const getAllIntroRequests = async (): Promise<IntroRequest[]> => {
       .select(`
         *,
         vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-        startup:startups!vc_applications_idea_id_fkey(name)
+        idea:ideas!vc_applications_idea_id_fkey(title, name)
       `)
       .order('created_at', { ascending: false });
 
@@ -50,89 +72,196 @@ export const getAllIntroRequests = async (): Promise<IntroRequest[]> => {
 
 // Get intro requests by VC
 export const getIntroRequestsByVC = async (vcId: string): Promise<IntroRequest[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('vc_applications')
-      .select(`
-        *,
-        vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-        startup:startups!vc_applications_idea_id_fkey(name)
-      `)
-      .eq('vc_id', vcId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return (data || []).map(transformToIntroRequest);
-  } catch (error) {
-    console.error('Error fetching intro requests by VC:', error);
+  // Guard: Only VCs and admins can fetch VC intro requests
+  const role = await getCurrentUserRole();
+  if (!role || (role !== 'vc' && role !== 'super_admin')) {
     return [];
   }
+
+  // Guard: VC ID required
+  if (!vcId) {
+    return [];
+  }
+
+  const data = await safeFetchList(
+    () =>
+      supabase
+        .from('vc_applications')
+        .select(`
+          *,
+          vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
+          idea:ideas!vc_applications_idea_id_fkey(title, name)
+        `)
+        .eq('vc_id', vcId)
+        .order('created_at', { ascending: false }),
+    { serviceName: 'introRequestService.getIntroRequestsByVC' }
+  );
+
+  return data.map(transformToIntroRequest);
 };
 
-// Get intro requests by startup
+// Get intro requests by startup (idea)
 export const getIntroRequestsByStartup = async (startupId: string): Promise<IntroRequest[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('vc_applications')
-      .select(`
-        *,
-        vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-        startup:startups!vc_applications_idea_id_fkey(name)
-      `)
-      .eq('idea_id', startupId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return (data || []).map(transformToIntroRequest);
-  } catch (error) {
-    console.error('Error fetching intro requests by startup:', error);
+  // Guard: Only founders and admins can fetch startup intro requests
+  const role = await getCurrentUserRole();
+  if (!role || (role !== 'founder' && role !== 'super_admin')) {
     return [];
   }
+
+  // Guard: Startup ID required
+  if (!startupId) {
+    return [];
+  }
+
+  const data = await safeFetchList(
+    () =>
+      supabase
+        .from('vc_applications')
+        .select(`
+          *,
+          vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
+          idea:ideas!vc_applications_idea_id_fkey(title, name)
+        `)
+        .eq('idea_id', startupId)
+        .order('created_at', { ascending: false }),
+    { serviceName: 'introRequestService.getIntroRequestsByStartup' }
+  );
+
+  return data.map(transformToIntroRequest);
 };
 
-// Check if intro request exists
+// Check if intro request exists (by VC and startup)
 export const hasIntroRequest = async (vcId: string, startupId: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase
-      .from('vc_applications')
-      .select('id')
-      .eq('vc_id', vcId)
-      .eq('idea_id', startupId)
-      .limit(1)
-      .maybeSingle();
-
-    if (error) throw error;
-    return !!data;
-  } catch (error) {
-    console.error('Error checking intro request:', error);
+  // Guard: IDs required
+  if (!vcId || !startupId) {
     return false;
   }
+
+  return safeFetchExists(
+    () =>
+      supabase
+        .from('vc_applications')
+        .select('id')
+        .eq('vc_id', vcId)
+        .eq('idea_id', startupId)
+        .limit(1)
+        .maybeSingle(),
+    { serviceName: 'introRequestService.hasIntroRequest' }
+  );
 };
 
-// Create intro request
+// Check if founder has already requested VC intro for this startup
+export const hasFounderRequestedIntro = async (startupId: string): Promise<boolean> => {
+  // Guard: Startup ID required
+  if (!startupId) {
+    return false;
+  }
+
+  return safeFetchExists(
+    () =>
+      supabase
+        .from('vc_applications')
+        .select('id')
+        .eq('idea_id', startupId)
+        .is('vc_id', null)
+        .limit(1)
+        .maybeSingle(),
+    { serviceName: 'introRequestService.hasFounderRequestedIntro' }
+  );
+};
+
+// Create intro request (VC requesting intro to a startup)
 export const createIntroRequest = async (
-  request: Omit<IntroRequest, 'id' | 'createdAt'>
+  vcId: string,
+  startupId: string
 ): Promise<IntroRequest | null> => {
   try {
+    // PERMISSION CHECK: Only VCs can create intro requests
+    const roleCheck = await verifyVCRole();
+    if (!roleCheck.valid) {
+      throw new Error(roleCheck.error || 'VC privileges required to request introductions');
+    }
+
+    // GUARDRAIL: Check if request already exists (prevent duplicates)
+    const exists = await hasIntroRequest(vcId, startupId);
+    if (exists) {
+      console.warn('Duplicate intro request prevented:', { vcId, startupId });
+      throw new Error('You have already requested an introduction to this startup.');
+    }
+
     const { data, error } = await supabase
       .from('vc_applications')
       .insert({
-        idea_id: request.startupId,
-        vc_id: request.vcId,
-        status: request.status,
+        idea_id: startupId,
+        vc_id: vcId,
+        status: 'requested',
       })
       .select(`
         *,
         vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-        startup:startups!vc_applications_idea_id_fkey(name)
+        idea:ideas!vc_applications_idea_id_fkey(title, name)
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Check if it's a unique constraint violation (fallback guard)
+      if (error.code === '23505') {
+        throw new Error('You have already requested an introduction to this startup.');
+      }
+      throw error;
+    }
     return data ? transformToIntroRequest(data) : null;
   } catch (error) {
     console.error('Error creating intro request:', error);
-    return null;
+    // Re-throw to allow caller to handle
+    throw error;
+  }
+};
+
+// Create founder-initiated VC intro request (vc_id is null)
+export const createFounderIntroRequest = async (
+  startupId: string
+): Promise<IntroRequest | null> => {
+  try {
+    // PERMISSION CHECK: Only founders can create founder intro requests
+    const roleCheck = await verifyFounderRole();
+    if (!roleCheck.valid) {
+      throw new Error(roleCheck.error || 'Founder privileges required to request VC introductions');
+    }
+
+    // GUARDRAIL: Check if founder already requested intro for this startup
+    const exists = await hasFounderRequestedIntro(startupId);
+    if (exists) {
+      console.warn('Duplicate founder intro request prevented:', { startupId });
+      throw new Error('You have already requested VC introductions for this startup.');
+    }
+
+    const { data, error } = await supabase
+      .from('vc_applications')
+      .insert({
+        idea_id: startupId,
+        vc_id: null,
+        status: 'requested',
+      })
+      .select(`
+        *,
+        vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
+        idea:ideas!vc_applications_idea_id_fkey(title, name)
+      `)
+      .single();
+
+    if (error) {
+      // Check if it's a unique constraint violation (fallback guard)
+      if (error.code === '23505') {
+        throw new Error('You have already requested VC introductions for this startup.');
+      }
+      throw error;
+    }
+    return data ? transformToIntroRequest(data) : null;
+  } catch (error) {
+    console.error('Error creating founder intro request:', error);
+    // Re-throw to allow caller to handle
+    throw error;
   }
 };
 
@@ -142,6 +271,12 @@ export const updateIntroRequestStatus = async (
   status: IntroRequestStatus
 ): Promise<IntroRequest | null> => {
   try {
+    // PERMISSION CHECK: Only admins can update intro request status
+    const roleCheck = await verifyAdminRole();
+    if (!roleCheck.valid) {
+      throw new Error(roleCheck.error || 'Admin privileges required to approve/reject intro requests');
+    }
+
     const { data, error } = await supabase
       .from('vc_applications')
       .update({ status })
@@ -149,7 +284,7 @@ export const updateIntroRequestStatus = async (
       .select(`
         *,
         vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-        startup:startups!vc_applications_idea_id_fkey(name)
+        idea:ideas!vc_applications_idea_id_fkey(title, name)
       `)
       .single();
 
@@ -159,4 +294,135 @@ export const updateIntroRequestStatus = async (
     console.error('Error updating intro request status:', error);
     return null;
   }
+};
+
+// Get connected VCs for a startup (approved intro requests)
+export const getConnectedVCs = async (startupId: string): Promise<ConnectedVC[]> => {
+  // Guard: Only founders and admins can view connected VCs for a startup
+  const role = await getCurrentUserRole();
+  if (!role || (role !== 'founder' && role !== 'super_admin')) {
+    return [];
+  }
+
+  // Guard: Startup ID required
+  if (!startupId) {
+    return [];
+  }
+
+  const data = await safeFetchList(
+    () =>
+      supabase
+        .from('vc_applications')
+        .select(`
+          id,
+          vc_id,
+          created_at,
+          updated_at,
+          vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name, company, role)
+        `)
+        .eq('idea_id', startupId)
+        .eq('status', 'approved')
+        .not('vc_id', 'is', null)
+        .order('created_at', { ascending: false }),
+    { serviceName: 'introRequestService.getConnectedVCs' }
+  );
+
+  return data.map((row: any) => ({
+    id: row.id,
+    vcId: row.vc_id,
+    vcName: row.vc_profile?.name || row.vc_profile?.full_name || 'VC',
+    vcFirm: row.vc_profile?.company,
+    vcRole: row.vc_profile?.role,
+    connectedAt: row.updated_at || row.created_at,
+  }));
+};
+
+// Get connected startups for a VC (approved intro requests)
+export const getConnectedStartups = async (vcId: string): Promise<ConnectedStartup[]> => {
+  // Guard: Only VCs and admins can view connected startups
+  const role = await getCurrentUserRole();
+  if (!role || (role !== 'vc' && role !== 'super_admin')) {
+    return [];
+  }
+
+  // Guard: VC ID required
+  if (!vcId) {
+    return [];
+  }
+
+  const data = await safeFetchList(
+    () =>
+      supabase
+        .from('vc_applications')
+        .select(`
+          id,
+          idea_id,
+          created_at,
+          updated_at,
+          idea:ideas!vc_applications_idea_id_fkey(
+            title,
+            name,
+            description,
+            stage,
+            industry,
+            target_market,
+            created_by,
+            founder:profiles!ideas_created_by_fkey(name, full_name)
+          )
+        `)
+        .eq('vc_id', vcId)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false }),
+    { serviceName: 'introRequestService.getConnectedStartups' }
+  );
+
+  return data.map((row: any) => ({
+    id: row.id,
+    startupId: row.idea_id,
+    startupName: row.idea?.title || row.idea?.name || 'Untitled',
+    startupDescription: row.idea?.description,
+    stage: row.idea?.stage,
+    industry: row.idea?.industry || row.idea?.target_market,
+    founderName: row.idea?.founder?.name || row.idea?.founder?.full_name || 'Founder',
+    connectedAt: row.updated_at || row.created_at,
+  }));
+};
+
+// Check if VC is already connected to a startup
+export const isConnected = async (vcId: string, startupId: string): Promise<boolean> => {
+  // Guard: IDs required
+  if (!vcId || !startupId) {
+    return false;
+  }
+
+  return safeFetchExists(
+    () =>
+      supabase
+        .from('vc_applications')
+        .select('id')
+        .eq('vc_id', vcId)
+        .eq('idea_id', startupId)
+        .eq('status', 'approved')
+        .limit(1)
+        .maybeSingle(),
+    { serviceName: 'introRequestService.isConnected' }
+  );
+};
+
+// Get total number of connections for a VC (for credibility display)
+export const getVCConnectionCount = async (vcId: string): Promise<number> => {
+  // Guard: VC ID required
+  if (!vcId) {
+    return 0;
+  }
+
+  return safeFetchCount(
+    () =>
+      supabase
+        .from('vc_applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('vc_id', vcId)
+        .eq('status', 'approved'),
+    { serviceName: 'introRequestService.getVCConnectionCount' }
+  );
 };

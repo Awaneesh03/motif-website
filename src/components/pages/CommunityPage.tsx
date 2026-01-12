@@ -247,7 +247,8 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
   const handleSendComment = () => {
     if (newComment.trim()) {
-      // Mock: Add comment logic here
+      // Feature not yet implemented - requires backend integration for comment persistence
+      toast.info('Community commenting is coming soon! For now, connect with other founders through the Dashboard.');
       setNewComment('');
     }
   };
@@ -376,7 +377,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               <Button
                 size="lg"
                 className="gradient-lavender shadow-lavender rounded-[16px] px-8 hover:opacity-90"
-                onClick={() => onNavigate?.('Community')}
+                onClick={() => setPostFormOpen(true)}
               >
                 Join the Community
               </Button>

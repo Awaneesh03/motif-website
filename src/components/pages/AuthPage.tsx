@@ -8,7 +8,7 @@ import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { supabase } from '../../lib/supabase';
+import { supabase, supabaseConfigured } from '../../lib/supabase';
 
 interface AuthPageProps {
   onNavigate?: (page: string) => void;
@@ -21,10 +21,11 @@ interface ValidationErrors {
   password?: string;
 }
 
-export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
+export function AuthPage({ onLogin }: AuthPageProps) {
   const [isLogin, setIsLogin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -141,6 +142,12 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
+    if (!supabaseConfigured) {
+      toast.error('Supabase credentials are missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY and restart.');
+      return;
+    }
+
+    setAuthError(null);
     // Mark all fields as touched
     setTouched({
       fullName: true,
@@ -166,9 +173,12 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
 
         if (error) throw error;
 
-        console.log('Login successful:', data);
-        toast.success('Welcome back!');
-        onLogin?.();
+        if (!data.session) {
+          throw new Error('No session returned after sign-in.');
+        }
+
+        toast.success('Signed in successfully. Redirecting…');
+        await onLogin?.();
       } else {
         // Handle signup
         const { data, error } = await supabase.auth.signUp({
@@ -183,14 +193,12 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
 
         if (error) throw error;
 
-        console.log('Signup successful:', data);
-
         // Check if email confirmation is required
         if (data.user && !data.session) {
           toast.success('Account created! Please check your email to verify your account.');
         } else {
           toast.success('Account created successfully!');
-          onLogin?.();
+          await onLogin?.();
         }
       }
     } catch (error: any) {
@@ -207,6 +215,7 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
         errorMessage = 'Unable to connect to authentication server. Please check your internet connection and Supabase configuration.';
       }
 
+      setAuthError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -214,8 +223,10 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
   };
 
   const handleGoogleLoginSuccess = (credentialResponse: CredentialResponse) => {
-    console.log('Google Login Success:', credentialResponse);
-
+    if (!supabaseConfigured) {
+      toast.error('Supabase credentials are missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY and restart.');
+      return;
+    }
     // In a production app, you would:
     // 1. Send the credential to your backend
     // 2. Verify the token server-side
@@ -236,13 +247,12 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
         );
 
         const userData = JSON.parse(jsonPayload);
-        console.log('User Data:', userData);
 
-        toast.success(`Welcome, ${userData.name}!`);
+        // Welcome notification is now handled by UserContext
         onLogin?.();
       } catch (error) {
         console.error('Error decoding token:', error);
-        toast.success('Signed in with Google!');
+        // Welcome notification is now handled by UserContext
         onLogin?.();
       }
     }
@@ -266,8 +276,20 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
               transition={{ duration: 0.5 }}
               className="w-full max-w-md"
             >
+              {!supabaseConfigured && (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to a .env file, then restart the dev server to enable sign-in.
+                </div>
+              )}
+
               {/* Auth Card */}
               <div className="rounded-3xl bg-card p-8 shadow-lg sm:p-10 border border-border/50">
+                {authError && (
+                  <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    {authError}
+                  </div>
+                )}
+
                 {/* Logo and Brand */}
                 <div className="mb-8 text-center">
                   <div className="gradient-lavender shadow-lavender mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl">
@@ -409,7 +431,7 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || !supabaseConfigured}
                     className="gradient-lavender shadow-lavender h-12 w-full rounded-xl text-white font-semibold hover:opacity-90 transition-opacity mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
@@ -437,6 +459,7 @@ export function AuthPage({ onNavigate, onLogin }: AuthPageProps) {
                       <GoogleLogin
                         onSuccess={handleGoogleLoginSuccess}
                         onError={handleGoogleLoginError}
+                        disabled={!supabaseConfigured}
                         useOneTap
                         theme="outline"
                         size="large"

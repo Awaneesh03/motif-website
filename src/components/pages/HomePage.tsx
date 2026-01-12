@@ -147,9 +147,9 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
               <Button
                 size="lg"
                 className="text-primary shadow-lavender rounded-[16px] bg-white px-8 hover:bg-white/90"
-                onClick={() => onNavigate?.(isLoggedIn ? 'Pricing' : 'Auth')}
+                onClick={() => onNavigate?.(isLoggedIn ? 'Dashboard' : 'Auth')}
               >
-                {isLoggedIn ? 'Subscribe' : 'Start Free'}
+                {isLoggedIn ? 'Go to Dashboard' : 'Start Free'}
               </Button>
               <Button
                 size="lg"
@@ -395,7 +395,7 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
                     </div>
                     <Button
                       className="gradient-lavender shadow-lavender w-full rounded-xl text-white hover:opacity-90 hover:scale-105 transition-all mt-auto"
-                      onClick={() => onNavigate?.('CaseDetail', caseItem.id)}
+                      onClick={() => onNavigate?.('Case Studies')}
                     >
                       Start the Challenge →
                     </Button>

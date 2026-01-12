@@ -280,7 +280,7 @@ export function AboutPage() {
                     whileHover={{ scale: 1.1 }}
                   >
                     <Badge className="rounded-full bg-gradient-to-r from-[#C9A7EB] to-[#B084E8] px-4 py-1 text-sm font-semibold text-gray-900 shadow-lg dark:text-white">
-                      Founder
+                      Co-Founder and CEO
                     </Badge>
                   </motion.div>
 
@@ -355,7 +355,7 @@ export function AboutPage() {
                     whileHover={{ scale: 1.1 }}
                   >
                     <Badge className="rounded-full bg-gradient-to-r from-[#A9F5D0] to-[#7FD4B3] px-4 py-1 text-sm font-semibold text-gray-900 shadow-lg dark:text-white">
-                      Co-Founder
+                      Co-Founder and CTO
                     </Badge>
                   </motion.div>
 
