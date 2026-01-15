@@ -20,10 +20,10 @@ interface DashboardPageProps {
  * Other roles are redirected by RoleRedirect at /dashboard
  */
 export function DashboardPage({ onNavigate }: DashboardPageProps) {
-  const { user, profile, loadingUser, isFounder } = useUser();
+  const { profile, loadingUser, isFounder } = useUser();
   const navigate = useNavigate();
 
-  const isLoading = loadingUser || (!!user && !profile);
+  const isLoading = loadingUser;
 
   // ============================================================================
   // LOADING STATE - While fetching user role

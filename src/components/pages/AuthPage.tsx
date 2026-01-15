@@ -162,6 +162,11 @@ export function AuthPage({ onLogin }: AuthPageProps) {
     }
 
     setIsLoading(true);
+    const loadingTimeout = window.setTimeout(() => {
+      setIsLoading(false);
+      setAuthError('Login is taking longer than expected. Please try again.');
+      toast.error('Login is taking longer than expected. Please try again.');
+    }, 10000);
 
     try {
       if (isLogin) {
@@ -171,14 +176,23 @@ export function AuthPage({ onLogin }: AuthPageProps) {
           password: formData.password,
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Sign-in error:', error);
+          const message = error.message || 'Failed to sign in. Please try again.';
+          setAuthError(message);
+          toast.error(message);
+          return;
+        }
 
         if (!data.session) {
-          throw new Error('No session returned after sign-in.');
+          const message = 'No session returned after sign-in.';
+          setAuthError(message);
+          toast.error(message);
+          return;
         }
 
         toast.success('Signed in successfully. Redirecting…');
-        await onLogin?.();
+        onLogin?.();
       } else {
         // Handle signup
         const { data, error } = await supabase.auth.signUp({
@@ -191,14 +205,20 @@ export function AuthPage({ onLogin }: AuthPageProps) {
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Sign-up error:', error);
+          const message = error.message || 'Failed to sign up. Please try again.';
+          setAuthError(message);
+          toast.error(message);
+          return;
+        }
 
         // Check if email confirmation is required
         if (data.user && !data.session) {
           toast.success('Account created! Please check your email to verify your account.');
         } else {
           toast.success('Account created successfully!');
-          await onLogin?.();
+          onLogin?.();
         }
       }
     } catch (error: any) {
@@ -218,6 +238,7 @@ export function AuthPage({ onLogin }: AuthPageProps) {
       setAuthError(errorMessage);
       toast.error(errorMessage);
     } finally {
+      window.clearTimeout(loadingTimeout);
       setIsLoading(false);
     }
   };

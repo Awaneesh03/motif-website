@@ -108,7 +108,7 @@ function AppContent() {
 
   const handleLogin = async () => {
     try {
-      // Wait for user profile to load with timeout
+      // Wait for session with timeout
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Session fetch timed out')), 5000)
@@ -122,38 +122,8 @@ function AppContent() {
         return;
       }
 
-      // Get user profile to determine role with timeout
-      const profilePromise = supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-
-      const { data: profile, error: profileError } = await Promise.race([
-        profilePromise,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Profile fetch timed out')), 5000)
-        ),
-      ]);
-
-      if (profileError) {
-        console.warn('[handleLogin] Profile fetch error:', profileError);
-        // Default to founder dashboard if profile fetch fails
-        navigate('/dashboard/home');
-        return;
-      }
-
-      // Redirect based on role
-      if (profile?.role === 'super_admin') {
-        navigate('/admin/dashboard');
-      } else if (profile?.role === 'vc') {
-        navigate('/vc/dashboard');
-      } else if (profile?.role === 'founder') {
-        navigate('/dashboard/home');
-      } else {
-        // Unknown or unsupported role
-        navigate('/');
-      }
+      // Redirect immediately; RoleRedirect handles role-based routing
+      navigate('/dashboard');
     } catch (error) {
       console.error('[handleLogin] Error during login redirect:', error);
       // Fallback: navigate to dashboard anyway to prevent hanging

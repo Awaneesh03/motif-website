@@ -41,6 +41,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState<string>('there');
   const [loadingUser, setLoadingUser] = useState<boolean>(true);
+  const PROFILE_LOAD_TIMEOUT_MS = 7000;
 
   const resolveDisplayName = (profile?: { full_name?: string }, authUser?: User | null) => {
     return (
@@ -58,33 +59,46 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       // If no user passed, try to get it from session with timeout
       if (authUser === undefined) {
-        const getSessionWithTimeout = async () => {
-          const timeoutPromise = new Promise<{ data: { session: null }, error: any }>((resolve) => {
-            setTimeout(() => {
-              console.warn('[UserContext] loadUser getSession timed out');
-              resolve({ data: { session: null }, error: 'Timeout' });
-            }, 2000);
-          });
-          return Promise.race([supabase.auth.getSession(), timeoutPromise]);
-        };
-
-        const { data: sessionData } = await getSessionWithTimeout();
+        const { data: sessionData } = await supabase.auth.getSession();
         authUser = sessionData.session?.user ?? null;
       }
 
       setUser(authUser);
 
       if (authUser) {
-        const { data: profile, error } = await supabase
+        const profileFetch = supabase
           .from('profiles')
           .select('*')
           .eq('id', authUser.id)
           .single();
 
+        const { data: profile, error } = await Promise.race([
+          profileFetch,
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Profile fetch timed out')), PROFILE_LOAD_TIMEOUT_MS)
+          ),
+        ]);
+
         if (!error && profile) {
-          // Profile exists - use it
-          setProfile(profile);
-          setDisplayName(resolveDisplayName(profile, authUser));
+          // Profile exists - ensure role is set
+          if (!profile.role || profile.role === 'no-role') {
+            const updatedProfile = { ...profile, role: 'founder' };
+            setProfile(updatedProfile);
+            setDisplayName(resolveDisplayName(updatedProfile, authUser));
+
+            // Best-effort: persist role
+            const { error: roleUpdateError } = await supabase
+              .from('profiles')
+              .update({ role: 'founder' })
+              .eq('id', authUser.id);
+
+            if (roleUpdateError) {
+              console.warn('[UserContext] Failed to backfill missing role:', roleUpdateError);
+            }
+          } else {
+            setProfile(profile);
+            setDisplayName(resolveDisplayName(profile, authUser));
+          }
         } else {
           // Profile doesn't exist - create one with default founder role
           console.log('[UserContext] Profile not found, creating default profile...');
@@ -129,74 +143,84 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error loading user:', error);
-      setDisplayName('there');
+      if (explicitUser) {
+        const fallbackProfile = {
+          id: explicitUser.id,
+          name: explicitUser.user_metadata?.full_name || explicitUser.email?.split('@')[0] || 'User',
+          email: explicitUser.email || '',
+          about: '',
+          linkedin: '',
+          avatar: explicitUser.user_metadata?.avatar_url || '',
+          role: 'founder',
+          location: '',
+          education: '',
+          startup_goals: [],
+          connections: 0,
+          ideasSaved: 0,
+          caseStudiesSaved: 0,
+        };
+        setProfile(fallbackProfile as any);
+        setDisplayName(resolveDisplayName(fallbackProfile as any, explicitUser));
+      } else {
+        setProfile(null);
+        setDisplayName('there');
+      }
     } finally {
       setLoadingUser(false);
+      setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    console.log('[UserContext] Initializing auth listener...');
+    const initializeAuth = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const sessionUser = sessionData.session?.user ?? null;
+        setUser(sessionUser);
 
-    // Wrap getSession in a race with timeout to prevent hanging
-    const getSessionWithTimeout = async () => {
-      const timeoutPromise = new Promise<{ data: { session: null }, error: any }>((resolve) => {
-        setTimeout(() => {
-          console.warn('[UserContext] getSession timed out - defaulting to no user');
-          resolve({ data: { session: null }, error: 'Timeout' });
-        }, 2000);
-      });
-
-      const sessionPromise = supabase.auth.getSession();
-
-      return Promise.race([sessionPromise, timeoutPromise]);
+        if (sessionUser) {
+          await loadUser(sessionUser);
+        } else {
+          setProfile(null);
+          setDisplayName('there');
+        }
+      } catch (error) {
+        console.error('[UserContext] Error initializing session:', error);
+        setUser(null);
+        setProfile(null);
+        setDisplayName('there');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    // Get initial session
-    getSessionWithTimeout().then(async ({ data: { session } }) => {
-      console.log('[UserContext] Initial session:', session?.user?.email);
-      const user = session?.user ?? null;
-      setUser(user);
+    initializeAuth();
 
-      if (user) {
-        console.log('[UserContext] User found, loading profile...');
-        try {
-          // Pass user explicitly to avoid re-fetching
-          await loadUser(user);
-        } catch (err) {
-          console.error('[UserContext] Error in initial loadUser:', err);
-        } finally {
-          console.log('[UserContext] Setting isLoading false (initial)');
-          setIsLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const handleAuthChange = async () => {
+        const sessionUser = session?.user ?? null;
+        setIsLoading(true);
+
+        if (event === 'SIGNED_IN') {
+          setUser(sessionUser);
+          if (sessionUser) {
+            await loadUser(sessionUser);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          setDisplayName('there');
+        } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          if (sessionUser) {
+            setUser(sessionUser);
+            await loadUser(sessionUser);
+          }
         }
-      } else {
-        console.log('[UserContext] No user, setting isLoading false');
-        setIsLoading(false);
-      }
-    });
+      };
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[UserContext] Auth change: ${event}`, session?.user?.email);
-      const user = session?.user ?? null;
-      setUser(user);
-
-      if (user) {
-        try {
-          // Pass user explicitly - CRITICAL FIX for login hang
-          await loadUser(user);
-        } catch (err) {
-          console.error('[UserContext] Error in auth change loadUser:', err);
-        } finally {
-          console.log('[UserContext] Setting isLoading false (auth change)');
-          setIsLoading(false);
-        }
-      } else {
-        setProfile(null);
+      void handleAuthChange().finally(() => {
         setIsLoading(false);
-      }
+      });
     });
 
     return () => subscription.unsubscribe();

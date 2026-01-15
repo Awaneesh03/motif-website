@@ -1,4 +1,5 @@
 import { Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { VCNavbar } from '@/components/vc/VCNavbar';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
@@ -6,10 +7,31 @@ import { ArrowLeft, Home } from 'lucide-react';
 
 export const VCLayout = () => {
   const navigate = useNavigate();
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem('theme');
+    const prefersDark = storedTheme === 'dark';
+    setIsDark(prefersDark);
+  }, []);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDark]);
+
+  const toggleTheme = () => {
+    setIsDark(prev => !prev);
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      <VCNavbar />
+      <VCNavbar isDark={isDark} toggleTheme={toggleTheme} />
       <main className="flex-1">
         <ErrorBoundary
           fallback={
@@ -52,15 +74,6 @@ export const VCLayout = () => {
           <Outlet />
         </ErrorBoundary>
       </main>
-      <footer className="bg-white border-t border-gray-200 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center space-x-6 text-sm text-gray-600">
-            <a href="#" className="hover:text-gray-900">Terms</a>
-            <a href="#" className="hover:text-gray-900">Privacy</a>
-            <a href="/contact" className="hover:text-gray-900">Contact</a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

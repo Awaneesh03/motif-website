@@ -5,21 +5,17 @@ import {
   Users,
   Lightbulb,
   BookOpen,
-  Mail,
-  Linkedin,
   CheckCircle2,
   Shield,
   Trash2,
   Target,
   TrendingUp,
   AlertCircle,
-  ChevronRight,
   Award,
   Clock,
   Sparkles,
   ArrowRight,
   Loader2,
-  Bug,
 } from 'lucide-react';
 
 import { Button } from '../ui/button';
@@ -178,7 +174,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
   // ============================================================================
   const [currentRenderState, setCurrentRenderState] = useState<RenderState>('auth_loading');
   const [userIdeas, setUserIdeas] = useState<any[]>([]);
-  const [userCases, setUserCases] = useState<any[]>([]);
+  const [, setUserCases] = useState<any[]>([]);
   const [activityTimeline, setActivityTimeline] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [profileCreationAttempted, setProfileCreationAttempted] = useState(false);
@@ -192,7 +188,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
-  const [selectedEmoji, setSelectedEmoji] = useState('');
+  const [, setSelectedEmoji] = useState('');
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
 
   const [editForm, setEditForm] = useState({
@@ -398,13 +394,33 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
   // SAFE PROFILE WITH FALLBACKS
   // ============================================================================
   const displayProfile = useMemo(() => {
-    return profile || {
+    const resolvedName =
+      profile?.name ||
+      (profile as any)?.full_name ||
+      authUser?.user_metadata?.full_name ||
+      authUser?.email?.split('@')[0] ||
+      'User';
+    const resolvedEmail = profile?.email || authUser?.email || '';
+    const resolvedAvatar = profile?.avatar || authUser?.user_metadata?.avatar_url || '';
+    const resolvedLinkedIn = profile?.linkedin || (profile as any)?.linkedIn || '';
+
+    if (profile) {
+      return {
+        ...profile,
+        name: profile?.name || resolvedName,
+        email: profile?.email || resolvedEmail,
+        avatar: profile?.avatar || resolvedAvatar,
+        linkedin: profile?.linkedin || resolvedLinkedIn,
+      };
+    }
+
+    return {
       id: authUser?.id || '',
-      name: authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'User',
-      email: authUser?.email || '',
+      name: resolvedName,
+      email: resolvedEmail,
       about: '',
-      linkedin: '',
-      avatar: authUser?.user_metadata?.avatar_url || '',
+      linkedin: resolvedLinkedIn,
+      avatar: resolvedAvatar,
       role: '',
       location: '',
       education: '',
@@ -428,8 +444,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     [displayProfile, userIdeas]
   );
 
-  const isFirstTimeUser = profileCompletion.percentage < 50;
-
   // ============================================================================
   // HELPER: Safe display name (never empty)
   // ============================================================================
@@ -439,11 +453,9 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     return 'there'; // Fallback for "Welcome, there!"
   };
 
-  const getFirstName = () => {
-    const fullName = getDisplayName();
-    if (fullName === 'there') return fullName;
-    return fullName.split(' ')[0];
-  };
+  const roleLabel = typeof displayProfile?.role === 'string' ? displayProfile.role.trim() : '';
+  const shouldShowRole =
+    roleLabel.length > 0 && roleLabel.toLowerCase() !== getDisplayName().toLowerCase();
 
   // ============================================================================
   // HANDLERS
@@ -603,56 +615,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     } catch {
       return 'Invalid date';
     }
-  };
-
-  // ============================================================================
-  // 🐛 DEBUG PANEL (DEV MODE ONLY)
-  // ============================================================================
-  const DebugPanel = () => {
-    // Only show in development mode
-    if (import.meta.env.PROD) return null;
-
-    return (
-      <Card className="mb-4 border-yellow-500/50 bg-yellow-500/5">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Bug className="h-5 w-5 text-yellow-500" />
-            <h3 className="font-semibold text-yellow-500">Debug Panel (Dev Only)</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="text-muted-foreground">Auth Status:</span>{' '}
-              <Badge variant={authLoading ? 'secondary' : 'default'}>
-                {authLoading ? 'LOADING' : 'LOADED'}
-              </Badge>
-            </div>
-            <div>
-              <span className="text-muted-foreground">User Exists:</span>{' '}
-              <Badge variant={authUser ? 'default' : 'destructive'}>
-                {authUser ? 'YES' : 'NO'}
-              </Badge>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Profile Exists:</span>{' '}
-              <Badge variant={profile ? 'default' : 'destructive'}>
-                {profile ? 'YES' : 'NO'}
-              </Badge>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Current State:</span>{' '}
-              <Badge variant="outline" className="font-mono text-xs">
-                {currentRenderState}
-              </Badge>
-            </div>
-          </div>
-          {fatalError && (
-            <div className="mt-2 p-2 bg-red-500/10 border border-red-500/50 rounded text-xs text-red-500">
-              Error: {fatalError}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
   };
 
   // ============================================================================
@@ -862,9 +824,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
   return (
     <div style={pageBackground}>
       <div className={containerClass}>
-        {/* Debug panel (dev mode only) */}
-        <DebugPanel />
-
         {/* ============================================================================ */}
         {/* STATE 1: AUTH LOADING */}
         {/* ============================================================================ */}
@@ -977,29 +936,63 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
           >
-            {isFirstTimeUser ? (
-              // FIRST-TIME USER ONBOARDING VIEW
-              <div className="space-y-6">
-                {/* Welcome Header */}
+            <div className="space-y-6">
+                {/* Profile Header */}
                 <Card className="border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16 cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>
+                      <div className="flex items-center gap-6">
+                        <Avatar className="h-20 w-20 cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>
                           <AvatarImage src={displayProfile.avatar} />
-                          <AvatarFallback className="text-2xl">{getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+                          <AvatarFallback className="text-3xl">{getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <h1 className="text-2xl font-bold" style={{ color: '#D8E0FF' }}>
-                            Welcome, {getFirstName()}!
+                          <h1 className="text-3xl font-bold" style={{ color: '#D8E0FF' }}>
+                            Your Profile
                           </h1>
-                          <p className="text-muted-foreground">Let's build your founder profile together</p>
+                          <p className="text-muted-foreground text-lg">{getDisplayName()}</p>
+                          {shouldShowRole && (
+                            <p className="text-muted-foreground text-lg">{roleLabel}</p>
+                          )}
+                          {displayProfile.location && (
+                            <p className="text-muted-foreground text-sm">{displayProfile.location}</p>
+                          )}
+                          <div className="mt-2 flex gap-2">
+                            {displayProfile.email && (
+                              <Badge variant="outline">{displayProfile.email}</Badge>
+                            )}
+                            {displayProfile.linkedin && (
+                              <Badge variant="outline">LinkedIn</Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <Button variant="outline" onClick={handleEditProfile}>
+                      <Button
+                        className="gradient-lavender shadow-lavender rounded-[12px] hover:opacity-90"
+                        onClick={handleEditProfile}
+                      >
                         Edit Profile
                       </Button>
                     </div>
+
+                    {displayProfile.about && (
+                      <div className="mt-6">
+                        <p className="text-muted-foreground">{displayProfile.about}</p>
+                      </div>
+                    )}
+
+                    {Array.isArray(displayProfile?.startup_goals) && displayProfile?.startup_goals?.length > 0 && (
+                      <div className="mt-4">
+                        <p className="mb-2 text-sm font-medium">Startup Goals:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {displayProfile.startup_goals.map(goal => (
+                            <Badge key={goal} variant="secondary">
+                              {goal}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -1030,91 +1023,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                         </div>
                       ))}
                     </div>
-                    <Button className="w-full" onClick={handleEditProfile}>
-                      Complete Your Profile
-                      <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Quick Actions */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Card className="cursor-pointer transition-all hover:shadow-lg" onClick={() => onNavigate?.('IdeaAnalyser')}>
-                    <CardContent className="p-6">
-                      <Lightbulb className="text-primary mb-4 h-10 w-10" />
-                      <h3 className="mb-2 text-lg font-semibold">Analyze Your First Idea</h3>
-                      <p className="text-muted-foreground text-sm">
-                        Get AI-powered insights on your startup concept
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="cursor-pointer transition-all hover:shadow-lg" onClick={() => onNavigate?.('VCConnection')}>
-                    <CardContent className="p-6">
-                      <Users className="text-primary mb-4 h-10 w-10" />
-                      <h3 className="mb-2 text-lg font-semibold">Connect with VCs</h3>
-                      <p className="text-muted-foreground text-sm">
-                        Find investors who match your vision
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            ) : (
-              // RETURNING USER DASHBOARD VIEW
-              <div className="space-y-6">
-                {/* Profile Header */}
-                <Card className="border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-6">
-                        <Avatar className="h-20 w-20 cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>
-                          <AvatarImage src={displayProfile.avatar} />
-                          <AvatarFallback className="text-3xl">{getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h1 className="text-3xl font-bold" style={{ color: '#D8E0FF' }}>
-                            {getDisplayName()}
-                          </h1>
-                          {displayProfile.role && (
-                            <p className="text-muted-foreground text-lg">{displayProfile.role}</p>
-                          )}
-                          {displayProfile.location && (
-                            <p className="text-muted-foreground text-sm">{displayProfile.location}</p>
-                          )}
-                          <div className="mt-2 flex gap-2">
-                            {displayProfile.email && (
-                              <Badge variant="outline">{displayProfile.email}</Badge>
-                            )}
-                            {displayProfile.linkedin && (
-                              <Badge variant="outline">LinkedIn</Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <Button variant="outline" onClick={handleEditProfile}>
-                        Edit Profile
-                      </Button>
-                    </div>
-
-                    {displayProfile.about && (
-                      <div className="mt-6">
-                        <p className="text-muted-foreground">{displayProfile.about}</p>
-                      </div>
-                    )}
-
-                    {Array.isArray(displayProfile?.startup_goals) && displayProfile?.startup_goals?.length > 0 && (
-                      <div className="mt-4">
-                        <p className="mb-2 text-sm font-medium">Startup Goals:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {displayProfile.startup_goals.map(goal => (
-                            <Badge key={goal} variant="secondary">
-                              {goal}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
 
@@ -1255,7 +1163,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                   </CardContent>
                 </Card>
               </div>
-            )}
           </motion.div>
         )}
 

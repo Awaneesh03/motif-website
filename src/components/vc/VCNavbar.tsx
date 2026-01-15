@@ -1,13 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, Moon, Sun } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';
 import { NotificationBell } from '@/components/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
-export const VCNavbar = () => {
+interface VCNavbarProps {
+  isDark: boolean;
+  toggleTheme: () => void;
+}
+
+export const VCNavbar = ({ isDark, toggleTheme }: VCNavbarProps) => {
   const { profile } = useUser();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -60,6 +65,11 @@ export const VCNavbar = () => {
                 </div>
               </SheetContent>
             </Sheet>
+
+            {/* Theme Toggle */}
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full">
+              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
 
             {/* Notification Bell */}
             <NotificationBell variant="dark" />
