@@ -68,7 +68,9 @@ export const getFounderMetrics = async (founderId: string): Promise<FounderMetri
       activeConnections: founderConnections?.length || 0,
     };
   } catch (error) {
-    console.error('Error fetching founder metrics:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error fetching founder metrics:', error);
+    }
     return {
       totalStartups: 0,
       draftStartups: 0,
@@ -136,7 +138,9 @@ export const getVCMetrics = async (vcId: string): Promise<VCMetrics> => {
       rejectedRequests: requestCounts.rejected,
     };
   } catch (error) {
-    console.error('Error fetching VC metrics:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error fetching VC metrics:', error);
+    }
     return {
       availableStartups: 0,
       introRequestsSent: 0,
@@ -238,7 +242,9 @@ export const getAdminMetrics = async (): Promise<AdminMetrics> => {
       conversionRate,
     };
   } catch (error) {
-    console.error('Error fetching admin metrics:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error fetching admin metrics:', error);
+    }
     return {
       totalFounders: 0,
       totalVCs: 0,

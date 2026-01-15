@@ -83,20 +83,24 @@ export async function safeFetchList<T>(
       }
 
       // Other errors - log but still return empty array
-      console.warn(
-        `[${options.serviceName || 'safeFetch'}] Query failed:`,
-        error.message
-      );
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[${options.serviceName || 'safeFetch'}] Query failed:`,
+          error.message
+        );
+      }
       return [];
     }
 
     return data || [];
   } catch (err) {
     // Unexpected error - log and return empty array
-    console.warn(
-      `[${options.serviceName || 'safeFetch'}] Unexpected error:`,
-      err
-    );
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[${options.serviceName || 'safeFetch'}] Unexpected error:`,
+        err
+      );
+    }
     return [];
   }
 }
@@ -134,20 +138,24 @@ export async function safeFetchSingle<T>(
       }
 
       // Other errors - log but still return null
-      console.warn(
-        `[${options.serviceName || 'safeFetch'}] Query failed:`,
-        error.message
-      );
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[${options.serviceName || 'safeFetch'}] Query failed:`,
+          error.message
+        );
+      }
       return null;
     }
 
     return data;
   } catch (err) {
     // Unexpected error - log and return null
-    console.warn(
-      `[${options.serviceName || 'safeFetch'}] Unexpected error:`,
-      err
-    );
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[${options.serviceName || 'safeFetch'}] Unexpected error:`,
+        err
+      );
+    }
     return null;
   }
 }
@@ -185,20 +193,24 @@ export async function safeFetchCount(
       }
 
       // Other errors - log but still return 0
-      console.warn(
-        `[${options.serviceName || 'safeFetch'}] Count query failed:`,
-        error.message
-      );
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[${options.serviceName || 'safeFetch'}] Count query failed:`,
+          error.message
+        );
+      }
       return 0;
     }
 
     return count || 0;
   } catch (err) {
     // Unexpected error - log and return 0
-    console.warn(
-      `[${options.serviceName || 'safeFetch'}] Unexpected error:`,
-      err
-    );
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[${options.serviceName || 'safeFetch'}] Unexpected error:`,
+        err
+      );
+    }
     return 0;
   }
 }
@@ -236,20 +248,24 @@ export async function safeFetchExists(
       }
 
       // Other errors - log but still return false
-      console.warn(
-        `[${options.serviceName || 'safeFetch'}] Exists query failed:`,
-        error.message
-      );
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[${options.serviceName || 'safeFetch'}] Exists query failed:`,
+          error.message
+        );
+      }
       return false;
     }
 
     return !!data;
   } catch (err) {
     // Unexpected error - log and return false
-    console.warn(
-      `[${options.serviceName || 'safeFetch'}] Unexpected error:`,
-      err
-    );
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[${options.serviceName || 'safeFetch'}] Unexpected error:`,
+        err
+      );
+    }
     return false;
   }
 }

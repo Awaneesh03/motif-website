@@ -33,7 +33,9 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
       setUnreadCount(count);
     } catch (error) {
       // Silently fail - notifications are non-critical UI
-      console.warn('Failed to load notifications (non-critical):', error);
+      if (import.meta.env.DEV) {
+        console.warn('Failed to load notifications (non-critical):', error);
+      }
       setNotifications([]);
       setUnreadCount(0);
     } finally {

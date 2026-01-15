@@ -61,7 +61,9 @@ export const getAllStartups = async (): Promise<Startup[]> => {
       createdAt: item.created_at,
     }));
   } catch (error) {
-    console.error('Error loading startups:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error loading startups:', error);
+      }
     return [];
   }
 };
@@ -103,7 +105,9 @@ export const getStartupsByFounder = async (founderId: string): Promise<Startup[]
       createdAt: item.created_at,
     }));
   } catch (error) {
-    console.error('Error fetching startups by founder:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching startups by founder:', error);
+      }
     return [];
   }
 };
@@ -145,7 +149,9 @@ export const getApprovedStartups = async (): Promise<Startup[]> => {
       createdAt: item.created_at,
     }));
   } catch (error) {
-    console.error('Error fetching approved startups:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching approved startups:', error);
+      }
     return [];
   }
 };
@@ -196,7 +202,9 @@ export const createStartup = async (
       founderName: profileData?.full_name || profileData?.username || 'Unknown',
     };
   } catch (error) {
-    console.error('Error creating startup:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error creating startup:', error);
+      }
     return null;
   }
 };
@@ -292,7 +300,9 @@ export const updateStartupStatus = async (
       createdAt: data.created_at,
     };
   } catch (error) {
-    console.error('Error updating startup status:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating startup status:', error);
+      }
     // Re-throw to allow caller to handle
     throw error;
   }
@@ -335,7 +345,9 @@ export const getStartupById = async (id: string): Promise<Startup | null> => {
       createdAt: data.created_at,
     };
   } catch (error) {
-    console.error('Error fetching startup by ID:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching startup by ID:', error);
+      }
     return null;
   }
 };

@@ -50,11 +50,15 @@ const AdminDashboard = () => {
     const loadStats = async () => {
       setIsLoading(true);
       try {
-        console.log('[AdminDashboard] inner loadStats starting...');
+        if (import.meta.env.DEV) {
+          console.log('[AdminDashboard] inner loadStats starting...');
+        }
         // Load all data in parallel
         const [startups, vcRequests, timeline, adminMetrics] = await Promise.all([
           getAllStartups().catch(err => {
-            console.error('[AdminDashboard] Error fetching startups:', err);
+            if (import.meta.env.DEV) {
+              console.error('[AdminDashboard] Error fetching startups:', err);
+            }
             return [];
           }),
           supabase
@@ -67,20 +71,28 @@ const AdminDashboard = () => {
               return data;
             })
             .catch(err => {
-              console.error('[AdminDashboard] Error fetching VC apps:', err);
+              if (import.meta.env.DEV) {
+                console.error('[AdminDashboard] Error fetching VC apps:', err);
+              }
               return [];
             }),
           getAllNotifications(20).catch(err => {
-            console.error('[AdminDashboard] Error fetching notifications:', err);
+            if (import.meta.env.DEV) {
+              console.error('[AdminDashboard] Error fetching notifications:', err);
+            }
             return [];
           }),
           getAdminMetrics().catch(err => {
-            console.error('[AdminDashboard] Error fetching metrics:', err);
+            if (import.meta.env.DEV) {
+              console.error('[AdminDashboard] Error fetching metrics:', err);
+            }
             return null;
           }),
         ]);
 
-        console.log('[AdminDashboard] Data fetch complete');
+        if (import.meta.env.DEV) {
+          console.log('[AdminDashboard] Data fetch complete');
+        }
 
         // Get pending startups for review
         const pending = (startups || [])
@@ -93,7 +105,9 @@ const AdminDashboard = () => {
         if (adminMetrics) setMetrics(adminMetrics);
 
       } catch (error) {
-        console.error('[AdminDashboard] Critical error loading stats:', error);
+        if (import.meta.env.DEV) {
+          console.error('[AdminDashboard] Critical error loading stats:', error);
+        }
         toast.error('Failed to load dashboard data');
       } finally {
         setIsLoading(false);
