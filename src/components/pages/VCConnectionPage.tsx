@@ -2,26 +2,19 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
-  Rocket,
   Target,
-  TrendingUp,
   Shield,
   CheckCircle,
   AlertCircle,
   Users,
   BarChart3,
   ArrowRight,
-  DollarSign,
   MessageCircle,
   FileText,
-  Upload,
-  X,
-  ChevronRight,
 } from 'lucide-react';
 
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
@@ -31,7 +24,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '../ui/dialog';
 import {
@@ -44,6 +36,9 @@ import {
 interface VCConnectionPageProps {
   onNavigate?: (page: string) => void;
 }
+
+const QUALIFICATION_STORAGE_KEY = 'motif-qualification-requests';
+const FUNDING_STORAGE_KEY = 'motif-funding-requests';
 
 // Mock data for validated ideas
 const MOCK_IDEAS = [
@@ -69,20 +64,131 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   // Raise Funding Modal State
   const [fundingModalOpen, setFundingModalOpen] = useState(false);
   const [fundingStep, setFundingStep] = useState(1);
-  const [selectedIdea, setSelectedIdea] = useState<number | null>(null);
+  const [selectedIdea, setSelectedIdea] = useState<(typeof MOCK_IDEAS)[number] | null>(null);
   const [pitchFile, setPitchFile] = useState<File | null>(null);
 
   // Filter ideas with score > 70%
   const validatedIdeas = MOCK_IDEAS.filter(idea => idea.score > 70);
 
   const handleQualificationSubmit = () => {
-    // Feature not yet implemented - requires backend integration for qualification scoring
-    toast.info('Qualification assessment is coming soon! For now, submit your startup through the Dashboard to connect with VCs.');
-    setQualificationOpen(false);
+    const isValid =
+      qualificationForm.name.trim().length > 0 &&
+      qualificationForm.email.trim().length > 0 &&
+      qualificationForm.ideaDescription.trim().length >= 30;
+
+    if (!isValid) {
+      toast.error('Please complete the required fields before submitting.');
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(QUALIFICATION_STORAGE_KEY);
+      const existing = stored ? JSON.parse(stored) : [];
+      const newEntry = {
+        ...qualificationForm,
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem(QUALIFICATION_STORAGE_KEY, JSON.stringify([newEntry, ...existing]));
+      toast.success('Qualification request submitted. We’ll follow up by email.');
+      setQualificationForm({
+        name: '',
+        email: '',
+        ideaDescription: '',
+        stage: '',
+        traction: '',
+        fundingAmount: '',
+      });
+      setQualificationOpen(false);
+    } catch (error) {
+      console.error('Qualification submission failed:', error);
+      toast.error('Failed to submit your request. Please try again.');
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Qualification Dialog */}
+      <Dialog open={qualificationOpen} onOpenChange={setQualificationOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Founder Qualification</DialogTitle>
+            <DialogDescription>
+              Share a quick overview so we can score readiness and guide the best next steps.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="qual-name">Full Name</Label>
+                <Input
+                  id="qual-name"
+                  value={qualificationForm.name}
+                  onChange={e => setQualificationForm({ ...qualificationForm, name: e.target.value })}
+                  placeholder="Jane Founder"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="qual-email">Email</Label>
+                <Input
+                  id="qual-email"
+                  type="email"
+                  value={qualificationForm.email}
+                  onChange={e => setQualificationForm({ ...qualificationForm, email: e.target.value })}
+                  placeholder="jane@startup.com"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="qual-idea">Idea Description</Label>
+              <Textarea
+                id="qual-idea"
+                value={qualificationForm.ideaDescription}
+                onChange={e => setQualificationForm({ ...qualificationForm, ideaDescription: e.target.value })}
+                placeholder="Describe the problem, your solution, and current traction."
+                rows={4}
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="qual-stage">Stage</Label>
+                <Input
+                  id="qual-stage"
+                  value={qualificationForm.stage}
+                  onChange={e => setQualificationForm({ ...qualificationForm, stage: e.target.value })}
+                  placeholder="Pre-seed"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="qual-traction">Traction</Label>
+                <Input
+                  id="qual-traction"
+                  value={qualificationForm.traction}
+                  onChange={e => setQualificationForm({ ...qualificationForm, traction: e.target.value })}
+                  placeholder="1k waitlist"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="qual-amount">Funding Ask</Label>
+                <Input
+                  id="qual-amount"
+                  value={qualificationForm.fundingAmount}
+                  onChange={e => setQualificationForm({ ...qualificationForm, fundingAmount: e.target.value })}
+                  placeholder="$250k"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setQualificationOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleQualificationSubmit} className="gradient-lavender text-white">
+              Submit Qualification
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Hero Section */}
       <section className="gradient-lavender relative overflow-hidden py-12 md:py-16">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20"></div>
@@ -101,6 +207,9 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
             <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 sm:flex-row mb-4 mt-6">
               <Button className="rounded-xl" onClick={() => setFundingModalOpen(true)}>
                 Start a Funding Request
+              </Button>
+              <Button variant="outline" className="rounded-xl" onClick={() => setQualificationOpen(true)}>
+                Start Qualification
               </Button>
               <Button variant="outline" className="rounded-xl" onClick={() => onNavigate?.('Dashboard')}>
                 Back to Dashboard
@@ -136,7 +245,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 <Card className="border-dashed border-2 border-muted-foreground/30">
                   <CardContent className="text-center py-10">
                     <p className="text-muted-foreground mb-3">You don’t have any validated ideas yet.</p>
-                    <Button onClick={() => onNavigate?.('idea-analyser')} className="rounded-xl">
+                    <Button onClick={() => onNavigate?.('Idea Analyser')} className="rounded-xl">
                       Run Idea Analyser
                     </Button>
                   </CardContent>
@@ -231,11 +340,26 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 if (fundingStep === 1 && selectedIdea) {
                   setFundingStep(2);
                 } else if (fundingStep === 2 && pitchFile) {
-                  toast.info('Funding request submission is coming soon! For now, connect with VCs directly through the VC Connection Dashboard.');
-                  setFundingModalOpen(false);
-                  setFundingStep(1);
-                  setSelectedIdea(null);
-                  setPitchFile(null);
+                  try {
+                    const stored = localStorage.getItem(FUNDING_STORAGE_KEY);
+                    const existing = stored ? JSON.parse(stored) : [];
+                    const newEntry = {
+                      ideaId: selectedIdea?.id,
+                      ideaTitle: selectedIdea?.title,
+                      pitchFileName: pitchFile.name,
+                      pitchFileSize: pitchFile.size,
+                      createdAt: new Date().toISOString(),
+                    };
+                    localStorage.setItem(FUNDING_STORAGE_KEY, JSON.stringify([newEntry, ...existing]));
+                    toast.success('Funding request submitted. We’ll update you soon.');
+                    setFundingModalOpen(false);
+                    setFundingStep(1);
+                    setSelectedIdea(null);
+                    setPitchFile(null);
+                  } catch (error) {
+                    console.error('Funding request submission failed:', error);
+                    toast.error('Failed to submit your request. Please try again.');
+                  }
                 }
               }}
               disabled={fundingStep === 1 ? !selectedIdea : !pitchFile}

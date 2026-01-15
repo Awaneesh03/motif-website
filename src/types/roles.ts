@@ -14,13 +14,22 @@ export const hasAccess = (
 ): boolean => {
   if (!userRole) return false;
 
-  // Normalize: treat 'admin' and 'super_admin' as equivalent
-  const normalizedRole = userRole === 'super_admin' ? 'admin' : userRole;
-  const normalizedAllowed = allowedRoles.map(role =>
-    role === UserRole.SUPER_ADMIN ? UserRole.ADMIN : role
-  );
+  const role = userRole as string;
 
-  return normalizedAllowed.some(role => role === normalizedRole);
+  // Explicit super admin handling
+  if (role === UserRole.SUPER_ADMIN || role === 'super_admin') {
+    return (
+      allowedRoles.includes(UserRole.SUPER_ADMIN) ||
+      allowedRoles.includes(UserRole.ADMIN)
+    );
+  }
+
+  // Admins only match ADMIN (not SUPER_ADMIN-only routes)
+  if (role === UserRole.ADMIN || role === 'admin') {
+    return allowedRoles.includes(UserRole.ADMIN);
+  }
+
+  return allowedRoles.some(allowedRole => allowedRole === role);
 };
 
 // Get default route for role
@@ -33,9 +42,10 @@ export const getRoleDefaultRoute = (role: UserRole | string | undefined): string
   switch (role) {
     case UserRole.SUPER_ADMIN:
     case UserRole.ADMIN:
-    case 'admin':
     case 'super_admin':
       return '/admin/dashboard';
+    case 'admin':
+      return '/';
     case UserRole.FOUNDER:
     case 'founder':
       return '/dashboard/home'; // Founder-specific dashboard

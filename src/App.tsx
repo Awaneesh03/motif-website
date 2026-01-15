@@ -39,6 +39,7 @@ import { AdminLayout } from './layouts/AdminLayout';
 import VCDashboard from './components/pages/vc/VCDashboard';
 import VCStartups from './components/pages/vc/VCStartups';
 import VCStartupDetail from './components/pages/vc/VCStartupDetail';
+import VCPendingPage from './components/pages/vc/VCPendingPage';
 
 // Admin Pages
 import AdminDashboard from './components/pages/admin/AdminDashboard';
@@ -142,17 +143,16 @@ function AppContent() {
         return;
       }
 
-      // Redirect based on role (normalized)
-      // Note: super_admin is normalized to admin in UserContext
-      const role = profile?.role === 'super_admin' ? 'admin' : profile?.role;
-
-      if (role === 'admin') {
+      // Redirect based on role
+      if (profile?.role === 'super_admin') {
         navigate('/admin/dashboard');
-      } else if (role === 'vc') {
+      } else if (profile?.role === 'vc') {
         navigate('/vc/dashboard');
-      } else {
-        // Founder or default
+      } else if (profile?.role === 'founder') {
         navigate('/dashboard/home');
+      } else {
+        // Unknown or unsupported role
+        navigate('/');
       }
     } catch (error) {
       console.error('[handleLogin] Error during login redirect:', error);
@@ -206,7 +206,7 @@ function AppContent() {
           <Route
             path="/admin/dashboard"
             element={
-              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
                 <AdminDashboard />
               </ProtectedRoute>
             }
@@ -214,7 +214,7 @@ function AppContent() {
           <Route
             path="/admin/startups"
             element={
-              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
                 <AdminStartups />
               </ProtectedRoute>
             }
@@ -222,7 +222,7 @@ function AppContent() {
           <Route
             path="/admin/intro-requests"
             element={
-              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
                 <AdminIntroRequests />
               </ProtectedRoute>
             }
@@ -230,7 +230,7 @@ function AppContent() {
           <Route
             path="/admin/case-studies"
             element={
-              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
                 <AdminCaseStudies />
               </ProtectedRoute>
             }
@@ -238,7 +238,7 @@ function AppContent() {
           <Route
             path="/admin/case-studies/new"
             element={
-              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
                 <AdminCaseStudyForm />
               </ProtectedRoute>
             }
@@ -246,7 +246,7 @@ function AppContent() {
           <Route
             path="/admin/case-studies/:id/edit"
             element={
-              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
                 <AdminCaseStudyForm />
               </ProtectedRoute>
             }
@@ -260,6 +260,14 @@ function AppContent() {
             element={
               <ProtectedRoute allowedRoles={[UserRole.VC]}>
                 <VCDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vc/pending"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.VC_PENDING]}>
+                <VCPendingPage />
               </ProtectedRoute>
             }
           />
@@ -311,7 +319,7 @@ function AppContent() {
                     <Route
                       path="/community"
                       element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.ADMIN]}>
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
                           <CommunityPage onNavigate={handleNavigate} />
                         </ProtectedRoute>
                       }
@@ -319,7 +327,7 @@ function AppContent() {
                     <Route
                       path="/resources"
                       element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.ADMIN]}>
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
                           <ResourcesPage />
                         </ProtectedRoute>
                       }
@@ -327,7 +335,7 @@ function AppContent() {
                     <Route
                       path="/idea-analyser"
                       element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.ADMIN]}>
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
                           <IdeaAnalyserPage onNavigate={handleNavigate} />
                         </ProtectedRoute>
                       }
@@ -335,7 +343,7 @@ function AppContent() {
                     <Route
                       path="/profile"
                       element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.ADMIN]}>
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
                           <ProfilePage onNavigate={handleNavigate} />
                         </ProtectedRoute>
                       }
@@ -343,7 +351,7 @@ function AppContent() {
                     <Route
                       path="/membership"
                       element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.ADMIN]}>
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
                           <MembershipPage onNavigate={handleNavigate} />
                         </ProtectedRoute>
                       }
@@ -351,7 +359,7 @@ function AppContent() {
                     <Route
                       path="/pitch-creator"
                       element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.ADMIN]}>
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
                           <PitchCreatorPage onNavigate={handleNavigate} />
                         </ProtectedRoute>
                       }

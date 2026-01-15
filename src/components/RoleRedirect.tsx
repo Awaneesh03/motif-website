@@ -10,7 +10,6 @@
  * - founder → /dashboard/home
  */
 
-import { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import { getRoleDefaultRoute } from '@/types/roles';
@@ -34,11 +33,6 @@ export const RoleRedirect = () => {
   // If profile is missing or role is invalid, default to founder dashboard
   const userRole = profile?.role || 'founder';
   const redirectTo = getRoleDefaultRoute(userRole);
-
-  // Log redirect for debugging (remove in production)
-  useEffect(() => {
-    console.log(`[RoleRedirect] User role: ${userRole} → Redirecting to: ${redirectTo}`);
-  }, [userRole, redirectTo]);
 
   // Pure redirect - no UI rendering
   return <Navigate to={redirectTo} replace />;

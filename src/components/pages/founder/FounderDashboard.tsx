@@ -350,7 +350,7 @@ export function FounderDashboard() {
                             Analyze your idea, submit for review, and get approved to connect with investors
                           </p>
                           <Button
-                            onClick={() => navigate('/dashboard/idea-analyser')}
+                            onClick={() => navigate('/idea-analyser')}
                             size="lg"
                             className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90"
                           >
@@ -365,7 +365,7 @@ export function FounderDashboard() {
                         <p className="mb-2 font-semibold">No Startups Yet</p>
                         <p className="text-sm mb-4">Submit your first startup to connect with investors</p>
                         <Button
-                          onClick={() => navigate('/dashboard/idea-analyser')}
+                          onClick={() => navigate('/idea-analyser')}
                           className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90"
                         >
                           <Lightbulb className="mr-2 h-4 w-4" />
@@ -511,7 +511,7 @@ export function FounderDashboard() {
                       </div>
                       <Button
                         className="gradient-lavender shadow-lavender whitespace-nowrap rounded-xl hover:opacity-90"
-                        onClick={() => navigate('/dashboard/profile')}
+                        onClick={() => navigate('/profile')}
                       >
                         Go to Profile
                         <ArrowRight className="ml-2 h-4 w-4" />

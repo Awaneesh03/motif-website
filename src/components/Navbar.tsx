@@ -1,5 +1,6 @@
 import { Moon, Sun, Sparkles, User, MoreVertical, DollarSign } from 'lucide-react';
 import { useState } from 'react';
+import { useUser } from '@/contexts/UserContext';
 
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -30,7 +31,13 @@ export function Navbar({
   isLoggedIn = false,
   onLogout,
 }: NavbarProps) {
+  const { profile, displayName } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const avatarInitial =
+    profile?.name?.trim()?.charAt(0)?.toUpperCase() ||
+    displayName?.trim()?.charAt(0)?.toUpperCase() ||
+    'U';
 
   // Navigation links change based on login state
   const navLinks = isLoggedIn
@@ -197,11 +204,8 @@ export function Navbar({
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 shrink-0">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop"
-                        alt="User"
-                      />
-                      <AvatarFallback className="text-xs">U</AvatarFallback>
+                      <AvatarImage src={profile?.avatar || undefined} alt="User" />
+                      <AvatarFallback className="text-xs">{avatarInitial}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>

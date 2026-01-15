@@ -164,6 +164,20 @@ export const AdminLayout = () => {
               <BookOpen className="h-4 w-4" />
               Case Studies
             </Link>
+            <Link
+              to="/idea-analyser"
+              className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white rounded-md transition-colors"
+            >
+              <TrendingUp className="h-4 w-4" />
+              Idea Analyser
+            </Link>
+            <Link
+              to="/pitch-creator"
+              className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white rounded-md transition-colors"
+            >
+              <BookOpen className="h-4 w-4" />
+              Pitch Creator
+            </Link>
           </div>
         </div>
       </nav>

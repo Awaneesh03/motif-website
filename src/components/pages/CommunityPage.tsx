@@ -16,6 +16,7 @@ import { Label } from '../ui/label';
 import { useUser } from '../../contexts/UserContext';
 
 const COMMUNITY_STORAGE_KEY = 'motif-community-ideas';
+const COMMUNITY_COMMENTS_KEY = 'motif-community-comments';
 
 interface CommunityIdea {
   title: string;
@@ -26,6 +27,14 @@ interface CommunityIdea {
   author: string;
   authorAvatar?: string;
   createdAt?: string;
+}
+
+interface CommunityComment {
+  id: string;
+  author: string;
+  avatar?: string;
+  message: string;
+  timestamp: string;
 }
 
 const seedIdeas: CommunityIdea[] = [
@@ -203,6 +212,29 @@ const parseTags = (value: string) =>
     .filter(Boolean)
     .slice(0, 5);
 
+const getIdeaKey = (idea: Pick<CommunityIdea, 'title' | 'description'>) =>
+  `${normalizeIdeaValue(idea.title)}::${normalizeIdeaValue(idea.description)}`;
+
+const loadCommunityComments = (): Record<string, CommunityComment[]> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const stored = localStorage.getItem(COMMUNITY_COMMENTS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch (error) {
+    console.error('Failed to load community comments:', error);
+    return {};
+  }
+};
+
+const persistCommunityComments = (comments: Record<string, CommunityComment[]>) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(COMMUNITY_COMMENTS_KEY, JSON.stringify(comments));
+  } catch (error) {
+    console.error('Failed to save community comments:', error);
+  }
+};
+
 export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const { profile, displayName } = useUser();
   const [filter, setFilter] = useState('trending');
@@ -212,6 +244,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const [newComment, setNewComment] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [communityIdeas, setCommunityIdeas] = useState<CommunityIdea[]>(() => loadCommunityIdeas());
+  const [commentStore, setCommentStore] = useState<Record<string, CommunityComment[]>>(
+    () => loadCommunityComments()
+  );
 
   // Post Idea form state
   const [postFormOpen, setPostFormOpen] = useState(false);
@@ -225,7 +260,15 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     persistCommunityIdeas(communityIdeas);
   }, [communityIdeas]);
 
-  const allIdeas = [...communityIdeas, ...seedIdeas];
+  useEffect(() => {
+    persistCommunityComments(commentStore);
+  }, [commentStore]);
+
+  const allIdeas = [...communityIdeas, ...seedIdeas].map(idea => {
+    const key = getIdeaKey(idea);
+    const storedCount = commentStore[key]?.length ?? idea.comments;
+    return { ...idea, comments: storedCount };
+  });
 
   // Filter and sort ideas based on selected filter and tag
   const getFilteredIdeas = () => {
@@ -325,47 +368,38 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   };
 
   const handleSendComment = () => {
-    if (newComment.trim()) {
-      // Feature not yet implemented - requires backend integration for comment persistence
-      toast.info('Community commenting is coming soon! For now, connect with other founders through the Dashboard.');
-      setNewComment('');
-    }
+    if (!newComment.trim() || !selectedIdea) return;
+
+    const key = getIdeaKey(selectedIdea);
+    const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
+    const newEntry: CommunityComment = {
+      id: `${Date.now()}`,
+      author: authorName,
+      avatar: profile?.avatar || undefined,
+      message: newComment.trim(),
+      timestamp: new Date().toLocaleString(),
+    };
+
+    setCommentStore(prev => {
+      const existing = prev[key] || [];
+      return {
+        ...prev,
+        [key]: [...existing, newEntry],
+      };
+    });
+
+    setSelectedIdea({
+      ...selectedIdea,
+      comments: (selectedIdea.comments || 0) + 1,
+    });
+    setNewComment('');
+    toast.success('Comment posted.');
   };
 
-  // Mock comments data
-  const mockComments = [
-    {
-      id: 1,
-      author: 'Jordan Lee',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
-      message: 'This is a great idea! Have you considered integrating with existing calendar apps?',
-      timestamp: '2 hours ago',
-      replies: [
-        {
-          id: 11,
-          author: 'Alex Kim',
-          avatar:
-            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-          message: 'Yes! Working on Google Calendar and Outlook integrations for v2.',
-          timestamp: '1 hour ago',
-        },
-      ],
-    },
-    {
-      id: 2,
-      author: 'Sam Patel',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-      message: "What's your monetization strategy? Freemium or subscription?",
-      timestamp: '5 hours ago',
-    },
-    {
-      id: 3,
-      author: 'Maya Rodriguez',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-      message: 'Love the AI angle. How accurate is the nutrition analysis?',
-      timestamp: '1 day ago',
-    },
-  ];
+
+  const selectedIdeaComments = selectedIdea
+    ? commentStore[getIdeaKey(selectedIdea)] || []
+    : [];
 
   return (
     <div className="min-h-screen">
@@ -500,7 +534,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                   </Button>
                 </div>
 
-                {/* Active Filter Indicator */}
                 {selectedTag && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>Filtering by tag:</span>
@@ -561,7 +594,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                 )}
               </div>
 
-              {/* Load More Button */}
               {hasMore && (
                 <div className="pt-4 text-center">
                   <Button variant="outline" onClick={handleLoadMore} className="rounded-xl px-8">
@@ -573,7 +605,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Popular Tags - Sticky */}
               <Card className="border-border/50 sticky top-20">
                 <CardContent className="p-6">
                   <h3 className="mb-4">Popular Tags</h3>
@@ -616,7 +647,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                 </CardContent>
               </Card>
 
-              {/* Top Contributors */}
               <Card className="border-border/50">
                 <CardContent className="p-6">
                   <div className="mb-6 flex items-center gap-2">
@@ -693,67 +723,43 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                 </div>
               </motion.div>
 
-              {/* Comments List - Enhanced */}
+              {/* Comments List */}
               <div className="space-y-5">
-                {mockComments.map((comment, index) => (
-                  <motion.div
-                    key={comment.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="space-y-3"
-                  >
-                    <div className="group flex gap-3">
-                      <Avatar className="h-11 w-11 flex-shrink-0 ring-2 ring-primary/10 transition-all group-hover:ring-primary/30">
-                        <AvatarImage src={comment.avatar} alt={comment.author} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20">
-                          {comment.author[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-2 flex items-center gap-2">
-                          <span className="font-semibold text-foreground">{comment.author}</span>
-                          <span className="text-xs text-muted-foreground">{comment.timestamp}</span>
-                        </div>
-                        <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-muted/30 to-muted/10 p-4 shadow-sm transition-all group-hover:border-primary/20 group-hover:shadow-md">
-                          <p className="text-sm leading-relaxed text-foreground/90">
-                            {comment.message}
-                          </p>
+                {selectedIdeaComments.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border/60 bg-muted/20 p-6 text-center">
+                    <p className="text-sm text-muted-foreground">No comments yet. Be the first to share feedback.</p>
+                  </div>
+                ) : (
+                  selectedIdeaComments.map((comment, index) => (
+                    <motion.div
+                      key={comment.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className="space-y-3"
+                    >
+                      <div className="group flex gap-3">
+                        <Avatar className="h-11 w-11 flex-shrink-0 ring-2 ring-primary/10 transition-all group-hover:ring-primary/30">
+                          <AvatarImage src={comment.avatar} alt={comment.author} />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20">
+                            {comment.author[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-2 flex items-center gap-2">
+                            <span className="font-semibold text-foreground">{comment.author}</span>
+                            <span className="text-xs text-muted-foreground">{comment.timestamp}</span>
+                          </div>
+                          <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-muted/30 to-muted/10 p-4 shadow-sm transition-all group-hover:border-primary/20 group-hover:shadow-md">
+                            <p className="text-sm leading-relaxed text-foreground/90">
+                              {comment.message}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Nested Replies - Enhanced */}
-                    {comment.replies &&
-                      comment.replies.map((reply, replyIndex) => (
-                        <motion.div
-                          key={reply.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: (index + replyIndex) * 0.1 + 0.2 }}
-                          className="ml-14 flex gap-3 border-l-2 border-primary/20 pl-4"
-                        >
-                          <Avatar className="h-9 w-9 flex-shrink-0 ring-2 ring-secondary/10">
-                            <AvatarImage src={reply.avatar} alt={reply.author} />
-                            <AvatarFallback className="bg-gradient-to-br from-secondary/20 to-primary/20">
-                              {reply.author[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-1 flex items-center gap-2">
-                              <span className="text-sm font-semibold">{reply.author}</span>
-                              <span className="text-xs text-muted-foreground">{reply.timestamp}</span>
-                            </div>
-                            <div className="rounded-xl border border-border/30 bg-gradient-to-br from-secondary/5 to-primary/5 p-3 shadow-sm">
-                              <p className="text-sm leading-relaxed text-foreground/90">
-                                {reply.message}
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                )}
               </div>
 
               {/* Add Comment Input - Enhanced */}
@@ -768,11 +774,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                   <span className="text-sm font-medium text-foreground">Add your thoughts</span>
                 </div>
                 <div className="flex gap-3">
-                  <Input
+                  <Textarea
                     placeholder="Share your feedback or ideas..."
                     value={newComment}
                     onChange={e => setNewComment(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendComment()}
+                    rows={2}
                     className="flex-1 rounded-xl border-primary/20 bg-background/50 focus:ring-2 focus:ring-primary/20"
                   />
                   <Button
@@ -784,7 +790,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                   </Button>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Press Enter to send, Shift + Enter for new line
+                  Click send to post. Shift + Enter for a new line.
                 </p>
               </motion.div>
             </div>
