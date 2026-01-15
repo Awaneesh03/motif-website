@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TrendingUp, Clock, MessageCircle, Award, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -13,8 +13,22 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
+import { useUser } from '../../contexts/UserContext';
 
-const allIdeas = [
+const COMMUNITY_STORAGE_KEY = 'motif-community-ideas';
+
+interface CommunityIdea {
+  title: string;
+  description: string;
+  upvotes: number;
+  comments: number;
+  tags: string[];
+  author: string;
+  authorAvatar?: string;
+  createdAt?: string;
+}
+
+const seedIdeas: CommunityIdea[] = [
   {
     title: 'AI-powered meal planning app for busy professionals',
     description:
@@ -160,13 +174,44 @@ interface CommunityPageProps {
   onNavigate?: (page: string) => void;
 }
 
+const normalizeIdeaValue = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
+
+const loadCommunityIdeas = (): CommunityIdea[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(COMMUNITY_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Failed to load community ideas:', error);
+    return [];
+  }
+};
+
+const persistCommunityIdeas = (ideas: CommunityIdea[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(COMMUNITY_STORAGE_KEY, JSON.stringify(ideas));
+  } catch (error) {
+    console.error('Failed to save community ideas:', error);
+  }
+};
+
+const parseTags = (value: string) =>
+  value
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+
 export function CommunityPage({ onNavigate }: CommunityPageProps) {
+  const { profile, displayName } = useUser();
   const [filter, setFilter] = useState('trending');
   const [displayCount, setDisplayCount] = useState(5);
   const [commentPanelOpen, setCommentPanelOpen] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [communityIdeas, setCommunityIdeas] = useState<CommunityIdea[]>(() => loadCommunityIdeas());
 
   // Post Idea form state
   const [postFormOpen, setPostFormOpen] = useState(false);
@@ -175,6 +220,12 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     description: '',
     tags: '',
   });
+
+  useEffect(() => {
+    persistCommunityIdeas(communityIdeas);
+  }, [communityIdeas]);
+
+  const allIdeas = [...communityIdeas, ...seedIdeas];
 
   // Filter and sort ideas based on selected filter and tag
   const getFilteredIdeas = () => {
@@ -189,8 +240,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     if (filter === 'trending') {
       filtered.sort((a, b) => b.upvotes - a.upvotes);
     } else if (filter === 'new') {
-      // Reverse the order to show "newest" first
-      filtered.reverse();
+      filtered.sort((a, b) =>
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
     } else if (filter === 'discussed') {
       filtered.sort((a, b) => b.comments - a.comments);
     }
@@ -235,6 +287,33 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       return;
     }
 
+    const normalizedTitle = normalizeIdeaValue(postForm.title);
+    const normalizedDescription = normalizeIdeaValue(postForm.description);
+    const isDuplicate = communityIdeas.some(
+      idea =>
+        normalizeIdeaValue(idea.title) === normalizedTitle &&
+        normalizeIdeaValue(idea.description) === normalizedDescription
+    );
+
+    if (isDuplicate) {
+      toast.info('This idea is already shared in the community.');
+      return;
+    }
+
+    const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
+    const tags = parseTags(postForm.tags);
+    const newIdea: CommunityIdea = {
+      title: postForm.title.trim(),
+      description: postForm.description.trim(),
+      tags: tags.length > 0 ? tags : ['General'],
+      upvotes: 0,
+      comments: 0,
+      author: authorName,
+      authorAvatar: profile?.avatar || undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    setCommunityIdeas(prev => [newIdea, ...prev]);
     toast.success('Idea posted successfully!');
     setPostForm({ title: '', description: '', tags: '' });
     setPostFormOpen(false);

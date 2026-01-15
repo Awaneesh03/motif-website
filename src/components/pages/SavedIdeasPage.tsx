@@ -114,8 +114,8 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
   };
 
   const handleAnalyzeAgain = () => {
-    toast.success('Redirecting to Idea Analyzer...');
-    onNavigate?.('idea-analyzer');
+    toast.success('Redirecting to Idea Analyser...');
+    onNavigate?.('Idea Analyser');
   };
 
   // Sort ideas

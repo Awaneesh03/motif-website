@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useUser } from '../../contexts/UserContext';
+import { supabase } from '../../lib/supabase';
 import {
   Sparkles,
   Target,
@@ -37,12 +38,23 @@ interface AnalysisResult {
   viability: string;
 }
 
+interface CommunityIdea {
+  title: string;
+  description: string;
+  upvotes: number;
+  comments: number;
+  tags: string[];
+  author: string;
+  authorAvatar?: string;
+  createdAt: string;
+}
+
 interface IdeaAnalyserPageProps {
   onNavigate?: (page: string) => void;
 }
 
 export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
-  const { user } = useUser();
+  const { user, profile, displayName } = useUser();
   const [ideaTitle, setIdeaTitle] = useState('');
   const [ideaDescription, setIdeaDescription] = useState('');
   const [targetMarket, setTargetMarket] = useState('');
@@ -50,6 +62,45 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showDemoReportModal, setShowDemoReportModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const COMMUNITY_STORAGE_KEY = 'motif-community-ideas';
+
+  const normalizeIdeaValue = (value: string) =>
+    value.trim().replace(/\s+/g, ' ').toLowerCase();
+
+  const buildTagsFromTargetMarket = (market: string) => {
+    const tags = market
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+    return tags.length > 0 ? tags : ['General'];
+  };
+
+  const saveCommunityIdea = (idea: CommunityIdea) => {
+    if (typeof window === 'undefined') return false;
+
+    try {
+      const stored = localStorage.getItem(COMMUNITY_STORAGE_KEY);
+      const existing: CommunityIdea[] = stored ? JSON.parse(stored) : [];
+      const normalizedTitle = normalizeIdeaValue(idea.title);
+      const normalizedDescription = normalizeIdeaValue(idea.description);
+
+      const duplicate = existing.some(
+        existingIdea =>
+          normalizeIdeaValue(existingIdea.title) === normalizedTitle &&
+          normalizeIdeaValue(existingIdea.description) === normalizedDescription
+      );
+
+      if (duplicate) return false;
+
+      localStorage.setItem(COMMUNITY_STORAGE_KEY, JSON.stringify([idea, ...existing]));
+      return true;
+    } catch (error) {
+      console.error('Failed to save community idea:', error);
+      return false;
+    }
+  };
 
   // Validation checks
   const isTitleValid = ideaTitle.trim().length >= 5;
@@ -70,6 +121,39 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     setIsAnalyzing(true);
 
     try {
+      const normalizedTitle = normalizeIdeaValue(ideaTitle);
+      const normalizedDescription = normalizeIdeaValue(ideaDescription);
+      const normalizedMarket = normalizeIdeaValue(targetMarket || '');
+
+      const { data: existingAnalyses, error: existingError } = await supabase
+        .from('idea_analyses')
+        .select(
+          'id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability'
+        )
+        .eq('user_id', user.id);
+
+      if (!existingError && existingAnalyses && existingAnalyses.length > 0) {
+        const match = existingAnalyses.find(analysis =>
+          normalizeIdeaValue(analysis.idea_title) === normalizedTitle &&
+          normalizeIdeaValue(analysis.idea_description) === normalizedDescription &&
+          normalizeIdeaValue(analysis.target_market || '') === normalizedMarket
+        );
+
+        if (match) {
+          setAnalysisResult({
+            score: match.score ?? 0,
+            strengths: Array.isArray(match.strengths) ? match.strengths : [],
+            weaknesses: Array.isArray(match.weaknesses) ? match.weaknesses : [],
+            recommendations: Array.isArray(match.recommendations) ? match.recommendations : [],
+            marketSize: match.market_size || '',
+            competition: match.competition || '',
+            viability: match.viability || '',
+          });
+          toast.success('Loaded your saved analysis from the vault.');
+          return;
+        }
+      }
+
       // Call Groq AI directly for analysis
       const analysisData = await analyzeIdeaWithGroq({
         title: ideaTitle,
@@ -78,8 +162,29 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       });
 
       setAnalysisResult(analysisData);
-      toast.success('Analysis complete!');
 
+      const { error: insertError } = await supabase
+        .from('idea_analyses')
+        .insert({
+          user_id: user.id,
+          idea_title: ideaTitle.trim(),
+          idea_description: ideaDescription.trim(),
+          target_market: targetMarket.trim() || null,
+          score: analysisData.score,
+          strengths: analysisData.strengths,
+          weaknesses: analysisData.weaknesses,
+          recommendations: analysisData.recommendations,
+          market_size: analysisData.marketSize,
+          competition: analysisData.competition,
+          viability: analysisData.viability,
+        });
+
+      if (insertError) {
+        console.error('Failed to save analysis:', insertError);
+        toast.error('Analysis complete, but failed to save to your vault.');
+      } else {
+        toast.success('Analysis complete and saved to your vault.');
+      }
     } catch (error) {
       console.error('Analysis error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to analyze idea. Please try again.';
@@ -91,11 +196,10 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       } else {
         toast.error(errorMessage);
       }
-      setIsAnalyzing(false);
       return;
+    } finally {
+      setIsAnalyzing(false);
     }
-
-    setIsAnalyzing(false);
   };
 
   const handleGenerateIdea = async () => {
@@ -235,6 +339,42 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
 
     // Download the report as a file
     handleDownloadReport(false);
+  };
+
+  const handleShareToCommunity = () => {
+    if (!user) {
+      toast.error('Please login to share your idea');
+      return;
+    }
+
+    if (!analysisResult) {
+      toast.error('Analyze your idea before sharing');
+      return;
+    }
+
+    if (!isFormValid) {
+      toast.error('Please fill in all required fields before sharing');
+      return;
+    }
+
+    const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
+    const newIdea: CommunityIdea = {
+      title: ideaTitle.trim(),
+      description: ideaDescription.trim(),
+      tags: buildTagsFromTargetMarket(targetMarket),
+      upvotes: 0,
+      comments: 0,
+      author: authorName,
+      authorAvatar: profile?.avatar || undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    const saved = saveCommunityIdea(newIdea);
+    if (saved) {
+      toast.success('Shared to the community!');
+    } else {
+      toast.info('This idea is already shared in the community.');
+    }
   };
 
 
@@ -607,11 +747,12 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                         Save Report
                       </Button>
                       <Button
-                        disabled
-                        title="Community sharing is coming soon! For now, download your report to share manually."
-                        className="gradient-lavender rounded-xl opacity-60 cursor-not-allowed"
+                        onClick={handleShareToCommunity}
+                        disabled={!analysisResult}
+                        title={!analysisResult ? 'Analyze your idea to enable sharing.' : undefined}
+                        className="gradient-lavender rounded-xl"
                       >
-                        Share in Community (Coming Soon)
+                        Share in Community
                       </Button>
                     </div>
                   </div>
