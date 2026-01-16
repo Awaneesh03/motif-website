@@ -1,4 +1,4 @@
-import { Linkedin, Instagram, Mail } from 'lucide-react';
+import { Linkedin, Instagram, Twitter, Mail } from 'lucide-react';
 
 interface FooterProps {
   onNavigate: (page: string) => void;
@@ -30,23 +30,17 @@ export function Footer({ onNavigate }: FooterProps) {
           <div>
             <h4 className="mb-4">Quick Links</h4>
             <div className="flex flex-col gap-2">
-              {[
-                { label: 'Idea Analyser', key: 'Idea Analyser' },
-                { label: 'Pitch Generator', key: 'Pitch Creator' },
-                { label: 'Get Funded', key: 'Get Funded' },
-                { label: 'Home', key: 'Home' },
-                { label: 'Case Study', key: 'Case Studies' },
-                { label: 'Community', key: 'Community' },
-                { label: 'Resource', key: 'Resources' },
-              ].map(item => (
-                <button
-                  key={item.label}
-                  onClick={() => onNavigate(item.key)}
-                  className="text-muted-foreground hover:text-primary text-left text-sm transition-colors"
-                >
-                  {item.label}
-                </button>
-              ))}
+              {['Home', 'Case Studies', 'Idea Analyser', 'Community', 'Resources', 'About'].map(
+                link => (
+                  <button
+                    key={link}
+                    onClick={() => onNavigate(link)}
+                    className="text-muted-foreground hover:text-primary text-left text-sm transition-colors"
+                  >
+                    {link}
+                  </button>
+                )
+              )}
             </div>
           </div>
 
@@ -54,17 +48,13 @@ export function Footer({ onNavigate }: FooterProps) {
           <div>
             <h4 className="mb-4">Features</h4>
             <div className="flex flex-col gap-2">
-              {[
-                { label: 'Idea Analyser', key: 'Idea Analyser' },
-                { label: 'Pitch Generator', key: 'Pitch Creator' },
-                { label: 'Get Funded', key: 'Get Funded' },
-              ].map(item => (
+              {['Pitch Creator', 'Contact', 'Resources'].map(link => (
                 <button
-                  key={item.label}
-                  onClick={() => onNavigate(item.key)}
+                  key={link}
+                  onClick={() => onNavigate(link)}
                   className="text-muted-foreground hover:text-primary text-left text-sm transition-colors"
                 >
-                  {item.label}
+                  {link}
                 </button>
               ))}
             </div>
@@ -75,18 +65,6 @@ export function Footer({ onNavigate }: FooterProps) {
             <h4 className="mb-4">Connect</h4>
             <div className="flex gap-4">
               <a
-                href="mailto:support@motif.com"
-                className="text-muted-foreground transition-all duration-300 hover:scale-110"
-                style={{
-                  color: 'hsl(var(--muted-foreground))',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#EA4335'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
-                title="Email Us"
-              >
-                <Mail className="h-5 w-5" />
-              </a>
-              <a
                 href="#"
                 className="text-muted-foreground transition-all duration-300 hover:scale-110"
                 style={{
@@ -94,7 +72,6 @@ export function Footer({ onNavigate }: FooterProps) {
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.color = '#0A66C2'}
                 onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
-                title="LinkedIn"
               >
                 <Linkedin className="h-5 w-5" />
               </a>
@@ -106,9 +83,19 @@ export function Footer({ onNavigate }: FooterProps) {
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.color = '#E4405F'}
                 onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
-                title="Instagram"
               >
                 <Instagram className="h-5 w-5" />
+              </a>
+              <a
+                href="#"
+                className="text-muted-foreground transition-all duration-300 hover:scale-110"
+                style={{
+                  color: 'hsl(var(--muted-foreground))',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#1DA1F2'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
+              >
+                <Twitter className="h-5 w-5" />
               </a>
             </div>
           </div>

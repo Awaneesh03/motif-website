@@ -1,28 +1,20 @@
 import { motion } from 'motion/react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import {
-  Rocket,
   Target,
-  TrendingUp,
   Shield,
   CheckCircle,
   AlertCircle,
   Users,
   BarChart3,
   ArrowRight,
-  DollarSign,
-  Calendar,
   MessageCircle,
   FileText,
-  Star,
-  Upload,
-  X,
-  ChevronRight,
 } from 'lucide-react';
 
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
@@ -32,7 +24,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '../ui/dialog';
 import {
@@ -46,6 +37,9 @@ interface VCConnectionPageProps {
   onNavigate?: (page: string) => void;
 }
 
+const QUALIFICATION_STORAGE_KEY = 'motif-qualification-requests';
+const FUNDING_STORAGE_KEY = 'motif-funding-requests';
+
 // Mock data for validated ideas
 const MOCK_IDEAS = [
   { id: 1, title: 'AI-Powered Resume Builder', score: 85, description: 'Automated resume creation using AI', category: 'SaaS' },
@@ -58,7 +52,6 @@ const MOCK_IDEAS = [
 
 export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   const [qualificationOpen, setQualificationOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [qualificationForm, setQualificationForm] = useState({
     name: '',
     email: '',
@@ -71,20 +64,131 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   // Raise Funding Modal State
   const [fundingModalOpen, setFundingModalOpen] = useState(false);
   const [fundingStep, setFundingStep] = useState(1);
-  const [selectedIdea, setSelectedIdea] = useState<number | null>(null);
+  const [selectedIdea, setSelectedIdea] = useState<(typeof MOCK_IDEAS)[number] | null>(null);
   const [pitchFile, setPitchFile] = useState<File | null>(null);
 
   // Filter ideas with score > 70%
   const validatedIdeas = MOCK_IDEAS.filter(idea => idea.score > 70);
 
   const handleQualificationSubmit = () => {
-    // Simulated submission
-    setQualificationOpen(false);
-    // Would normally navigate to qualification results
+    const isValid =
+      qualificationForm.name.trim().length > 0 &&
+      qualificationForm.email.trim().length > 0 &&
+      qualificationForm.ideaDescription.trim().length >= 30;
+
+    if (!isValid) {
+      toast.error('Please complete the required fields before submitting.');
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(QUALIFICATION_STORAGE_KEY);
+      const existing = stored ? JSON.parse(stored) : [];
+      const newEntry = {
+        ...qualificationForm,
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem(QUALIFICATION_STORAGE_KEY, JSON.stringify([newEntry, ...existing]));
+      toast.success('Qualification request submitted. We’ll follow up by email.');
+      setQualificationForm({
+        name: '',
+        email: '',
+        ideaDescription: '',
+        stage: '',
+        traction: '',
+        fundingAmount: '',
+      });
+      setQualificationOpen(false);
+    } catch (error) {
+      console.error('Qualification submission failed:', error);
+      toast.error('Failed to submit your request. Please try again.');
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Qualification Dialog */}
+      <Dialog open={qualificationOpen} onOpenChange={setQualificationOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Founder Qualification</DialogTitle>
+            <DialogDescription>
+              Share a quick overview so we can score readiness and guide the best next steps.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="qual-name">Full Name</Label>
+                <Input
+                  id="qual-name"
+                  value={qualificationForm.name}
+                  onChange={e => setQualificationForm({ ...qualificationForm, name: e.target.value })}
+                  placeholder="Jane Founder"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="qual-email">Email</Label>
+                <Input
+                  id="qual-email"
+                  type="email"
+                  value={qualificationForm.email}
+                  onChange={e => setQualificationForm({ ...qualificationForm, email: e.target.value })}
+                  placeholder="jane@startup.com"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="qual-idea">Idea Description</Label>
+              <Textarea
+                id="qual-idea"
+                value={qualificationForm.ideaDescription}
+                onChange={e => setQualificationForm({ ...qualificationForm, ideaDescription: e.target.value })}
+                placeholder="Describe the problem, your solution, and current traction."
+                rows={4}
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="qual-stage">Stage</Label>
+                <Input
+                  id="qual-stage"
+                  value={qualificationForm.stage}
+                  onChange={e => setQualificationForm({ ...qualificationForm, stage: e.target.value })}
+                  placeholder="Pre-seed"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="qual-traction">Traction</Label>
+                <Input
+                  id="qual-traction"
+                  value={qualificationForm.traction}
+                  onChange={e => setQualificationForm({ ...qualificationForm, traction: e.target.value })}
+                  placeholder="1k waitlist"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="qual-amount">Funding Ask</Label>
+                <Input
+                  id="qual-amount"
+                  value={qualificationForm.fundingAmount}
+                  onChange={e => setQualificationForm({ ...qualificationForm, fundingAmount: e.target.value })}
+                  placeholder="$250k"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setQualificationOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleQualificationSubmit} className="gradient-lavender text-white">
+              Submit Qualification
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Hero Section */}
       <section className="gradient-lavender relative overflow-hidden py-12 md:py-16">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20"></div>
@@ -96,181 +200,19 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            <Badge className="mb-3 bg-white/20 px-4 py-1.5 text-white text-sm font-medium border border-white/30">
-              VC Connection Layer
-            </Badge>
-            <h1 className="mb-4 text-4xl font-bold text-white sm:text-5xl md:text-6xl leading-tight">
-              Get Introduced to VCs
-              <br className="hidden sm:block" />
-              <span className="text-white/95"> Who Want to Fund Your Idea</span>
-            </h1>
-            <p className="mx-auto mb-3 max-w-3xl text-lg sm:text-xl text-white font-semibold leading-relaxed px-4">
-              Skip the cold emails. Get warm introductions to investors who match your industry and stage.
+            <h1 className="text-4xl font-bold text-white mb-3">Connect with VCs through Motif</h1>
+            <p className="text-white/80 max-w-3xl mx-auto">
+              Share your validated idea, upload your pitch, and let us route it to the right investors.
             </p>
-            <p className="mx-auto mb-8 max-w-2xl text-base sm:text-lg text-white/80 leading-relaxed px-4">
-              Motif evaluates your startup using proven frameworks, then connects you with relevant venture capital investors seeking opportunities in your space.
-            </p>
-
-            <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 sm:flex-row mb-4">
-              <Dialog open={qualificationOpen} onOpenChange={setQualificationOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    size="lg"
-                    className="rounded-xl bg-white px-8 py-5 text-base sm:text-lg font-semibold text-primary shadow-xl hover:bg-white/90 transition-all"
-                  >
-                    <Rocket className="mr-2 h-5 w-5" />
-                    Check If You Qualify
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader className="pb-6">
-                    <DialogTitle className="text-2xl">Qualification Assessment</DialogTitle>
-                    <DialogDescription className="text-base">
-                      Tell us about your idea. We'll evaluate it against our 5-pillar framework and
-                      let you know if you're ready for VC introductions.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-6 py-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="name" className="text-sm font-medium">Full Name *</Label>
-                        <Input
-                          id="name"
-                          placeholder="Your full name"
-                          className="h-11"
-                          value={qualificationForm.name}
-                          onChange={e =>
-                            setQualificationForm({ ...qualificationForm, name: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-sm font-medium">Email Address *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="your@email.com"
-                          className="h-11"
-                          value={qualificationForm.email}
-                          onChange={e =>
-                            setQualificationForm({ ...qualificationForm, email: e.target.value })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="idea" className="text-sm font-medium">One-Sentence Pitch *</Label>
-                      <Input
-                        id="idea"
-                        placeholder="We help X do Y using Z technology"
-                        maxLength={140}
-                        className="h-11"
-                        value={qualificationForm.ideaDescription}
-                        onChange={e =>
-                          setQualificationForm({
-                            ...qualificationForm,
-                            ideaDescription: e.target.value,
-                          })
-                        }
-                      />
-                      <p className="text-xs text-muted-foreground flex justify-between">
-                        <span>Keep it concise and clear</span>
-                        <span>{qualificationForm.ideaDescription.length}/140</span>
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="stage" className="text-sm font-medium">Current Stage *</Label>
-                        <select
-                          id="stage"
-                          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          value={qualificationForm.stage}
-                          onChange={e =>
-                            setQualificationForm({ ...qualificationForm, stage: e.target.value })
-                          }
-                        >
-                          <option value="">Select your current stage</option>
-                          <option value="idea">Idea Only</option>
-                          <option value="prototype">Prototype/MVP</option>
-                          <option value="beta">Beta Users</option>
-                          <option value="revenue">Generating Revenue</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="funding" className="text-sm font-medium">Funding Amount Seeking *</Label>
-                        <select
-                          id="funding"
-                          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          value={qualificationForm.fundingAmount}
-                          onChange={e =>
-                            setQualificationForm({
-                              ...qualificationForm,
-                              fundingAmount: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">Select funding amount</option>
-                          <option value="100k-500k">$100K - $500K</option>
-                          <option value="500k-1m">$500K - $1M</option>
-                          <option value="1m-2m">$1M - $2M</option>
-                          <option value="2m+">$2M+</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="traction" className="text-sm font-medium">Traction Evidence</Label>
-                      <Textarea
-                        id="traction"
-                        placeholder="e.g., 500 beta users, $5K MRR, 20% MoM growth, 1000+ waitlist signups"
-                        rows={4}
-                        className="resize-none"
-                        value={qualificationForm.traction}
-                        onChange={e =>
-                          setQualificationForm({ ...qualificationForm, traction: e.target.value })
-                        }
-                      />
-                      <p className="text-xs text-muted-foreground">Include any metrics, user feedback, or validation signals you have</p>
-                    </div>
-                  </div>
-                  <DialogFooter className="pt-6 gap-3">
-                    <Button variant="outline" onClick={() => setQualificationOpen(false)} className="px-6">
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleQualificationSubmit}
-                      className="gradient-lavender text-white px-8"
-                      disabled={!qualificationForm.name || !qualificationForm.email || !qualificationForm.ideaDescription || !qualificationForm.stage || !qualificationForm.fundingAmount}
-                    >
-                      Submit Assessment
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              <Button
-                size="lg"
-                variant="outline"
-                className="rounded-xl border-2 border-white px-8 py-5 text-base sm:text-lg font-medium text-white hover:bg-white/10 hover:border-white/90 transition-all"
-                onClick={() => {
-                  const pricingSection = document.getElementById('pricing');
-                  pricingSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                View Pricing
+            <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 sm:flex-row mb-4 mt-6">
+              <Button className="rounded-xl" onClick={() => setFundingModalOpen(true)}>
+                Start a Funding Request
               </Button>
-            </div>
-
-            {/* Raise Funding Request Button */}
-            <div className="mt-10 flex justify-center px-4">
-              <Button
-                size="lg"
-                onClick={() => setFundingModalOpen(true)}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-10 py-7 text-lg font-bold rounded-2xl shadow-2xl hover:shadow-green-500/50 transition-all duration-300 transform hover:scale-105"
-              >
-                <DollarSign className="mr-3 h-6 w-6" />
-                Raise Funding Request
-                <ChevronRight className="ml-3 h-6 w-6" />
+              <Button variant="outline" className="rounded-xl" onClick={() => setQualificationOpen(true)}>
+                Start Qualification
+              </Button>
+              <Button variant="outline" className="rounded-xl" onClick={() => onNavigate?.('Dashboard')}>
+                Back to Dashboard
               </Button>
             </div>
           </motion.div>
@@ -289,16 +231,10 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-6">
             <DialogTitle className="text-2xl flex items-center justify-between">
-              <span>Raise Funding Request</span>
-              <Badge variant="outline" className="text-sm">
-                Step {fundingStep} of 2
-              </Badge>
+              Raise Funding
             </DialogTitle>
             <DialogDescription className="text-base">
-              {fundingStep === 1
-                ? 'Select a validated idea from your Idea Analyzer (Score must be > 70%)'
-                : 'Upload your pitch deck or materials'
-              }
+              Choose a validated idea and upload your pitch deck.
             </DialogDescription>
           </DialogHeader>
 
@@ -307,15 +243,10 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
             <div className="space-y-6 py-4">
               {validatedIdeas.length === 0 ? (
                 <Card className="border-dashed border-2 border-muted-foreground/30">
-                  <CardContent className="p-12 text-center">
-                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Validated Ideas Found</h3>
-                    <p className="text-muted-foreground mb-6">
-                      You need at least one idea with a score above 70% to proceed.
-                    </p>
-                    <Button onClick={() => onNavigate?.('Idea Analyser')} className="gradient-lavender">
-                      <Target className="mr-2 h-4 w-4" />
-                      Go to Idea Analyzer
+                  <CardContent className="text-center py-10">
+                    <p className="text-muted-foreground mb-3">You don’t have any validated ideas yet.</p>
+                    <Button onClick={() => onNavigate?.('Idea Analyser')} className="rounded-xl">
+                      Run Idea Analyser
                     </Button>
                   </CardContent>
                 </Card>
@@ -324,48 +255,12 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                   {validatedIdeas.map((idea) => (
                     <Card
                       key={idea.id}
-                      className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${selectedIdea === idea.id
-                        ? 'border-primary border-2 bg-primary/5'
-                        : 'border hover:border-primary/50'
-                        }`}
-                      onClick={() => setSelectedIdea(idea.id)}
+                      className={`cursor-pointer border ${selectedIdea?.id === idea.id ? 'border-primary' : 'border-border'}`}
+                      onClick={() => setSelectedIdea(idea)}
                     >
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold">{idea.title}</h3>
-                              <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
-                                {idea.category}
-                              </Badge>
-                            </div>
-                            <p className="text-muted-foreground text-sm mb-3">{idea.description}</p>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="flex-1 rounded-full overflow-hidden"
-                                style={{
-                                  backgroundColor: '#e5e7eb',
-                                  height: '10px'
-                                }}
-                              >
-                                <div
-                                  className="rounded-full transition-all duration-300"
-                                  style={{
-                                    width: `${idea.score}%`,
-                                    height: '10px',
-                                    background: 'linear-gradient(to right, #10b981, #059669)'
-                                  }}
-                                />
-                              </div>
-                              <span className="text-sm font-bold text-green-600 dark:text-green-400 min-w-[45px] text-right">
-                                {idea.score}%
-                              </span>
-                            </div>
-                          </div>
-                          {selectedIdea === idea.id && (
-                            <CheckCircle className="h-6 w-6 text-primary flex-shrink-0 ml-4" />
-                          )}
-                        </div>
+                      <CardContent className="p-4">
+                        <h4 className="font-semibold">{idea.title}</h4>
+                        <p className="text-muted-foreground text-sm line-clamp-2">{idea.description}</p>
                       </CardContent>
                     </Card>
                   ))}
@@ -384,41 +279,25 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                   className="hidden"
                   accept=".pdf,.ppt,.pptx,.doc,.docx"
                   onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setPitchFile(e.target.files[0]);
-                    }
+                    const file = e.target.files?.[0] || null;
+                    setPitchFile(file);
                   }}
                 />
-                <label htmlFor="pitch-upload" className="cursor-pointer">
-                  <Upload className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Upload Pitch Deck</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Drop your file here or click to browse
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Supported formats: PDF, PPT, PPTX, DOC, DOCX (Max 10MB)
-                  </p>
-                </label>
+                
+                <Label htmlFor="pitch-upload" className="cursor-pointer text-primary underline">
+                  Click to upload your pitch deck
+                </Label>
               </div>
 
               {pitchFile && (
                 <Card className="border-primary/20 bg-primary/5">
                   <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-10 w-10 text-primary" />
-                      <div>
-                        <p className="font-medium">{pitchFile.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(pitchFile.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </div>
+                    <div>
+                      <p className="font-semibold">{pitchFile.name}</p>
+                      <p className="text-muted-foreground text-sm">{Math.round(pitchFile.size / 1024)} KB</p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setPitchFile(null)}
-                    >
-                      <X className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" onClick={() => setPitchFile(null)}>
+                      Remove
                     </Button>
                   </CardContent>
                 </Card>
@@ -430,10 +309,9 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                   Pitch Deck Guidelines
                 </h4>
                 <ul className="text-sm text-muted-foreground space-y-1 ml-6 list-disc">
-                  <li>Keep it concise (10-15 slides recommended)</li>
-                  <li>Include problem, solution, market size, and traction</li>
-                  <li>Highlight your team and competitive advantage</li>
-                  <li>Clearly state your funding ask and use of funds</li>
+                  <li>Keep it to 10-12 slides focused on problem, solution, and traction.</li>
+                  <li>Include key metrics, team, and fundraising ask.</li>
+                  <li>Export as PDF or PPT for easier review.</li>
                 </ul>
               </div>
             </div>
@@ -462,12 +340,26 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 if (fundingStep === 1 && selectedIdea) {
                   setFundingStep(2);
                 } else if (fundingStep === 2 && pitchFile) {
-                  // Submit the funding request
-                  alert('Funding request submitted successfully!');
-                  setFundingModalOpen(false);
-                  setFundingStep(1);
-                  setSelectedIdea(null);
-                  setPitchFile(null);
+                  try {
+                    const stored = localStorage.getItem(FUNDING_STORAGE_KEY);
+                    const existing = stored ? JSON.parse(stored) : [];
+                    const newEntry = {
+                      ideaId: selectedIdea?.id,
+                      ideaTitle: selectedIdea?.title,
+                      pitchFileName: pitchFile.name,
+                      pitchFileSize: pitchFile.size,
+                      createdAt: new Date().toISOString(),
+                    };
+                    localStorage.setItem(FUNDING_STORAGE_KEY, JSON.stringify([newEntry, ...existing]));
+                    toast.success('Funding request submitted. We’ll update you soon.');
+                    setFundingModalOpen(false);
+                    setFundingStep(1);
+                    setSelectedIdea(null);
+                    setPitchFile(null);
+                  } catch (error) {
+                    console.error('Funding request submission failed:', error);
+                    toast.error('Failed to submit your request. Please try again.');
+                  }
                 }
               }}
               disabled={fundingStep === 1 ? !selectedIdea : !pitchFile}
@@ -511,31 +403,8 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                     <CardTitle className="text-xl font-bold">Founders' Challenge</CardTitle>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-red-500" />
-                    <p className="text-sm leading-relaxed">
-                      You've validated your idea but don't have investor connections
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-red-500" />
-                    <p className="text-sm leading-relaxed">Cold emailing VCs gets ignored (2% response rate)</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-red-500" />
-                    <p className="text-sm leading-relaxed">
-                      Warm introductions are gatekept by who you know, not what you've built
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-red-500" />
-                    <p className="text-sm leading-relaxed">Accelerators reject 98% of applicants</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-red-500" />
-                    <p className="text-sm leading-relaxed">You waste months networking instead of building</p>
-                  </div>
+                <CardContent className="text-muted-foreground">
+                  Get guided intro requests, pitch uploads, and transparent status tracking—no cold outreach needed.
                 </CardContent>
               </Card>
             </motion.div>
@@ -546,38 +415,17 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <Card className="h-full border-l-4 border-l-blue-500 hover:shadow-xl transition-shadow duration-300">
+              <Card className="h-full border-l-4 border-l-green-500 hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
-                      <AlertCircle className="text-blue-500 h-6 w-6" />
+                    <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950">
+                      <AlertCircle className="text-green-500 h-6 w-6" />
                     </div>
                     <CardTitle className="text-xl font-bold">Investors' Challenge</CardTitle>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-blue-500" />
-                    <p className="text-sm leading-relaxed">500+ cold emails per week, mostly unqualified</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-blue-500" />
-                    <p className="text-sm leading-relaxed">
-                      Entrepreneurs pitch solutions to non-existent problems
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-blue-500" />
-                    <p className="text-sm leading-relaxed">No standardized evaluation = wasted partner time</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-blue-500" />
-                    <p className="text-sm leading-relaxed">Miss great founders outside their network</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-blue-500" />
-                    <p className="text-sm leading-relaxed">Time-consuming manual filtering and outreach</p>
-                  </div>
+                <CardContent className="text-muted-foreground">
+                  Receive curated, vetted startups matched to your thesis with clear traction summaries.
                 </CardContent>
               </Card>
             </motion.div>
@@ -589,15 +437,11 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
             viewport={{ once: true }}
             className="mt-12"
           >
-            <Card className="gradient-lavender border-none text-white hover:shadow-2xl transition-shadow duration-300">
-              <CardContent className="p-12 text-center">
-                <h3 className="mb-6 text-3xl font-bold">What Motif Does</h3>
-                <p className="mx-auto max-w-4xl text-xl leading-relaxed">
-                  We pre-qualify founders using our Idea Validation Engine, then introduce only
-                  investment-ready companies to VCs seeking opportunities in their thesis. Higher
-                  signal, less noise, better matches.
-                </p>
-              </CardContent>
+            <Card className="p-6 text-center">
+              <h3 className="text-xl font-semibold mb-2">How it works</h3>
+              <p className="text-muted-foreground">
+                Submit your startup → Upload your deck → We route to aligned investors → Track status in real time.
+              </p>
             </Card>
           </motion.div>
         </div>
@@ -612,94 +456,20 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
             viewport={{ once: true }}
             className="mb-12 text-center"
           >
-            <h2 className="mb-4 text-3xl sm:text-4xl font-bold text-foreground">Our 5-Pillar Investment Readiness Framework</h2>
-            <p className="text-muted-foreground mx-auto max-w-3xl text-base sm:text-lg">
-              Every idea is scored 0-100 across five dimensions. You need 75+ to qualify.
+            <h2 className="text-3xl font-bold mb-3">Our 5-Pillar Review</h2>
+            <p className="text-muted-foreground max-w-3xl mx-auto">
+              We assess Problem, Solution, Team, Traction, and Fit to ensure quality intros.
             </p>
           </motion.div>
 
-          <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                icon: Target,
-                title: 'Market Validation',
-                description: 'Problem clarity, market size (TAM/SAM/SOM), and competitive analysis',
-                weight: '0-100',
-                color: 'text-primary',
-              },
-              {
-                icon: TrendingUp,
-                title: 'Traction Signals',
-                description: 'User interviews, waitlist, beta testers, revenue, and growth metrics',
-                weight: '0-100',
-                color: 'text-secondary',
-              },
-              {
-                icon: Users,
-                title: 'Founder Credibility',
-                description: 'Domain expertise, execution capability, team composition, LinkedIn verified',
-                weight: '0-100',
-                color: 'text-green-500',
-              },
-              {
-                icon: DollarSign,
-                title: 'Business Model Clarity',
-                description: 'Revenue model, unit economics, go-to-market strategy, financial projections',
-                weight: '0-100',
-                color: 'text-yellow-500',
-              },
-              {
-                icon: FileText,
-                title: 'Pitch Quality',
-                description: 'Deck structure, problem/solution fit, clear ask with specific use of funds',
-                weight: '0-100',
-                color: 'text-purple-500',
-              },
-            ].map((pillar, index) => (
-              <motion.div
-                key={pillar.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="h-full hover:shadow-xl transition-shadow duration-300 border-l-4 border-l-primary/20">
-                  <CardContent className="p-8">
-                    <div className={`mb-6 ${pillar.color}`}>
-                      <pillar.icon className="h-12 w-12" />
-                    </div>
-                    <h3 className="mb-4 text-xl font-semibold">{pillar.title}</h3>
-                    <p className="text-muted-foreground mb-6 text-sm leading-relaxed">{pillar.description}</p>
-                    <Badge variant="outline" className="font-mono text-xs">
-                      Score: {pillar.weight}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              </motion.div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            {['Problem', 'Solution', 'Team', 'Traction', 'Fit'].map(pillar => (
+              <Card key={pillar} className="p-4 text-center">
+                <h4 className="font-semibold mb-2">{pillar}</h4>
+                <p className="text-muted-foreground text-sm">Clear criteria to keep intros high-signal.</p>
+              </Card>
             ))}
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-12 text-center"
-          >
-            <Card className="bg-primary/5 border-primary/20 hover:shadow-lg transition-shadow duration-300">
-              <CardContent className="p-8">
-                <div className="flex items-center justify-center gap-6">
-                  <Shield className="text-primary h-10 w-10" />
-                  <div className="text-left">
-                    <p className="text-lg font-semibold">Minimum Qualifying Score: 350/500 (70%)</p>
-                    <p className="text-muted-foreground text-sm mt-1">
-                      You'll see your score breakdown and improvement recommendations before
-                      submitting
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
         </div>
       </section>
 
@@ -775,134 +545,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                     </div>
                     <h3 className="mb-3 text-xl font-bold">{step.title}</h3>
                     <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="bg-muted/30 py-12 md:py-16" id="pricing">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-12 text-center"
-          >
-            <Badge className="mb-3 bg-primary/10 text-primary px-4 py-1.5 text-sm font-medium">
-              Pricing Plans
-            </Badge>
-            <h2 className="mb-4 text-3xl sm:text-4xl font-bold text-foreground">Pricing</h2>
-            <p className="text-muted-foreground mx-auto max-w-3xl text-base sm:text-lg">
-              Pay only when we deliver introductions. No equity. No success fees. 60-day money-back guarantee.
-            </p>
-          </motion.div>
-
-          <div className="grid gap-6 md:gap-8 lg:grid-cols-3">
-            {[
-              {
-                name: 'Standard',
-                price: '₹5,499',
-                description: 'Perfect for first-time founders',
-                features: [
-                  'Up to 3 VC introductions',
-                  '1 submission review',
-                  'Basic profile listing',
-                  'Email support',
-                  '60-day money-back guarantee',
-                ],
-                cta: 'Get Started',
-                popular: false,
-              },
-              {
-                name: 'Premium',
-                price: '₹7,499',
-                description: 'Best for serious founders',
-                features: [
-                  'Up to 5 VC introductions',
-                  '2 submission reviews',
-                  'Featured profile placement',
-                  '1-hour pitch coaching',
-                  'Priority matching (3-day turnaround)',
-                  '60-day money-back guarantee',
-                ],
-                cta: 'Most Popular',
-                popular: true,
-              },
-              {
-                name: 'Accelerated',
-                price: '₹10,499',
-                description: 'Maximum support & exposure',
-                features: [
-                  'Up to 10 VC introductions',
-                  'Unlimited resubmissions (90 days)',
-                  'Dedicated analyst review',
-                  '3 pitch coaching sessions',
-                  'Investor Q&A prep',
-                  'Follow-up email templates',
-                  'Priority support',
-                ],
-                cta: 'Premium Access',
-                popular: false,
-              },
-            ].map((plan, index) => (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card
-                  className={`relative h-full transition-all duration-300 ${plan.popular
-                    ? 'gradient-lavender border-none text-white shadow-2xl lg:scale-[1.05]'
-                    : 'hover:shadow-xl hover:border-primary/40 border-2'
-                    }`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-yellow-500 px-6 py-2 text-white font-bold text-sm shadow-lg">
-                        Most Popular
-                      </Badge>
-                    </div>
-                  )}
-                  <CardHeader className="pb-8 pt-8">
-                    <CardTitle className="text-2xl font-bold mb-2">{plan.name}</CardTitle>
-                    <p className={`text-sm mb-6 ${plan.popular ? 'text-white/80' : 'text-muted-foreground'}`}>
-                      {plan.description}
-                    </p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-bold">{plan.price}</span>
-                      <span className="text-base opacity-70">one-time</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-8">
-                    <ul className="mb-8 space-y-4">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <CheckCircle
-                            className={`mt-0.5 h-5 w-5 flex-shrink-0 ${plan.popular ? 'text-white' : 'text-primary'}`}
-                          />
-                          <span className={`text-base ${plan.popular ? 'text-white' : ''}`}>
-                            {feature}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      size="lg"
-                      className={`w-full rounded-xl py-6 text-base font-bold transition-all duration-200 ${plan.popular
-                        ? 'bg-white text-primary hover:bg-white/95 hover:shadow-xl'
-                        : 'gradient-lavender text-white hover:shadow-lg'
-                        }`}
-                      onClick={() => setSelectedPlan(plan.name)}
-                    >
-                      {plan.cta}
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
                   </CardContent>
                 </Card>
               </motion.div>

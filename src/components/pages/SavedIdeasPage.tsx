@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { Search, Edit, BarChart3, Trash2, Filter, Lightbulb } from 'lucide-react';
+import { Search, BarChart3, Trash2, Filter, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
@@ -114,12 +114,8 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
   };
 
   const handleAnalyzeAgain = () => {
-    toast.success('Redirecting to Idea Analyzer...');
-    onNavigate?.('idea-analyzer');
-  };
-
-  const handleEdit = () => {
-    toast.info('Opening editor...');
+    toast.success('Redirecting to Idea Analyser...');
+    onNavigate?.('Idea Analyser');
   };
 
   // Sort ideas
@@ -346,15 +342,6 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
                           </span>
 
                           <div className="flex gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit()}
-                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
-                              title="Edit Idea"
-                            >
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"

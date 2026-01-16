@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
-import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
+import { supabase } from '../../lib/supabase';
 import {
   Sparkles,
   Target,
@@ -26,10 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Progress } from '../ui/progress';
-import Groq from 'groq-sdk';
-
-// Groq API Key - Use environment variable or fallback
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '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';
+import { analyzeIdeaWithGroq, generateIdeaWithGroq } from '../../lib/groqAnalysis';
 
 interface AnalysisResult {
   score: number;
@@ -41,12 +38,23 @@ interface AnalysisResult {
   viability: string;
 }
 
+interface CommunityIdea {
+  title: string;
+  description: string;
+  upvotes: number;
+  comments: number;
+  tags: string[];
+  author: string;
+  authorAvatar?: string;
+  createdAt: string;
+}
+
 interface IdeaAnalyserPageProps {
   onNavigate?: (page: string) => void;
 }
 
 export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
-  const { user } = useUser();
+  const { user, profile, displayName } = useUser();
   const [ideaTitle, setIdeaTitle] = useState('');
   const [ideaDescription, setIdeaDescription] = useState('');
   const [targetMarket, setTargetMarket] = useState('');
@@ -54,6 +62,45 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showDemoReportModal, setShowDemoReportModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const COMMUNITY_STORAGE_KEY = 'motif-community-ideas';
+
+  const normalizeIdeaValue = (value: string) =>
+    value.trim().replace(/\s+/g, ' ').toLowerCase();
+
+  const buildTagsFromTargetMarket = (market: string) => {
+    const tags = market
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+    return tags.length > 0 ? tags : ['General'];
+  };
+
+  const saveCommunityIdea = (idea: CommunityIdea) => {
+    if (typeof window === 'undefined') return false;
+
+    try {
+      const stored = localStorage.getItem(COMMUNITY_STORAGE_KEY);
+      const existing: CommunityIdea[] = stored ? JSON.parse(stored) : [];
+      const normalizedTitle = normalizeIdeaValue(idea.title);
+      const normalizedDescription = normalizeIdeaValue(idea.description);
+
+      const duplicate = existing.some(
+        existingIdea =>
+          normalizeIdeaValue(existingIdea.title) === normalizedTitle &&
+          normalizeIdeaValue(existingIdea.description) === normalizedDescription
+      );
+
+      if (duplicate) return false;
+
+      localStorage.setItem(COMMUNITY_STORAGE_KEY, JSON.stringify([idea, ...existing]));
+      return true;
+    } catch (error) {
+      console.error('Failed to save community idea:', error);
+      return false;
+    }
+  };
 
   // Validation checks
   const isTitleValid = ideaTitle.trim().length >= 5;
@@ -66,207 +113,104 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       return;
     }
 
-    setIsAnalyzing(true);
-
-    try {
-      // Initialize Groq client with constant API key
-      const groq = new Groq({
-        apiKey: GROQ_API_KEY,
-        dangerouslyAllowBrowser: true,
-      });
-
-      // Create a detailed prompt for the AI
-      const prompt = `You are a senior startup analyst and venture capital advisor with 15+ years of experience evaluating startups. Analyze the following startup idea comprehensively and provide an honest, data-driven assessment.
-
-STARTUP IDEA DETAILS:
-Title: ${ideaTitle}
-Description: ${ideaDescription}
-Target Market: ${targetMarket || 'Not specified - needs definition'}
-
-ANALYSIS FRAMEWORK:
-Evaluate this idea based on:
-1. Market Opportunity - Size, growth trends, accessibility
-2. Problem-Solution Fit - How well does it address a real pain point?
-3. Competitive Landscape - Existing solutions, barriers to entry
-4. Execution Feasibility - Technical complexity, resource requirements
-5. Business Model Potential - Revenue opportunities, scalability
-6. Risk Factors - Regulatory, technical, market risks
-
-SCORING GUIDELINES:
-- 85-100: Exceptional idea with clear market need and strong execution potential
-- 70-84: Strong idea with good potential, some areas need work
-- 55-69: Decent concept but significant challenges to address
-- 40-54: Weak idea with major flaws or limited market potential
-- 0-39: Fundamental issues that likely prevent success
-
-Provide your analysis in VALID JSON format (return ONLY JSON, no extra text):
-
-{
-  "score": <number between 0-100 based on thorough analysis>,
-  "strengths": [
-    "<Specific strength 1 with concrete reasoning>",
-    "<Specific strength 2 with concrete reasoning>",
-    "<Specific strength 3 with concrete reasoning>",
-    "<Specific strength 4 if applicable>"
-  ],
-  "weaknesses": [
-    "<Specific weakness 1 with impact assessment>",
-    "<Specific weakness 2 with impact assessment>",
-    "<Specific weakness 3 if applicable>"
-  ],
-  "recommendations": [
-    "<Actionable recommendation 1 - be specific about what to do>",
-    "<Actionable recommendation 2 - be specific about what to do>",
-    "<Actionable recommendation 3 - be specific about what to do>",
-    "<Actionable recommendation 4 - be specific about what to do>",
-    "<Actionable recommendation 5 if applicable>"
-  ],
-  "marketSize": "<Estimate the Total Addressable Market (TAM) with specific numbers or ranges. Include market growth rate if relevant.>",
-  "competition": "<Identify 2-3 key competitors or alternative solutions. Assess competitive intensity (low/medium/high) and explain why.>",
-  "viability": "<Honest assessment of execution feasibility covering: technical complexity, required resources, time to market, and key success factors.>"
-}
-
-BE SPECIFIC AND HONEST. Avoid generic statements. Base your analysis on the actual details provided about THIS specific idea.`;
-
-      // Call Groq API with better model and parameters
-      const chatCompletion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert startup analyst providing detailed, honest assessments. Always respond with valid JSON only, no extra text. Be specific and actionable in your analysis.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        model: 'llama-3.3-70b-versatile', // Better model for more precise analysis
-        temperature: 0.3, // Lower temperature for more consistent, focused analysis
-        max_tokens: 1500, // More tokens for detailed analysis
-      });
-
-      const response = chatCompletion.choices[0]?.message?.content || '';
-
-      // Try to parse the JSON response
-      let analysisData;
-      try {
-        // Extract JSON from response (in case there's extra text)
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          analysisData = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON found in response');
-        }
-      } catch (parseError) {
-        console.error('Failed to parse AI response:', response);
-        // Fallback: Create a basic analysis from the text response
-        analysisData = {
-          score: 75,
-          strengths: ['Detailed concept', 'Market opportunity identified'],
-          weaknesses: ['Needs more market validation'],
-          recommendations: [
-            'Conduct user interviews',
-            'Build a minimal viable product',
-            'Test with early adopters',
-          ],
-          marketSize: 'Requires market research',
-          competition: 'Needs competitive analysis',
-          viability: response.substring(0, 100) + '...',
-        };
-        toast.warning('AI response format unexpected. Using basic analysis.');
-      }
-
-      setAnalysisResult(analysisData);
-
-      // Save analysis to database if user is logged in
-      if (user) {
-        try {
-          const { error: dbError } = await supabase
-            .from('idea_analyses')
-            .insert({
-              user_id: user.id,
-              idea_title: ideaTitle,
-              idea_description: ideaDescription,
-              target_market: targetMarket || null,
-              score: analysisData.score,
-              strengths: analysisData.strengths,
-              weaknesses: analysisData.weaknesses,
-              recommendations: analysisData.recommendations,
-              market_size: analysisData.marketSize,
-              competition: analysisData.competition,
-              viability: analysisData.viability,
-            });
-
-          if (dbError) {
-            console.error('Error saving analysis to database:', dbError);
-            toast.warning('Analysis completed but failed to save to your account');
-          } else {
-            toast.success('Analysis complete and saved to your account!');
-          }
-        } catch (dbError) {
-          console.error('Database error:', dbError);
-          toast.success('Analysis complete!');
-        }
-      } else {
-        toast.success('Analysis complete! Sign in to save your analyses.');
-      }
-    } catch (error) {
-      console.error('Analysis error:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to analyze idea. Please try again.'
-      );
-      setIsAnalyzing(false);
+    if (!user) {
+      toast.error('Please login to analyze your idea');
       return;
     }
 
-    setIsAnalyzing(false);
+    setIsAnalyzing(true);
+
+    try {
+      const normalizedTitle = normalizeIdeaValue(ideaTitle);
+      const normalizedDescription = normalizeIdeaValue(ideaDescription);
+      const normalizedMarket = normalizeIdeaValue(targetMarket || '');
+
+      const { data: existingAnalyses, error: existingError } = await supabase
+        .from('idea_analyses')
+        .select(
+          'id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability'
+        )
+        .eq('user_id', user.id);
+
+      if (!existingError && existingAnalyses && existingAnalyses.length > 0) {
+        const match = existingAnalyses.find(analysis =>
+          normalizeIdeaValue(analysis.idea_title) === normalizedTitle &&
+          normalizeIdeaValue(analysis.idea_description) === normalizedDescription &&
+          normalizeIdeaValue(analysis.target_market || '') === normalizedMarket
+        );
+
+        if (match) {
+          setAnalysisResult({
+            score: match.score ?? 0,
+            strengths: Array.isArray(match.strengths) ? match.strengths : [],
+            weaknesses: Array.isArray(match.weaknesses) ? match.weaknesses : [],
+            recommendations: Array.isArray(match.recommendations) ? match.recommendations : [],
+            marketSize: match.market_size || '',
+            competition: match.competition || '',
+            viability: match.viability || '',
+          });
+          toast.success('Loaded your saved analysis from the vault.');
+          return;
+        }
+      }
+
+      // Call Groq AI directly for analysis
+      const analysisData = await analyzeIdeaWithGroq({
+        title: ideaTitle,
+        description: ideaDescription,
+        targetMarket: targetMarket || null,
+      });
+
+      setAnalysisResult(analysisData);
+
+      const { error: insertError } = await supabase
+        .from('idea_analyses')
+        .insert({
+          user_id: user.id,
+          idea_title: ideaTitle.trim(),
+          idea_description: ideaDescription.trim(),
+          target_market: targetMarket.trim() || null,
+          score: analysisData.score,
+          strengths: analysisData.strengths,
+          weaknesses: analysisData.weaknesses,
+          recommendations: analysisData.recommendations,
+          market_size: analysisData.marketSize,
+          competition: analysisData.competition,
+          viability: analysisData.viability,
+        });
+
+      if (insertError) {
+        console.error('Failed to save analysis:', insertError);
+        toast.error('Analysis complete, but failed to save to your vault.');
+      } else {
+        toast.success('Analysis complete and saved to your vault.');
+      }
+    } catch (error) {
+      console.error('Analysis error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to analyze idea. Please try again.';
+
+      if (errorMessage.includes('Rate limit') || errorMessage.includes('rate_limit')) {
+        toast.error('Rate limit exceeded. Please try again in a few moments.');
+      } else if (errorMessage.includes('API key')) {
+        toast.error('AI service is not configured. Please contact support.');
+      } else {
+        toast.error(errorMessage);
+      }
+      return;
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleGenerateIdea = async () => {
     setIsGenerating(true);
     try {
-      const groq = new Groq({
-        apiKey: GROQ_API_KEY,
-        dangerouslyAllowBrowser: true,
-      });
+      const generatedIdea = await generateIdeaWithGroq();
 
-      const prompt = `Generate a unique, innovative, and viable startup idea. 
-      Provide the response in valid JSON format with the following fields:
-      {
-        "title": "Catchy startup name or title",
-        "description": "Detailed description of the problem and solution (at least 2 sentences)",
-        "targetMarket": "Specific target audience"
-      }
-      Make it sound professional and exciting.`;
-
-      const chatCompletion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a creative startup ideator. Generate unique business ideas. Return ONLY JSON.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        model: 'llama3-70b-8192', // Using stable model
-        temperature: 0.9, // Higher temperature for creativity
-        max_tokens: 500,
-      });
-
-      const response = chatCompletion.choices[0]?.message?.content || '';
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-
-      if (jsonMatch) {
-        const generatedIdea = JSON.parse(jsonMatch[0]);
-        setIdeaTitle(generatedIdea.title);
-        setIdeaDescription(generatedIdea.description);
-        setTargetMarket(generatedIdea.targetMarket);
-        toast.success('New idea generated! Click "Analyze" to see its potential.');
-      } else {
-        throw new Error('Failed to parse generated idea');
-      }
+      setIdeaTitle(generatedIdea.title);
+      setIdeaDescription(generatedIdea.description);
+      setTargetMarket(generatedIdea.targetMarket);
+      toast.success('New idea generated! Click "Analyze" to see its potential.');
     } catch (error) {
       console.error('Generation error:', error);
       // Fallback to mock idea if API fails
@@ -298,6 +242,141 @@ BE SPECIFIC AND HONEST. Avoid generic statements. Base your analysis on the actu
       setIsGenerating(false);
     }
   };
+
+  // Download analysis report as PDF/Text
+  const handleDownloadReport = (isDemoReport: boolean = false) => {
+    const reportData = isDemoReport ? {
+      title: 'AI-Powered Personal Finance Assistant',
+      score: 85,
+      strengths: [
+        'Strong market demand with proven business model',
+        'AI personalization differentiates from existing solutions',
+        'Mobile-first approach aligns with user behavior trends'
+      ],
+      weaknesses: [
+        'Competitive market with established players like Mint and YNAB',
+        'User acquisition costs may be high in fintech space',
+        'Requires bank API integrations which can be complex'
+      ],
+      recommendations: [
+        'Focus on one specific user persona initially (e.g., freelancers with irregular income)',
+        'Partner with banks for secure API access to simplify onboarding'
+      ],
+      marketSize: '$12B (TAM)',
+      competition: 'Moderate - established players but room for innovation',
+      viability: 'High Viability'
+    } : {
+      title: ideaTitle,
+      score: analysisResult?.score || 0,
+      strengths: analysisResult?.strengths || [],
+      weaknesses: analysisResult?.weaknesses || [],
+      recommendations: analysisResult?.recommendations || [],
+      marketSize: analysisResult?.marketSize || '',
+      competition: analysisResult?.competition || '',
+      viability: analysisResult?.viability || ''
+    };
+
+    // Create text content for download
+    const reportContent = `
+STARTUP IDEA ANALYSIS REPORT
+Generated by IdeaForge AI
+========================================
+
+IDEA: ${reportData.title}
+
+OVERALL VIABILITY SCORE: ${reportData.score}/100
+
+MARKET SIZE
+${reportData.marketSize}
+
+COMPETITION LEVEL
+${reportData.competition}
+
+VIABILITY ASSESSMENT
+${reportData.viability}
+
+========================================
+STRENGTHS
+========================================
+${reportData.strengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+========================================
+AREAS TO ADDRESS
+========================================
+${reportData.weaknesses.map((w, i) => `${i + 1}. ${w}`).join('\n')}
+
+========================================
+AI RECOMMENDATIONS
+========================================
+${reportData.recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}
+
+========================================
+Report generated on: ${new Date().toLocaleDateString()}
+
+Powered by IdeaForge - Your AI-Powered Startup Companion
+    `.trim();
+
+    // Create and download the file
+    const blob = new Blob([reportContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${reportData.title.replace(/[^a-z0-9]/gi, '_')}_Analysis_Report.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('Report downloaded successfully!');
+  };
+
+  // Save/Download report
+  const handleSaveReport = () => {
+    if (!analysisResult) {
+      toast.error('No analysis to save');
+      return;
+    }
+
+    // Download the report as a file
+    handleDownloadReport(false);
+  };
+
+  const handleShareToCommunity = () => {
+    if (!user) {
+      toast.error('Please login to share your idea');
+      return;
+    }
+
+    if (!analysisResult) {
+      toast.error('Analyze your idea before sharing');
+      return;
+    }
+
+    if (!isFormValid) {
+      toast.error('Please fill in all required fields before sharing');
+      return;
+    }
+
+    const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
+    const newIdea: CommunityIdea = {
+      title: ideaTitle.trim(),
+      description: ideaDescription.trim(),
+      tags: buildTagsFromTargetMarket(targetMarket),
+      upvotes: 0,
+      comments: 0,
+      author: authorName,
+      authorAvatar: profile?.avatar || undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    const saved = saveCommunityIdea(newIdea);
+    if (saved) {
+      toast.success('Shared to the community!');
+    } else {
+      toast.info('This idea is already shared in the community.');
+    }
+  };
+
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
@@ -660,10 +739,19 @@ BE SPECIFIC AND HONEST. Avoid generic statements. Base your analysis on the actu
                       </p>
                     </div>
                     <div className="flex gap-3">
-                      <Button variant="outline" className="rounded-xl">
+                      <Button
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={handleSaveReport}
+                      >
                         Save Report
                       </Button>
-                      <Button className="gradient-lavender rounded-xl hover:opacity-90">
+                      <Button
+                        onClick={handleShareToCommunity}
+                        disabled={!analysisResult}
+                        title={!analysisResult ? 'Analyze your idea to enable sharing.' : undefined}
+                        className="gradient-lavender rounded-xl"
+                      >
                         Share in Community
                       </Button>
                     </div>
@@ -912,7 +1000,10 @@ BE SPECIFIC AND HONEST. Avoid generic statements. Base your analysis on the actu
               >
                 Close
               </Button>
-              <Button className="gradient-lavender shadow-lavender flex-1 rounded-xl hover:opacity-90">
+              <Button
+                className="gradient-lavender shadow-lavender flex-1 rounded-xl hover:opacity-90"
+                onClick={() => handleDownloadReport(true)}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download Report
               </Button>

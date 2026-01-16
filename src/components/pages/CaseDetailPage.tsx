@@ -326,7 +326,7 @@ Verdict: "Pass" if score >= 70, otherwise "Try Again"`;
           </div>
           <div className="flex flex-wrap gap-2">
             <DifficultyBadge difficulty={caseData.difficulty} />
-            {caseData.tags.map(tag => (
+            {caseData.tags.map((tag: string) => (
               <Badge key={tag} variant="outline" className="rounded-lg">
                 {tag}
               </Badge>
