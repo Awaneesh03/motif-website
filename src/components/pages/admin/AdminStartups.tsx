@@ -151,7 +151,13 @@ const AdminStartups = () => {
       },
     };
 
-    const { label, className, icon: Icon } = config[status];
+    const statusConfig = config[status] || {
+      label: status || 'Unknown',
+      className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-0',
+      icon: Clock,
+    };
+
+    const { label, className, icon: Icon } = statusConfig;
 
     return (
       <Badge className={className}>

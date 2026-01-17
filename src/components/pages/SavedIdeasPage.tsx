@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { Search, BarChart3, Trash2, Filter, Lightbulb } from 'lucide-react';
+import { Search, BarChart3, Trash2, Filter, Lightbulb, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
@@ -240,8 +240,8 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
               className="flex h-64 items-center justify-center"
             >
               <div className="flex flex-col items-center gap-4">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                <p className="text-muted-foreground font-medium">Unlockng your vault...</p>
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="text-muted-foreground font-medium">Unlocking your vault...</p>
               </div>
             </motion.div>
           ) : filteredIdeas.length === 0 ? (

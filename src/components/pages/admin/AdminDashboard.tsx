@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Info,
   BookOpen,
+  Loader2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -63,7 +64,7 @@ const AdminDashboard = () => {
           }),
           supabase
             .from('vc_applications')
-            .select('*, idea:ideas!vc_applications_idea_id_fkey(title), vc_profile:profiles!vc_applications_vc_id_fkey(name)')
+            .select('*')
             .order('created_at', { ascending: false })
             .limit(5)
             .then(({ data, error }) => {
@@ -76,7 +77,10 @@ const AdminDashboard = () => {
               }
               return [];
             }),
-          getAllNotifications(20).catch(err => {
+          (profile?.role === 'super_admin'
+            ? getAllNotifications(20)
+            : Promise.resolve([])
+          ).catch(err => {
             if (import.meta.env.DEV) {
               console.error('[AdminDashboard] Error fetching notifications:', err);
             }
@@ -114,7 +118,7 @@ const AdminDashboard = () => {
       }
     };
     loadStats();
-  }, []);
+  }, [profile]);
 
   // Use demo metrics if in demo mode, otherwise use real metrics
   const displayMetrics = isDemoMode ? demoAdminMetrics : metrics;
@@ -274,7 +278,7 @@ const AdminDashboard = () => {
                   <CardContent>
                     {isLoading ? (
                       <div className="text-center py-8 text-muted-foreground">
-                        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
                         <p>Loading...</p>
                       </div>
                     ) : pendingStartups.length === 0 ? (

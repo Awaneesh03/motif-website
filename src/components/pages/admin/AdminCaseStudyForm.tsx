@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ArrowLeft, Save, Eye, FileText, Target, Lightbulb, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Save, Eye, FileText, Target, Lightbulb, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,9 @@ interface CaseStudyFormData {
   solution: string;
   tags: string[];
   status: 'Draft' | 'Published';
+  imageUrl: string;
+  category: string;
+  company: string;
 }
 
 const AdminCaseStudyForm = () => {
@@ -42,7 +45,10 @@ const AdminCaseStudyForm = () => {
     hints: '',
     solution: '',
     tags: [],
-    status: 'Draft'
+    status: 'Draft',
+    imageUrl: '',
+    category: 'General',
+    company: ''
   });
 
   const [tagInput, setTagInput] = useState('');
@@ -93,7 +99,10 @@ const AdminCaseStudyForm = () => {
         hints: data.hints || '',
         solution: data.solution || '',
         tags: data.tags || [],
-        status: data.status || 'Draft'
+        status: data.status || 'Draft',
+        imageUrl: data.image_url || '',
+        category: data.category || 'General',
+        company: data.company || ''
       };
 
       setFormData(caseStudyData);
@@ -164,6 +173,9 @@ const AdminCaseStudyForm = () => {
           solution: dataToSave.solution,
           tags: dataToSave.tags,
           status: dataToSave.status,
+          image_url: dataToSave.imageUrl || null,
+          category: dataToSave.category || 'General',
+          company: dataToSave.company || null,
           updated_at: new Date().toISOString()
         };
 
@@ -187,6 +199,9 @@ const AdminCaseStudyForm = () => {
           solution: dataToSave.solution,
           tags: dataToSave.tags,
           status: dataToSave.status,
+          image_url: dataToSave.imageUrl || null,
+          category: dataToSave.category || 'General',
+          company: dataToSave.company || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -211,7 +226,7 @@ const AdminCaseStudyForm = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -313,6 +328,65 @@ const AdminCaseStudyForm = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="company">Company/Source Name</Label>
+                      <Input
+                        id="company"
+                        value={formData.company}
+                        onChange={(e) => handleInputChange('company', e.target.value)}
+                        placeholder="e.g., TechFlow, StartupHub"
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select
+                        value={formData.category}
+                        onValueChange={(value) => handleInputChange('category', value)}
+                      >
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="General">General</SelectItem>
+                          <SelectItem value="Marketing">Marketing</SelectItem>
+                          <SelectItem value="Product">Product</SelectItem>
+                          <SelectItem value="Operations">Operations</SelectItem>
+                          <SelectItem value="Growth">Growth</SelectItem>
+                          <SelectItem value="Finance">Finance</SelectItem>
+                          <SelectItem value="Strategy">Strategy</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="imageUrl">Cover Image URL</Label>
+                    <Input
+                      id="imageUrl"
+                      value={formData.imageUrl}
+                      onChange={(e) => handleInputChange('imageUrl', e.target.value)}
+                      placeholder="https://example.com/image.jpg"
+                      className="rounded-xl"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Paste an image URL for the case study card. Recommended size: 100x100px
+                    </p>
+                    {formData.imageUrl && (
+                      <div className="mt-2">
+                        <img 
+                          src={formData.imageUrl} 
+                          alt="Preview" 
+                          className="h-16 w-16 object-cover rounded-lg border"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">

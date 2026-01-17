@@ -30,35 +30,23 @@ export const getAllStartups = async (): Promise<Startup[]> => {
   try {
     const { data, error } = await supabase
       .from('ideas')
-      .select(`
-        id,
-        title,
-        name,
-        description,
-        target_market,
-        stage,
-        status,
-        created_by,
-        created_at,
-        pitches!inner(id),
-        profiles!created_by(full_name, username)
-      `)
-      .order('created_at', { ascending: false });
+      .select('*')
+      .order('id', { ascending: false });
 
     if (error) throw error;
 
     return (data || []).map((item: any) => ({
       id: item.id,
-      name: item.name || item.title || 'Untitled',
+      name: item.title || 'Untitled',
       pitch: item.description || '',
       problem: item.description || '',
       solution: item.description || '',
-      industry: item.target_market || 'Not specified',
-      stage: item.stage || 'idea',
+      industry: item.industry || 'Not specified',
+      stage: 'idea',
       status: item.status || 'draft',
       createdBy: item.created_by,
-      founderName: item.profiles?.full_name || item.profiles?.username || 'Unknown',
-      createdAt: item.created_at,
+      founderName: 'Unknown',
+      createdAt: item.created_at || new Date().toISOString(),
     }));
   } catch (error) {
       if (import.meta.env.DEV) {
@@ -73,36 +61,28 @@ export const getStartupsByFounder = async (founderId: string): Promise<Startup[]
   try {
     const { data, error } = await supabase
       .from('ideas')
-      .select(`
-        id,
-        title,
-        name,
-        description,
-        target_market,
-        stage,
-        status,
-        created_by,
-        created_at,
-        pitches!inner(id),
-        profiles!created_by(full_name, username)
-      `)
-      .eq('created_by', founderId)
-      .order('created_at', { ascending: false });
+      .select('*')
+      .order('id', { ascending: false });
 
     if (error) throw error;
 
-    return (data || []).map((item: any) => ({
+    // Filter by founder in JavaScript to avoid column issues
+    const founderStartups = (data || []).filter((item: any) => 
+      item.created_by === founderId || item.user_id === founderId
+    );
+
+    return founderStartups.map((item: any) => ({
       id: item.id,
-      name: item.name || item.title || 'Untitled',
+      name: item.title || 'Untitled',
       pitch: item.description || '',
       problem: item.description || '',
       solution: item.description || '',
-      industry: item.target_market || 'Not specified',
-      stage: item.stage || 'idea',
+      industry: item.industry || 'Not specified',
+      stage: 'idea',
       status: item.status || 'draft',
-      createdBy: item.created_by,
-      founderName: item.profiles?.full_name || item.profiles?.username || 'Unknown',
-      createdAt: item.created_at,
+      createdBy: item.created_by || item.user_id || founderId,
+      founderName: 'Unknown',
+      createdAt: item.created_at || new Date().toISOString(),
     }));
   } catch (error) {
       if (import.meta.env.DEV) {
@@ -117,36 +97,24 @@ export const getApprovedStartups = async (): Promise<Startup[]> => {
   try {
     const { data, error } = await supabase
       .from('ideas')
-      .select(`
-        id,
-        title,
-        name,
-        description,
-        target_market,
-        stage,
-        status,
-        created_by,
-        created_at,
-        pitches!inner(id),
-        profiles!created_by(full_name, username)
-      `)
+      .select('*')
       .eq('status', 'approved_for_vc')
-      .order('created_at', { ascending: false });
+      .order('id', { ascending: false });
 
     if (error) throw error;
 
     return (data || []).map((item: any) => ({
       id: item.id,
-      name: item.name || item.title || 'Untitled',
+      name: item.title || 'Untitled',
       pitch: item.description || '',
       problem: item.description || '',
       solution: item.description || '',
-      industry: item.target_market || 'Not specified',
-      stage: item.stage || 'idea',
+      industry: item.industry || 'Not specified',
+      stage: 'idea',
       status: item.status || 'draft',
       createdBy: item.created_by,
-      founderName: item.profiles?.full_name || item.profiles?.username || 'Unknown',
-      createdAt: item.created_at,
+      founderName: 'Unknown',
+      createdAt: item.created_at || new Date().toISOString(),
     }));
   } catch (error) {
       if (import.meta.env.DEV) {
@@ -167,8 +135,7 @@ export const createStartup = async (
       .insert({
         title: startup.name,
         description: startup.pitch,
-        target_market: startup.industry,
-        stage: startup.stage,
+        industry: startup.industry,
         status: startup.status,
         created_by: startup.createdBy,
       })
@@ -198,7 +165,7 @@ export const createStartup = async (
     return {
       ...startup,
       id: ideaData.id,
-      createdAt: ideaData.created_at,
+      createdAt: ideaData.created_at || new Date().toISOString(),
       founderName: profileData?.full_name || profileData?.username || 'Unknown',
     };
   } catch (error) {
@@ -270,34 +237,23 @@ export const updateStartupStatus = async (
       .from('ideas')
       .update({ status })
       .eq('id', id)
-      .select(`
-        id,
-        title,
-        name,
-        description,
-        target_market,
-        stage,
-        status,
-        created_by,
-        created_at,
-        profiles!created_by(full_name, username)
-      `)
+      .select('*')
       .single();
 
     if (error) throw error;
 
     return {
       id: data.id,
-      name: data.name || data.title || 'Untitled',
+      name: data.title || 'Untitled',
       pitch: data.description || '',
       problem: data.description || '',
       solution: data.description || '',
-      industry: data.target_market || 'Not specified',
-      stage: data.stage || 'idea',
+      industry: data.industry || 'Not specified',
+      stage: 'idea',
       status: data.status || 'draft',
       createdBy: data.created_by,
-      founderName: (data.profiles as any)?.full_name || (data.profiles as any)?.username || 'Unknown',
-      createdAt: data.created_at,
+      founderName: 'Unknown',
+      createdAt: data.created_at || new Date().toISOString(),
     };
   } catch (error) {
       if (import.meta.env.DEV) {
@@ -313,19 +269,7 @@ export const getStartupById = async (id: string): Promise<Startup | null> => {
   try {
     const { data, error } = await supabase
       .from('ideas')
-      .select(`
-        id,
-        title,
-        name,
-        description,
-        target_market,
-        stage,
-        status,
-        created_by,
-        created_at,
-        pitches!inner(id),
-        profiles!created_by(full_name, username)
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -333,16 +277,16 @@ export const getStartupById = async (id: string): Promise<Startup | null> => {
 
     return {
       id: data.id,
-      name: data.name || data.title || 'Untitled',
+      name: data.title || 'Untitled',
       pitch: data.description || '',
       problem: data.description || '',
       solution: data.description || '',
-      industry: data.target_market || 'Not specified',
-      stage: data.stage || 'idea',
+      industry: data.industry || 'Not specified',
+      stage: 'idea',
       status: data.status || 'draft',
       createdBy: data.created_by,
-      founderName: (data.profiles as any)?.full_name || (data.profiles as any)?.username || 'Unknown',
-      createdAt: data.created_at,
+      founderName: 'Unknown',
+      createdAt: data.created_at || new Date().toISOString(),
     };
   } catch (error) {
       if (import.meta.env.DEV) {

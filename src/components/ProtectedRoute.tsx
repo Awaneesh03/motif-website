@@ -19,6 +19,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const location = useLocation();
   const hasNotifiedRef = useRef(false);
 
+  // Check role access (compute before any returns)
+  const userRole = profile?.role as UserRole;
+  const isUnauthorized = profile ? !hasAccess(userRole, allowedRoles) : false;
+
+  // useEffect must be called before any conditional returns
+  useEffect(() => {
+    if (isUnauthorized && !hasNotifiedRef.current) {
+      toast.error('Access denied. You do not have permission to view this page.');
+      hasNotifiedRef.current = true;
+    }
+  }, [isUnauthorized]);
+
   // Loading state
   if (loading) {
     return (
@@ -37,17 +49,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (!profile) {
     return <Navigate to="/auth" replace />;
   }
-
-  // Check role access
-  const userRole = profile.role as UserRole;
-  const isUnauthorized = !hasAccess(userRole, allowedRoles);
-
-  useEffect(() => {
-    if (isUnauthorized && !hasNotifiedRef.current) {
-      toast.error('Access denied. You do not have permission to view this page.');
-      hasNotifiedRef.current = true;
-    }
-  }, [isUnauthorized]);
 
   if (isUnauthorized) {
     // Redirect based on user role or custom redirect

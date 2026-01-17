@@ -12,6 +12,7 @@ import {
   Paperclip,
   CheckCircle2,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '../ui/button';
@@ -24,6 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Progress } from '../ui/progress';
 import { StarRating } from '../ui/star-rating';
+import { supabase } from '@/lib/supabase';
 
 interface CaseDetailPageProps {
   onNavigate?: (page: string) => void;
@@ -39,60 +41,102 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
   const [evaluationData, setEvaluationData] = useState<any>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [userRating, setUserRating] = useState(0);
+  const [caseData, setCaseData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock case data - different cases based on caseId
-  const allCases: Record<string, any> = {
-    '1': {
-      id: '1',
-      company: 'PayStream',
-      logo: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100&h=100&fit=crop',
-      title: 'Scaling User Acquisition',
-      description:
-        "PayStream is a B2B SaaS platform that helps companies manage their workflow automation. They've found initial product-market fit with 100 paying customers, but growth has plateaued.",
-      problem:
-        'The company needs to grow from 100 to 1000 users in 3 months with only $5,000 marketing budget. Traditional paid advertising channels are too expensive for their current CAC:LTV ratio. The team consists of 2 founders and 1 developer - no dedicated marketing expertise.',
-      difficulty: 'Medium' as const,
-      category: 'Marketing',
-      tags: ['Growth', 'Marketing', 'B2B', 'SaaS'],
-      estimatedTime: '45 minutes',
-      reward: '500 points',
-      publishedDate: 'Nov 5, 2025',
-    },
-    '2': {
-      id: '2',
-      company: 'DevHub',
-      logo: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=100&h=100&fit=crop',
-      title: 'Product-Market Fit Crisis',
-      description:
-        'DevHub built an innovative AI-powered code review tool with impressive technical capabilities, but struggles to identify the right customer segment and use case.',
-      problem:
-        'Despite having great technology, the product is failing to gain traction. Customer feedback is mixed, churn is high (45% monthly), and the team is unsure which features to prioritize. They need to find the right market segment and refine their value proposition within 60 days or risk running out of runway.',
-      difficulty: 'Hard' as const,
-      category: 'Product',
-      tags: ['Product', 'Strategy', 'AI', 'Developer Tools'],
-      estimatedTime: '60 minutes',
-      reward: '750 points',
-      publishedDate: 'Nov 10, 2025',
-    },
-    '3': {
-      id: '3',
-      company: 'ShipFast',
-      logo: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100&h=100&fit=crop',
-      title: 'Optimizing Operations',
-      description:
-        'ShipFast is a last-mile delivery service experiencing rapid growth but struggling with operational inefficiencies that are hurting margins and customer satisfaction.',
-      problem:
-        'Current average delivery time is 90 minutes, but customers expect 60 minutes or less. Operating costs are 35% higher than competitors. The company needs to reduce delivery time by 30% while cutting operational costs by 20%, all without compromising service quality or increasing prices.',
-      difficulty: 'Medium' as const,
-      category: 'Operations',
-      tags: ['Operations', 'Logistics', 'Optimization', 'Marketplace'],
-      estimatedTime: '50 minutes',
-      reward: '600 points',
-      publishedDate: 'Nov 15, 2025',
-    },
+  // Fallback mock data for when case is not found
+  const defaultCase = {
+    id: '1',
+    company: 'PayStream',
+    logo: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100&h=100&fit=crop',
+    title: 'Scaling User Acquisition',
+    description:
+      "PayStream is a B2B SaaS platform that helps companies manage their workflow automation. They've found initial product-market fit with 100 paying customers, but growth has plateaued.",
+    problem:
+      'The company needs to grow from 100 to 1000 users in 3 months with only $5,000 marketing budget. Traditional paid advertising channels are too expensive for their current CAC:LTV ratio. The team consists of 2 founders and 1 developer - no dedicated marketing expertise.',
+    difficulty: 'Medium' as const,
+    category: 'Marketing',
+    tags: ['Growth', 'Marketing', 'B2B', 'SaaS'],
+    estimatedTime: '45 minutes',
+    reward: '500 points',
+    publishedDate: 'Nov 5, 2025',
   };
 
-  const caseData = allCases[caseId || '1'] || allCases['1'];
+  // Fetch case study from Supabase
+  useEffect(() => {
+    const fetchCaseStudy = async () => {
+      if (!caseId) {
+        console.warn('[CaseDetailPage] No caseId provided');
+        setCaseData(defaultCase);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('[CaseDetailPage] Fetching case study with ID:', caseId);
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('case_studies')
+          .select('*')
+          .eq('id', caseId)
+          .single();
+
+        console.log('[CaseDetailPage] Query result:', { data, error });
+
+        if (error || !data) {
+          console.error('[CaseDetailPage] Case study not found:', error);
+          // Set caseData to null to show not found message
+          setCaseData(null);
+        } else {
+          console.log('[CaseDetailPage] Raw data from DB:', JSON.stringify(data, null, 2));
+          
+          // Transform DB data to component format
+          const mapDifficulty = (d: string): 'Easy' | 'Medium' | 'Hard' => {
+            switch (d) {
+              case 'Beginner': return 'Easy';
+              case 'Intermediate': return 'Medium';
+              case 'Advanced': return 'Hard';
+              default: return 'Medium';
+            }
+          };
+
+          const transformedData = {
+            id: data.id,
+            company: data.company || 'Case Study',
+            logo: data.image_url || 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100&h=100&fit=crop',
+            title: data.title || 'Untitled Case Study',
+            description: data.background || data.problem_statement || 'No description available',
+            problem: data.problem_statement || 'No problem statement available',
+            difficulty: mapDifficulty(data.difficulty),
+            category: data.category || 'General',
+            tags: Array.isArray(data.tags) ? data.tags : (typeof data.tags === 'string' ? data.tags.split(',').map((t: string) => t.trim()) : []),
+            estimatedTime: '45 minutes',
+            reward: '500 points',
+            publishedDate: data.created_at ? new Date(data.created_at).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric' 
+            }) : 'Unknown date',
+            // Additional fields from DB
+            constraints: data.constraints || '',
+            expectedOutcome: data.expected_outcome || '',
+            hints: data.hints || [],
+            solution: data.solution || '',
+          };
+          
+          console.log('[CaseDetailPage] Transformed data:', transformedData);
+          setCaseData(transformedData);
+        }
+      } catch (err) {
+        console.error('[CaseDetailPage] Error fetching case study:', err);
+        setCaseData(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCaseStudy();
+  }, [caseId]);
 
   // Auto-save simulation
   useEffect(() => {
@@ -291,6 +335,33 @@ Verdict: "Pass" if score >= 70, otherwise "Try Again"`;
       onNavigate?.('CaseStudies');
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="bg-background min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading case study...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Safety check for caseData
+  if (!caseData) {
+    return (
+      <div className="bg-background min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-lg font-semibold mb-2">Case study not found</h2>
+          <Button variant="outline" onClick={() => onNavigate?.('CaseStudies')}>
+            Back to Case Studies
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-background min-h-screen">

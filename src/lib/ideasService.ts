@@ -2,7 +2,6 @@
 
 import { supabase } from './supabase';
 import { canFounderSubmitForReview } from './statusValidation';
-import type { StartupStatus } from './startupService';
 
 export interface Idea {
   id: string;
@@ -17,25 +16,24 @@ export interface Idea {
 // Get ideas for the logged-in user that have pitches (startups)
 export const getUserIdeas = async (userId: string): Promise<Idea[]> => {
   try {
+    // First get the ideas
     const { data, error } = await supabase
       .from('ideas')
-      .select(`
-        id,
-        title,
-        name,
-        stage,
-        status,
-        created_by,
-        created_at,
-        pitches!inner(id)
-      `)
-      .eq('created_by', userId)
-      .order('created_at', { ascending: false });
+      .select('*')
+      .order('id', { ascending: false });
 
     if (error) throw error;
 
-    // Filter out the pitches data from response (we only need it for the join)
-    const ideas = (data || []).map(({ pitches, ...idea }: any) => idea);
+    // Transform data with fallbacks for potentially missing columns
+    const ideas = (data || []).map((idea: any) => ({
+      id: idea.id,
+      title: idea.title || idea.name || 'Untitled',
+      name: idea.name || idea.title || 'Untitled',
+      stage: idea.stage || 'idea',
+      status: idea.status || 'draft',
+      created_by: idea.created_by || userId,
+      created_at: idea.created_at || new Date().toISOString(),
+    }));
     return ideas;
   } catch (error) {
     console.error('Error fetching user ideas:', error);

@@ -9,9 +9,9 @@ import {
   ShieldCheck,
   Clock,
   Info,
-  Send,
   AlertCircle,
   RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -71,7 +71,7 @@ const VCDashboard = () => {
           const [requests, connections, notifications, vcMetrics] = await Promise.all([
             supabase
               .from('vc_applications')
-              .select('*, idea:ideas!vc_applications_idea_id_fkey(title, name, description)')
+              .select('*')
               .eq('vc_id', profile.id)
               .order('created_at', { ascending: false })
               .then(({ data }) => data),
@@ -238,7 +238,7 @@ const VCDashboard = () => {
                   <CardContent>
                     {isLoading ? (
                       <div className="text-center py-8 text-muted-foreground">
-                        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
                         <p>Loading startups...</p>
                       </div>
                     ) : approvedStartups.length === 0 && isDemoMode ? (
@@ -277,7 +277,7 @@ const VCDashboard = () => {
                                 <Badge variant="outline">Demo</Badge>
                               </div>
                               <p className="text-muted-foreground text-sm">
-                                {demoStartup.tagline || 'Curated example startup.'}
+                                {demoStartup.description || 'Curated example startup.'}
                               </p>
                               <div className="mt-3 text-xs text-muted-foreground">
                                 {demoStartup.industry || 'Industry'} • {demoStartup.stage || 'Stage'}
@@ -307,8 +307,28 @@ const VCDashboard = () => {
                       </div>
                     ) : (
                       <div className="grid gap-4 md:grid-cols-2">
-                        {approvedStartups.slice(0, 4).map((startup, index) => (
-                          <StartupCard key={startup.id} startup={startup} />
+                        {approvedStartups.slice(0, 4).map((startup) => (
+                          <div
+                            key={startup.id}
+                            className="rounded-xl border border-border/50 bg-muted/20 p-4"
+                          >
+                            <p className="font-semibold mb-1">
+                              {startup.title || 'Startup'}
+                            </p>
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {startup.description || 'No description available.'}
+                            </p>
+                            <div className="mt-3 flex items-center justify-between">
+                              <Badge variant="outline">{startup.stage || 'Stage'}</Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(`/vc/startups/${startup.id}`)}
+                              >
+                                View
+                              </Button>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -331,9 +351,9 @@ const VCDashboard = () => {
                       <p className="text-muted-foreground text-sm">You have no connected startups yet.</p>
                     ) : (
                       <ul className="space-y-2 text-sm">
-                        {connectedStartups.map(s => (
+                        {connectedStartups.map((s) => (
                           <li key={s.id} className="flex items-center justify-between">
-                            <span>{s.name}</span>
+                            <span>{s.startupName}</span>
                             <Badge variant="outline">Connected</Badge>
                           </li>
                         ))}
@@ -374,7 +394,7 @@ const VCDashboard = () => {
                           >
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">
-                                {request.idea?.title || request.idea?.name || 'Startup'}
+                                {request.idea?.title || 'Startup'}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {new Date(request.created_at).toLocaleDateString()}

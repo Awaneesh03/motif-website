@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '../contexts/UserContext';
-import { getUnreadCount, getAllNotifications } from '../lib/notificationService';
+import { getUnreadCount, getAllNotifications, getUserNotifications } from '../lib/notificationService';
 import { Button } from './ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Badge } from './ui/badge';
@@ -17,7 +17,7 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ variant = 'default' }: NotificationBellProps) {
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -58,7 +58,9 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
     if (!user) return;
 
     try {
-      const data = await getAllNotifications(10); // Get last 10 notifications
+      const data = profile?.role === 'super_admin'
+        ? await getAllNotifications(10)
+        : await getUserNotifications(user.id, 10);
       setNotifications(data);
     } catch (error) {
       console.warn('Failed to load notifications (non-critical):', error);

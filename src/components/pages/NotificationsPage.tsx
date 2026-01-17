@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { Bell, CheckCircle2, Clock, XCircle, Inbox, ExternalLink } from 'lucide-react';
+import { Bell, CheckCircle2, Clock, XCircle, Inbox, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -270,7 +270,7 @@ export function NotificationsPage({ onNavigate }: NotificationsPageProps) {
               className="flex h-64 items-center justify-center"
             >
               <div className="flex flex-col items-center gap-4">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="text-muted-foreground font-medium">Loading notifications...</p>
               </div>
             </motion.div>

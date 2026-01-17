@@ -10,7 +10,7 @@ export interface CaseCardProps {
   logo: string;
   title: string;
   description: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Beginner' | 'Intermediate' | 'Advanced';
   category: string;
   attempts: number;
   onClick?: () => void;

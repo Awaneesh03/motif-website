@@ -111,7 +111,7 @@ export const AdminLayout = () => {
             <div className="flex items-center gap-3">
               <AdminToolsDropdown />
               <NotificationBell variant="default" />
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 cursor-default">
                 <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                   <span className="text-xs font-semibold text-white">
                     {profile?.name?.charAt(0).toUpperCase() || 'A'}
@@ -123,11 +123,13 @@ export const AdminLayout = () => {
               </div>
               <Button
                 onClick={handleLogout}
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                className="text-gray-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors flex items-center gap-2"
+                title="Sign out"
               >
                 <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign out</span>
               </Button>
             </div>
           </div>

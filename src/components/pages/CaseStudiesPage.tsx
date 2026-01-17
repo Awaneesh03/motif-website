@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Search, Trophy, Target, Clock, CheckCircle, Star, TrendingUp } from 'lucide-react';
+import { Search, Trophy, Target, Clock, CheckCircle, Star, TrendingUp, Loader2 } from 'lucide-react';
 
 import { StarRating } from '../ui/star-rating';
 
@@ -12,6 +12,7 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback } from '../ui/avatar';
+import { supabase } from '@/lib/supabase';
 
 const mockCases: CaseCardProps[] = [
   {
@@ -176,6 +177,61 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
   const [sortBy, setSortBy] = useState<string>('recent');
   const [searchQuery, setSearchQuery] = useState<string>('');  
   const [userAttempts, setUserAttempts] = useState(mockUserAttempts);
+  const [caseStudies, setCaseStudies] = useState<CaseCardProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch case studies from Supabase
+  useEffect(() => {
+    const fetchCaseStudies = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('case_studies')
+          .select('*')
+          .eq('status', 'Published')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching case studies:', error);
+          // Fall back to mock data if fetch fails
+          setCaseStudies(mockCases);
+        } else if (data && data.length > 0) {
+          // Transform DB data to CaseCardProps format
+          const transformedData: CaseCardProps[] = data.map((item: any) => ({
+            id: item.id,
+            company: item.company || 'Case Study',
+            logo: item.image_url || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&h=100&fit=crop',
+            title: item.title,
+            description: item.problem_statement || '',
+            difficulty: mapDifficulty(item.difficulty),
+            category: item.category || (item.tags?.[0] || 'General'),
+            attempts: item.attempts || 0,
+          }));
+          setCaseStudies(transformedData);
+        } else {
+          // No published case studies, show mock data as examples
+          setCaseStudies(mockCases);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        setCaseStudies(mockCases);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCaseStudies();
+  }, []);
+
+  // Map database difficulty to CaseCard difficulty
+  const mapDifficulty = (dbDifficulty: string): 'Easy' | 'Medium' | 'Hard' => {
+    switch (dbDifficulty) {
+      case 'Beginner': return 'Easy';
+      case 'Intermediate': return 'Medium';
+      case 'Advanced': return 'Hard';
+      default: return 'Medium';
+    }
+  };
 
   // Function to handle rating changes
   const handleRatingChange = (attemptId: string, newRating: number) => {
@@ -201,7 +257,7 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
     };
   }, []);
 
-  const filteredCases = mockCases.filter(caseItem => {
+  const filteredCases = caseStudies.filter(caseItem => {
     const matchesDifficulty = difficulty === 'All' || caseItem.difficulty === difficulty;
     const matchesCategory = category === 'all' || caseItem.category === category;
     const matchesSearch =
@@ -319,18 +375,33 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* All Cases Tab */}
           {activeTab === 'all' && (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {filteredCases.map((caseItem, index) => (
-                <motion.div
-                  key={caseItem.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <CaseCard {...caseItem} onClick={() => onNavigate?.('CaseDetail', caseItem.id)} />
-                </motion.div>
-              ))}
-            </div>
+            <>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2 text-muted-foreground">Loading case studies...</span>
+                </div>
+              ) : filteredCases.length === 0 ? (
+                <div className="text-center py-12">
+                  <Target className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No case studies found</h3>
+                  <p className="text-muted-foreground">Check back later for new case studies!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+                  {filteredCases.map((caseItem, index) => (
+                    <motion.div
+                      key={caseItem.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <CaseCard {...caseItem} onClick={() => onNavigate?.('CaseDetail', caseItem.id)} />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {/* Your Attempts Tab */}

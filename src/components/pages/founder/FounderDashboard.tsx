@@ -13,6 +13,7 @@ import {
   Clock,
   Info,
   RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -237,7 +238,7 @@ export function FounderDashboard() {
                   <CardContent>
                     {isLoading ? (
                       <div className="text-center py-8 text-muted-foreground">
-                        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
                         <p>Loading your startups...</p>
                       </div>
                     ) : myStartups.length === 0 && isDemoMode ? (
@@ -538,7 +539,7 @@ export function FounderDashboard() {
                     <Button
                       variant="outline"
                       className="hover:gradient-lavender group w-full justify-start rounded-xl transition-all hover:border-transparent hover:text-white"
-                      onClick={() => navigate('/dashboard/idea-analyser')}
+                      onClick={() => navigate('/idea-analyser')}
                     >
                       <Lightbulb className="mr-2 h-4 w-4 group-hover:text-white" />
                       Analyze Idea
@@ -546,7 +547,7 @@ export function FounderDashboard() {
                     <Button
                       variant="outline"
                       className="hover:gradient-lavender group w-full justify-start rounded-xl transition-all hover:border-transparent hover:text-white"
-                      onClick={() => navigate('/dashboard/case-studies')}
+                      onClick={() => navigate('/case-studies')}
                     >
                       <BookOpen className="mr-2 h-4 w-4 group-hover:text-white" />
                       Solve Case
@@ -554,7 +555,7 @@ export function FounderDashboard() {
                     <Button
                       variant="outline"
                       className="hover:gradient-lavender group w-full justify-start rounded-xl transition-all hover:border-transparent hover:text-white"
-                      onClick={() => navigate('/dashboard/pitch-creator')}
+                      onClick={() => navigate('/pitch-creator')}
                     >
                       <Sparkles className="mr-2 h-4 w-4 group-hover:text-white" />
                       Create Pitch

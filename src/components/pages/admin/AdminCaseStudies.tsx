@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Plus, BookOpen, Edit, Eye, Trash2, Search, Filter } from 'lucide-react';
+import { Plus, BookOpen, Edit, Eye, Trash2, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -209,7 +209,7 @@ const AdminCaseStudies = () => {
           {/* Case Studies Grid */}
           {isLoading ? (
             <div className="text-center py-12">
-              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
               <p className="text-muted-foreground">Loading case studies...</p>
             </div>
           ) : filteredCaseStudies.length === 0 ? (
@@ -257,15 +257,17 @@ const AdminCaseStudies = () => {
                         </Badge>
                       </div>
 
-                      <div className="flex flex-wrap gap-1">
-                        {study.tags.slice(0, 3).map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                        {study.tags.length > 3 && (
+                      <div className="flex flex-wrap gap-1 max-h-16 overflow-hidden">
+                        {(Array.isArray(study.tags) ? study.tags : (study.tags as unknown as string)?.split(',').map(t => t.trim()) || [])
+                          .slice(0, 3)
+                          .map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs truncate max-w-[120px]">
+                              {tag}
+                            </Badge>
+                          ))}
+                        {(Array.isArray(study.tags) ? study.tags.length : (study.tags as unknown as string)?.split(',').length || 0) > 3 && (
                           <Badge variant="outline" className="text-xs">
-                            +{study.tags.length - 3}
+                            +{(Array.isArray(study.tags) ? study.tags.length : (study.tags as unknown as string)?.split(',').length || 0) - 3}
                           </Badge>
                         )}
                       </div>

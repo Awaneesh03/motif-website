@@ -43,8 +43,8 @@ const transformToIntroRequest = (row: any): IntroRequest => {
     id: row.id,
     startupId: row.idea_id,
     vcId: row.vc_id || null,
-    vcName: row.vc_profile?.name || row.vc_profile?.full_name || 'Any VC',
-    startupName: row.idea?.title || row.idea?.name || 'Untitled',
+    vcName: row.vc_profile?.name || row.vc_profile?.full_name || 'VC',
+    startupName: row.idea?.title || 'Untitled',
     status: row.status,
     createdAt: row.created_at,
   };
@@ -55,17 +55,23 @@ export const getAllIntroRequests = async (): Promise<IntroRequest[]> => {
   try {
     const { data, error } = await supabase
       .from('vc_applications')
-      .select(`
-        *,
-        vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-        idea:ideas!vc_applications_idea_id_fkey(title, name)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data || []).map(transformToIntroRequest);
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      startupId: row.idea_id,
+      vcId: row.vc_id || null,
+      vcName: 'VC',
+      startupName: 'Startup',
+      status: row.status,
+      createdAt: row.created_at,
+    }));
   } catch (error) {
-    console.error('Error fetching intro requests:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error fetching intro requests:', error);
+    }
     return [];
   }
 };
@@ -87,17 +93,21 @@ export const getIntroRequestsByVC = async (vcId: string): Promise<IntroRequest[]
     () =>
       supabase
         .from('vc_applications')
-        .select(`
-          *,
-          vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-          idea:ideas!vc_applications_idea_id_fkey(title, name)
-        `)
+        .select('*')
         .eq('vc_id', vcId)
         .order('created_at', { ascending: false }),
     { serviceName: 'introRequestService.getIntroRequestsByVC' }
   );
 
-  return data.map(transformToIntroRequest);
+  return data.map((row: any) => ({
+    id: row.id,
+    startupId: row.idea_id,
+    vcId: row.vc_id || null,
+    vcName: 'VC',
+    startupName: 'Startup',
+    status: row.status,
+    createdAt: row.created_at,
+  }));
 };
 
 // Get intro requests by startup (idea)
@@ -117,17 +127,21 @@ export const getIntroRequestsByStartup = async (startupId: string): Promise<Intr
     () =>
       supabase
         .from('vc_applications')
-        .select(`
-          *,
-          vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-          idea:ideas!vc_applications_idea_id_fkey(title, name)
-        `)
+        .select('*')
         .eq('idea_id', startupId)
         .order('created_at', { ascending: false }),
     { serviceName: 'introRequestService.getIntroRequestsByStartup' }
   );
 
-  return data.map(transformToIntroRequest);
+  return data.map((row: any) => ({
+    id: row.id,
+    startupId: row.idea_id,
+    vcId: row.vc_id || null,
+    vcName: 'VC',
+    startupName: 'Startup',
+    status: row.status,
+    createdAt: row.created_at,
+  }));
 };
 
 // Check if intro request exists (by VC and startup)
@@ -196,11 +210,7 @@ export const createIntroRequest = async (
         vc_id: vcId,
         status: 'requested',
       })
-      .select(`
-        *,
-        vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-        idea:ideas!vc_applications_idea_id_fkey(title, name)
-      `)
+      .select('*')
       .single();
 
     if (error) {
@@ -210,7 +220,15 @@ export const createIntroRequest = async (
       }
       throw error;
     }
-    return data ? transformToIntroRequest(data) : null;
+    return data ? {
+      id: data.id,
+      startupId: data.idea_id,
+      vcId: data.vc_id || null,
+      vcName: 'VC',
+      startupName: 'Startup',
+      status: data.status,
+      createdAt: data.created_at,
+    } : null;
   } catch (error) {
     console.error('Error creating intro request:', error);
     // Re-throw to allow caller to handle
@@ -243,11 +261,7 @@ export const createFounderIntroRequest = async (
         vc_id: null,
         status: 'requested',
       })
-      .select(`
-        *,
-        vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-        idea:ideas!vc_applications_idea_id_fkey(title, name)
-      `)
+      .select('*')
       .single();
 
     if (error) {
@@ -257,7 +271,15 @@ export const createFounderIntroRequest = async (
       }
       throw error;
     }
-    return data ? transformToIntroRequest(data) : null;
+    return data ? {
+      id: data.id,
+      startupId: data.idea_id,
+      vcId: data.vc_id || null,
+      vcName: 'VC',
+      startupName: 'Startup',
+      status: data.status,
+      createdAt: data.created_at,
+    } : null;
   } catch (error) {
     console.error('Error creating founder intro request:', error);
     // Re-throw to allow caller to handle
@@ -281,15 +303,19 @@ export const updateIntroRequestStatus = async (
       .from('vc_applications')
       .update({ status })
       .eq('id', id)
-      .select(`
-        *,
-        vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name),
-        idea:ideas!vc_applications_idea_id_fkey(title, name)
-      `)
+      .select('*')
       .single();
 
     if (error) throw error;
-    return data ? transformToIntroRequest(data) : null;
+    return data ? {
+      id: data.id,
+      startupId: data.idea_id,
+      vcId: data.vc_id || null,
+      vcName: 'VC',
+      startupName: 'Startup',
+      status: data.status,
+      createdAt: data.created_at,
+    } : null;
   } catch (error) {
     console.error('Error updating intro request status:', error);
     return null;
@@ -318,7 +344,7 @@ export const getConnectedVCs = async (startupId: string): Promise<ConnectedVC[]>
           vc_id,
           created_at,
           updated_at,
-          vc_profile:profiles!vc_applications_vc_id_fkey(name, full_name, company, role)
+          vc_id
         `)
         .eq('idea_id', startupId)
         .eq('status', 'approved')
@@ -330,9 +356,9 @@ export const getConnectedVCs = async (startupId: string): Promise<ConnectedVC[]>
   return data.map((row: any) => ({
     id: row.id,
     vcId: row.vc_id,
-    vcName: row.vc_profile?.name || row.vc_profile?.full_name || 'VC',
-    vcFirm: row.vc_profile?.company,
-    vcRole: row.vc_profile?.role,
+    vcName: 'VC',
+    vcFirm: undefined,
+    vcRole: undefined,
     connectedAt: row.updated_at || row.created_at,
   }));
 };
@@ -354,22 +380,7 @@ export const getConnectedStartups = async (vcId: string): Promise<ConnectedStart
     () =>
       supabase
         .from('vc_applications')
-        .select(`
-          id,
-          idea_id,
-          created_at,
-          updated_at,
-          idea:ideas!vc_applications_idea_id_fkey(
-            title,
-            name,
-            description,
-            stage,
-            industry,
-            target_market,
-            created_by,
-            founder:profiles!ideas_created_by_fkey(name, full_name)
-          )
-        `)
+        .select('*')
         .eq('vc_id', vcId)
         .eq('status', 'approved')
         .order('created_at', { ascending: false }),
@@ -379,11 +390,11 @@ export const getConnectedStartups = async (vcId: string): Promise<ConnectedStart
   return data.map((row: any) => ({
     id: row.id,
     startupId: row.idea_id,
-    startupName: row.idea?.title || row.idea?.name || 'Untitled',
-    startupDescription: row.idea?.description,
-    stage: row.idea?.stage,
-    industry: row.idea?.industry || row.idea?.target_market,
-    founderName: row.idea?.founder?.name || row.idea?.founder?.full_name || 'Founder',
+    startupName: 'Startup',
+    startupDescription: undefined,
+    stage: undefined,
+    industry: undefined,
+    founderName: 'Founder',
     connectedAt: row.updated_at || row.created_at,
   }));
 };

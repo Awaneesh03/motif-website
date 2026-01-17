@@ -15,10 +15,19 @@ if (!hasValidCredentials) {
   console.warn('📝 Check the .env.example file for setup instructions.');
 }
 
-// Create Supabase client with fallback URL for development
+// Create Supabase client with session persistence
 export const supabase = createClient(
   hasValidCredentials ? supabaseUrl : 'https://placeholder.supabase.co',
-  hasValidCredentials ? supabaseAnonKey : 'placeholder-key'
+  hasValidCredentials ? supabaseAnonKey : 'placeholder-key',
+  {
+    auth: {
+      persistSession: true,
+      storageKey: 'idea-forge-auth',
+      storage: window.localStorage,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  }
 );
 
 // Export a flag so UI can block sign-in when credentials are missing

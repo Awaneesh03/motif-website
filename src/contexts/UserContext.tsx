@@ -39,6 +39,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [displayName, setDisplayName] = useState<string>('there');
   const [loadingUser, setLoadingUser] = useState<boolean>(true);
   const PROFILE_LOAD_TIMEOUT_MS = 7000;
@@ -172,10 +173,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
     const initializeAuth = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
+        // First, try to restore session from storage
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.warn('[UserContext] Session error:', sessionError);
+        }
+
         const sessionUser = sessionData.session?.user ?? null;
+        
+        if (!isMounted) return;
+        
         setUser(sessionUser);
 
         if (sessionUser) {
@@ -186,19 +198,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error('[UserContext] Error initializing session:', error);
-        setUser(null);
-        setProfile(null);
-        setDisplayName('there');
+        if (isMounted) {
+          setUser(null);
+          setProfile(null);
+          setDisplayName('there');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
       }
     };
 
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Skip INITIAL_SESSION as we handle it in initializeAuth
+      if (event === 'INITIAL_SESSION') return;
+      
       const handleAuthChange = async () => {
         const sessionUser = session?.user ?? null;
+        
+        if (!isMounted) return;
+        
         setIsLoading(true);
 
         if (event === 'SIGNED_IN') {
@@ -219,11 +242,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
       };
 
       void handleAuthChange().finally(() => {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       });
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [loadUser]);
 
   // Role helpers (using normalized role values)
@@ -236,12 +264,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return profile.role === role;
   };
 
+  // Combine loading states - show loading until fully initialized
+  const combinedLoading = !isInitialized || isLoading;
+
   const value: UserContextValue = {
     user,
     profile,
     setProfile,
-    isLoading,
-    loading: isLoading, // Alias
+    isLoading: combinedLoading,
+    loading: combinedLoading, // Alias
     isFounder,
     isVC,
     isAdmin,
