@@ -2,6 +2,10 @@ node_modules
 
 .vercel
 
+# Build outputs
+dist
+build
+
 # Environment variables
 .env
 .env.local
