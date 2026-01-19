@@ -8,6 +8,10 @@ import importPlugin from 'eslint-plugin-import';
 import prettier from 'eslint-config-prettier';
 
 export default [
+  // Ignore build outputs
+  {
+    ignores: ['dist/**', 'build/**', 'node_modules/**'],
+  },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
