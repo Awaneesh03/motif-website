@@ -14,12 +14,23 @@ export default defineConfig({
     host: true,
   },
   build: {
+    chunkSizeWarningLimit: 700, // Adjusted for app size (main bundle ~680KB)
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover'],
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-select',
+          ],
           supabase: ['@supabase/supabase-js'],
+          charts: ['recharts'],
+          motion: ['motion'],
         },
       },
     },
