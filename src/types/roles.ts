@@ -1,7 +1,7 @@
-// Role enum
+// Role enum - single source of truth for all role values
 export enum UserRole {
-  SUPER_ADMIN = 'super_admin', // Database value (kept for backward compatibility)
-  ADMIN = 'admin', // Normalized frontend value
+  SUPER_ADMIN = 'super_admin',
+  ADMIN = 'admin',
   FOUNDER = 'founder',
   VC = 'vc',
   VC_PENDING = 'vc_pending',
@@ -14,22 +14,24 @@ export const hasAccess = (
 ): boolean => {
   if (!userRole) return false;
 
-  const role = userRole as string;
+  // Cast to UserRole for consistent comparison (works because enum values are strings)
+  const role = userRole as UserRole;
 
-  // Explicit super admin handling
-  if (role === UserRole.SUPER_ADMIN || role === 'super_admin') {
+  // Super admin has access to both SUPER_ADMIN and ADMIN routes
+  if (role === UserRole.SUPER_ADMIN) {
     return (
       allowedRoles.includes(UserRole.SUPER_ADMIN) ||
       allowedRoles.includes(UserRole.ADMIN)
     );
   }
 
-  // Admins only match ADMIN (not SUPER_ADMIN-only routes)
-  if (role === UserRole.ADMIN || role === 'admin') {
+  // Admin only matches ADMIN (not SUPER_ADMIN-only routes)
+  if (role === UserRole.ADMIN) {
     return allowedRoles.includes(UserRole.ADMIN);
   }
 
-  return allowedRoles.some(allowedRole => allowedRole === role);
+  // All other roles: direct match
+  return allowedRoles.includes(role);
 };
 
 // Get default route for role
@@ -39,24 +41,20 @@ export const getRoleDefaultRoute = (role: UserRole | string | undefined): string
     return '/dashboard/home';
   }
 
-  switch (role) {
+  // Cast to UserRole for switch statement (enum values are string literals)
+  const normalizedRole = role as UserRole;
+
+  switch (normalizedRole) {
     case UserRole.SUPER_ADMIN:
     case UserRole.ADMIN:
-    case 'super_admin':
       return '/admin/dashboard';
-    case 'admin':
-      return '/';
     case UserRole.FOUNDER:
-    case 'founder':
-      return '/dashboard/home'; // Founder-specific dashboard
+      return '/dashboard/home';
     case UserRole.VC:
-    case 'vc':
       return '/vc/dashboard';
     case UserRole.VC_PENDING:
-    case 'vc_pending':
       return '/vc/pending';
     default:
-      // Default to founder dashboard for any unknown role
       return '/dashboard/home';
   }
 };
