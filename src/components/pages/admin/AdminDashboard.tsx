@@ -130,7 +130,7 @@ const AdminDashboard = () => {
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-600/10',
-      route: '/admin/founders',
+      // No route - founders list page not implemented yet
     },
     {
       label: 'Total VCs',
@@ -138,7 +138,7 @@ const AdminDashboard = () => {
       icon: Users,
       color: 'text-purple-600',
       bgColor: 'bg-purple-600/10',
-      route: '/admin/vcs',
+      // No route - VCs list page not implemented yet
     },
     {
       label: 'Total Startups',

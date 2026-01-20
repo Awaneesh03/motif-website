@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 
-import { apiClient, ChatResponse } from '../lib/api-client';
 import { useUser } from '../contexts/UserContext';
+
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 interface ChatMessage {
   id: string;
@@ -20,6 +22,51 @@ interface ChatMessage {
 
 interface ChatbotProps {
   isDark: boolean;
+}
+
+async function chatWithGroq(
+  message: string,
+  history: { role: string; content: string }[]
+): Promise<string> {
+  if (!GROQ_API_KEY) {
+    throw new Error('Chat is not configured. Please add VITE_GROQ_API_KEY to your .env file.');
+  }
+
+  const systemPrompt = `You are Motif AI, a helpful assistant for startup founders. You help with:
+- Validating and refining startup ideas
+- Providing market insights and competitive analysis
+- Offering advice on pitching, fundraising, and growth strategies
+- Answering questions about entrepreneurship
+
+Be concise, practical, and encouraging. Focus on actionable advice.`;
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...history.map(h => ({ role: h.role as 'user' | 'assistant', content: h.content })),
+    { role: 'user', content: message },
+  ];
+
+  const response = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      temperature: 0.7,
+      max_tokens: 1024,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: { message: response.statusText } }));
+    throw new Error(error.error?.message || `API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
 }
 
 export function Chatbot({ isDark }: ChatbotProps) {
@@ -35,10 +82,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [systemPrompt, setSystemPrompt] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const chatButtonRef = useRef<HTMLDivElement>(null);
@@ -77,20 +121,6 @@ export function Chatbot({ isDark }: ChatbotProps) {
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    // Load chatbot settings from localStorage
-    const savedSettings = localStorage.getItem('chatbot_settings');
-    if (savedSettings) {
-      try {
-        const { apiKey: savedApiKey, systemPrompt: savedSystemPrompt } = JSON.parse(savedSettings);
-        if (savedApiKey) setApiKey(savedApiKey);
-        if (savedSystemPrompt) setSystemPrompt(savedSystemPrompt);
-      } catch (error) {
-        console.error('Error loading chatbot settings:', error);
-      }
-    }
-  }, []);
-
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
@@ -111,22 +141,18 @@ export function Chatbot({ isDark }: ChatbotProps) {
     setIsLoading(true);
 
     try {
-      // Send message to backend API
-      const response = await apiClient.post<ChatResponse>('/api/ai/chat', {
-        message: inputValue,
-        conversationId,
-        history: messages.slice(1, -1).map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }))
-      });
+      // Send message to Groq API directly
+      const history = messages.slice(1).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
 
-      setConversationId(response.conversationId);
+      const responseText = await chatWithGroq(inputValue, history);
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.message,
+        content: responseText,
         timestamp: new Date()
       };
 
@@ -135,10 +161,10 @@ export function Chatbot({ isDark }: ChatbotProps) {
       console.error('Chat error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
 
-      if (errorMessage.includes('Rate limit')) {
-        toast.error('Rate limit exceeded. Please try again in an hour.');
-      } else if (errorMessage.includes('Authentication')) {
-        toast.error('Please login to use the chatbot');
+      if (errorMessage.includes('Rate limit') || errorMessage.includes('rate_limit')) {
+        toast.error('Rate limit exceeded. Please try again in a moment.');
+      } else if (errorMessage.includes('not configured')) {
+        toast.error('Chat is not configured. Please contact support.');
       } else {
         toast.error(errorMessage);
       }

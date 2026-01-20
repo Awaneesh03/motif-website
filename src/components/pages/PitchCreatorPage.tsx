@@ -21,10 +21,10 @@ import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
-import { apiClient } from '../../lib/api-client';
 
-// Backend API URL for pitch generation
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+// Groq API configuration
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 interface PitchCreatorPageProps {
   onNavigate?: (page: string) => void;
@@ -48,56 +48,92 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     setIsGenerating(true);
 
     try {
-      // Call backend API for pitch generation
-      const response = await fetch(`${BACKEND_URL}/api/ai/generate-pitch`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({
-          ideaName: formData.ideaName,
-          problem: formData.problem,
-          solution: formData.solution,
-          audience: formData.audience || 'General market',
-          market: formData.market || 'To be researched',
-          usp: formData.usp || 'To be defined',
-        }),
-      });
+      let pitchData;
 
-      if (!response.ok) {
-        throw new Error('Failed to generate pitch');
+      if (GROQ_API_KEY) {
+        // Call Groq API directly for pitch generation
+        const systemPrompt = `You are an expert startup pitch deck creator. Create compelling pitch deck slides that are concise and impactful. Always respond in valid JSON format only.`;
+
+        const userPrompt = `Create a pitch deck for this startup:
+
+Startup Name: ${formData.ideaName}
+Problem: ${formData.problem}
+Solution: ${formData.solution}
+Target Audience: ${formData.audience || 'General market'}
+Market Opportunity: ${formData.market || 'To be researched'}
+Unique Selling Point: ${formData.usp || 'To be defined'}
+
+Generate 6 pitch deck slides. Return ONLY a JSON object with this structure:
+{
+  "slides": [
+    { "title": "The Problem", "content": "Compelling problem statement", "icon": "problem" },
+    { "title": "Our Solution", "content": "How we solve it", "icon": "solution" },
+    { "title": "Market Opportunity", "content": "Market size and potential", "icon": "market" },
+    { "title": "The Product", "content": "Key product features", "icon": "product" },
+    { "title": "Business Model", "content": "How we make money", "icon": "business" },
+    { "title": "The Ask", "content": "What we're looking for", "icon": "ask" }
+  ]
+}`;
+
+        const response = await fetch(GROQ_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.7,
+            max_tokens: 2048,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate pitch');
+        }
+
+        const data = await response.json();
+        const content = data.choices[0]?.message?.content || '';
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+        if (jsonMatch) {
+          pitchData = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('Invalid response format');
+        }
+      } else {
+        // Fallback to mock pitch data when no API key
+        pitchData = {
+          slides: [
+            {
+              title: 'The Problem',
+              content: formData.problem || 'Market gap that needs addressing',
+              icon: 'problem',
+            },
+            {
+              title: 'Our Solution',
+              content: formData.solution || 'Innovative approach to solving the problem',
+              icon: 'solution',
+            },
+            {
+              title: 'Market Opportunity',
+              content: formData.market || 'Large and growing addressable market',
+              icon: 'market',
+            },
+            {
+              title: 'The Product',
+              content: `${formData.ideaName}: ${formData.usp || 'Unique product offering'}`,
+              icon: 'product',
+            },
+          ],
+        };
       }
 
-      const pitchData = await response.json();
-      
-      // Transform backend response to match frontend format if needed
-      const formattedPitchData = pitchData.slides ? pitchData : {
-        slides: [
-          {
-            title: 'The Problem',
-            content: formData.problem || 'Market gap that needs addressing',
-            icon: 'problem',
-          },
-          {
-            title: 'Our Solution',
-            content: formData.solution || 'Innovative approach to solving the problem',
-            icon: 'solution',
-          },
-          {
-            title: 'Market Opportunity',
-            content: formData.market || 'Large and growing addressable market',
-            icon: 'market',
-          },
-          {
-            title: 'The Product',
-            content: `${formData.ideaName}: ${formData.usp || 'Unique product offering'}`,
-            icon: 'product',
-          },
-        ],
-      };
-
-      setGeneratedSlides(formattedPitchData);
+      setGeneratedSlides(pitchData);
       setShowPitchModal(true);
       toast.success('Pitch deck generated successfully!');
 
