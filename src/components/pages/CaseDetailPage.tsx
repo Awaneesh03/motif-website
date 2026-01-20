@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Progress } from '../ui/progress';
 import { StarRating } from '../ui/star-rating';
 import { supabase } from '@/lib/supabase';
+import { apiClient } from '@/lib/api-client';
 
 interface CaseDetailPageProps {
   onNavigate?: (page: string) => void;
@@ -160,96 +161,23 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     }, 500);
   };
 
+  interface CaseEvaluationResponse {
+    score: number;
+    verdict: string;
+    feedback: string[];
+    strengths: string[];
+    improvements: string[];
+  }
+
   const evaluateSolutionWithAI = async (userSolution: string) => {
     try {
-      const prompt = `You are an expert startup advisor and business case evaluator. Evaluate the following business case solution.
-
-CASE STUDY: ${caseData.title}
-COMPANY: ${caseData.company}
-PROBLEM: ${caseData.problem}
-
-USER'S SOLUTION:
-${userSolution}
-
-Evaluate this solution based on:
-1. Strategic thinking and problem analysis
-2. Feasibility and practicality of proposed solutions
-3. Budget allocation and resource management
-4. Metrics and measurement approach
-5. Risk awareness and mitigation
-
-Provide your evaluation in the following JSON format:
-{
-  "score": <number between 0-100>,
-  "verdict": "<Pass or Try Again>",
-  "feedback": [
-    "<specific feedback point 1>",
-    "<specific feedback point 2>",
-    "<specific feedback point 3>"
-  ],
-  "strengths": [
-    "<strength 1>",
-    "<strength 2>"
-  ],
-  "improvements": [
-    "<area for improvement 1>",
-    "<area for improvement 2>"
-  ]
-}
-
-Score Guidelines:
-- 90-100: Exceptional solution with innovative thinking
-- 80-89: Strong solution with good strategic thinking
-- 70-79: Good solution but missing some details
-- 60-69: Decent attempt but needs significant improvement
-- Below 60: Solution lacks depth or understanding
-
-Verdict: "Pass" if score >= 70, otherwise "Try Again"`;
-
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY || 'gsk_your_api_key_here'}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert startup advisor who evaluates business case solutions. Always respond with valid JSON only.',
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          temperature: 0.3,
-          max_tokens: 1000,
-        }),
+      const response = await apiClient.post<CaseEvaluationResponse>('/api/ai/evaluate-case', {
+        caseTitle: caseData.title,
+        company: caseData.company,
+        problem: caseData.problem,
+        solution: userSolution,
       });
-
-      if (!response.ok) {
-        throw new Error('AI evaluation failed');
-      }
-
-      const data = await response.json();
-      const aiResponse = data.choices[0]?.message?.content;
-
-      // Parse the JSON response
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const evaluation = JSON.parse(jsonMatch[0]);
-        return {
-          score: evaluation.score,
-          verdict: evaluation.verdict,
-          feedback: evaluation.feedback || [],
-          strengths: evaluation.strengths || [],
-          improvements: evaluation.improvements || [],
-        };
-      }
-
-      throw new Error('Invalid response format');
+      return response;
     } catch (error) {
       console.error('AI evaluation error:', error);
       // Fallback to a basic evaluation based on solution length and keywords

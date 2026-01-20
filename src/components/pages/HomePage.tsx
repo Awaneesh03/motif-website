@@ -626,7 +626,7 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
         >
           <SheetHeader className="border-b border-primary/10 pb-4">
             <SheetTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              💬 Comments & Discussion
+              Comments & Discussion
             </SheetTitle>
           </SheetHeader>
 

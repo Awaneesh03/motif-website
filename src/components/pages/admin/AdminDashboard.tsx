@@ -130,6 +130,7 @@ const AdminDashboard = () => {
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-600/10',
+      route: '/admin/founders',
     },
     {
       label: 'Total VCs',
@@ -137,6 +138,7 @@ const AdminDashboard = () => {
       icon: Users,
       color: 'text-purple-600',
       bgColor: 'bg-purple-600/10',
+      route: '/admin/vcs',
     },
     {
       label: 'Total Startups',
@@ -144,6 +146,7 @@ const AdminDashboard = () => {
       icon: Building2,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
+      route: '/admin/startups',
     },
     {
       label: 'Pending Review',
@@ -151,6 +154,7 @@ const AdminDashboard = () => {
       icon: Clock,
       color: 'text-orange-600',
       bgColor: 'bg-orange-600/10',
+      route: '/admin/startups?status=pending',
     },
     {
       label: 'Approved Startups',
@@ -158,6 +162,7 @@ const AdminDashboard = () => {
       icon: CheckCircle2,
       color: 'text-green-600',
       bgColor: 'bg-green-600/10',
+      route: '/admin/startups?status=approved',
     },
     {
       label: 'Intro Requests',
@@ -165,6 +170,7 @@ const AdminDashboard = () => {
       icon: TrendingUp,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
+      route: '/admin/intro-requests',
     },
     {
       label: 'Conversion Rate',
@@ -233,7 +239,10 @@ const AdminDashboard = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Card className="glass-surface border-border/50 hover:shadow-lg transition-shadow">
+                    <Card
+                      className={`glass-surface border-border/50 hover:shadow-lg transition-shadow ${stat.route ? 'cursor-pointer hover:border-primary/50' : ''}`}
+                      onClick={() => stat.route && navigate(stat.route)}
+                    >
                       <CardContent className="p-6">
                         <div className="flex flex-col gap-3">
                           <div

@@ -17,12 +17,9 @@ export const hasAccess = (
   // Cast to UserRole for consistent comparison (works because enum values are strings)
   const role = userRole as UserRole;
 
-  // Super admin has access to both SUPER_ADMIN and ADMIN routes
+  // Super admin has access to ALL routes (highest privilege level)
   if (role === UserRole.SUPER_ADMIN) {
-    return (
-      allowedRoles.includes(UserRole.SUPER_ADMIN) ||
-      allowedRoles.includes(UserRole.ADMIN)
-    );
+    return true;
   }
 
   // Admin only matches ADMIN (not SUPER_ADMIN-only routes)

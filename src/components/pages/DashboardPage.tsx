@@ -1,7 +1,5 @@
 import { motion } from 'motion/react';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -18,10 +16,10 @@ interface DashboardPageProps {
  *
  * This component renders the Founder dashboard at /dashboard/home
  * Other roles are redirected by RoleRedirect at /dashboard
+ * Route protection is handled by ProtectedRoute wrapper
  */
 export function DashboardPage({ onNavigate }: DashboardPageProps) {
-  const { profile, loadingUser, isFounder } = useUser();
-  const navigate = useNavigate();
+  const { profile, loadingUser } = useUser();
 
   const isLoading = loadingUser;
 
@@ -76,25 +74,9 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
   }
 
   // ============================================================================
-  // HARD ROLE GUARD - Founder only
-  // ============================================================================
-  // /dashboard/home is ONLY for founders
-  // Admins use /admin/dashboard, VCs use /vc/dashboard
-  // However, if user has no role or invalid role, default to showing FounderDashboard
-  useEffect(() => {
-    if (profile && profile.role && !isFounder) {
-      // Only redirect if user has a valid non-founder role
-      if (profile.role === 'admin' || profile.role === 'super_admin' || profile.role === 'vc') {
-        console.warn('[DashboardPage] Unauthorized access attempt - redirecting');
-        navigate('/dashboard', { replace: true });
-      }
-    }
-  }, [profile, isFounder, navigate]);
-
-  // ============================================================================
   // RENDER FOUNDER DASHBOARD
   // ============================================================================
-  // Always render FounderDashboard for authenticated users
-  // This ensures the dashboard never shows blank content
+  // Route protection is handled by ProtectedRoute wrapper
+  // Always render FounderDashboard for authenticated users who reach this point
   return <FounderDashboard />;
 }

@@ -11,7 +11,6 @@ import {
   Target,
   TrendingUp,
 } from 'lucide-react';
-import Groq from 'groq-sdk';
 
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -22,9 +21,10 @@ import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
+import { apiClient } from '../../lib/api-client';
 
-// Groq API Key - Use environment variable or fallback
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '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';
+// Backend API URL for pitch generation
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
 
 interface PitchCreatorPageProps {
   onNavigate?: (page: string) => void;
@@ -48,130 +48,56 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     setIsGenerating(true);
 
     try {
-      // Initialize Groq client with constant API key
-      const groq = new Groq({
-        apiKey: GROQ_API_KEY,
-        dangerouslyAllowBrowser: true,
+      // Call backend API for pitch generation
+      const response = await fetch(`${BACKEND_URL}/api/ai/generate-pitch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          ideaName: formData.ideaName,
+          problem: formData.problem,
+          solution: formData.solution,
+          audience: formData.audience || 'General market',
+          market: formData.market || 'To be researched',
+          usp: formData.usp || 'To be defined',
+        }),
       });
 
-      // Create a detailed prompt for the AI
-      const prompt = `You are an expert startup pitch consultant who has helped 100+ startups raise funding. Generate a professional, investor-ready pitch deck based on the following startup information.
-
-STARTUP DETAILS:
-Idea Name: ${formData.ideaName}
-Problem Statement: ${formData.problem}
-Solution: ${formData.solution}
-Target Audience: ${formData.audience || 'General market - needs specification'}
-Market Opportunity: ${formData.market || 'To be researched'}
-Unique Selling Proposition: ${formData.usp || 'To be defined'}
-
-CRITICAL INSTRUCTIONS:
-1. Analyze the provided information carefully and identify key insights
-2. Create compelling, specific content that directly relates to THIS startup (not generic advice)
-3. Use concrete language and avoid vague statements
-4. Include relevant numbers, metrics, or market data where applicable
-5. Make each slide tell a story that builds investor confidence
-6. Focus on what makes THIS idea unique and valuable
-
-Generate a comprehensive pitch deck with exactly 6 slides in VALID JSON format (return ONLY JSON, no extra text):
-
-{
-  "slides": [
-    {
-      "title": "The Problem",
-      "content": "<2-3 sentences describing the specific problem this startup solves, using real pain points and market gaps. Be concrete and relatable.>",
-      "icon": "problem"
-    },
-    {
-      "title": "Our Solution",
-      "content": "<2-3 sentences explaining how ${formData.ideaName} solves the problem uniquely. Highlight the innovative approach and key differentiators.>",
-      "icon": "solution"
-    },
-    {
-      "title": "Market Opportunity",
-      "content": "<2-3 sentences covering market size, growth trends, and target customer segments. Include specific market data or estimates if available.>",
-      "icon": "market"
-    },
-    {
-      "title": "The Product",
-      "content": "<2-3 sentences describing core features, user experience, and value delivery. Explain what users will actually get.>",
-      "icon": "product"
-    },
-    {
-      "title": "Why Now",
-      "content": "<2-3 sentences explaining market timing, current trends, and catalysts that make this the perfect moment for this solution.>",
-      "icon": "solution"
-    },
-    {
-      "title": "Business Model",
-      "content": "<2-3 sentences detailing revenue streams, pricing strategy, and path to profitability. Be specific about how money is made.>",
-      "icon": "market"
-    }
-  ]
-}
-
-Remember: Return ONLY the JSON object, no additional text or explanations.`;
-
-      // Call Groq API with better model and lower temperature for more precise results
-      const chatCompletion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert startup pitch consultant. You provide specific, actionable, investor-ready pitch content. Always respond with valid JSON only, no extra text.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        model: 'llama-3.3-70b-versatile', // Better model for more precise results
-        temperature: 0.3, // Lower temperature for more focused, consistent output
-        max_tokens: 2048,
-      });
-
-      const response = chatCompletion.choices[0]?.message?.content || '';
-
-      // Try to parse the JSON response
-      let pitchData;
-      try {
-        // Extract JSON from response (in case there's extra text)
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          pitchData = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON found in response');
-        }
-      } catch (parseError) {
-        console.error('Failed to parse AI response:', response);
-        // Fallback: Create basic slides from form data
-        pitchData = {
-          slides: [
-            {
-              title: 'The Problem',
-              content: formData.problem || 'Market gap that needs addressing',
-              icon: 'problem',
-            },
-            {
-              title: 'Our Solution',
-              content: formData.solution || 'Innovative approach to solving the problem',
-              icon: 'solution',
-            },
-            {
-              title: 'Market Opportunity',
-              content: formData.market || 'Large and growing addressable market',
-              icon: 'market',
-            },
-            {
-              title: 'The Product',
-              content: `${formData.ideaName}: ${formData.usp || 'Unique product offering'}`,
-              icon: 'product',
-            },
-          ],
-        };
-        toast.warning('AI response format unexpected. Using basic pitch template.');
+      if (!response.ok) {
+        throw new Error('Failed to generate pitch');
       }
 
-      setGeneratedSlides(pitchData);
+      const pitchData = await response.json();
+      
+      // Transform backend response to match frontend format if needed
+      const formattedPitchData = pitchData.slides ? pitchData : {
+        slides: [
+          {
+            title: 'The Problem',
+            content: formData.problem || 'Market gap that needs addressing',
+            icon: 'problem',
+          },
+          {
+            title: 'Our Solution',
+            content: formData.solution || 'Innovative approach to solving the problem',
+            icon: 'solution',
+          },
+          {
+            title: 'Market Opportunity',
+            content: formData.market || 'Large and growing addressable market',
+            icon: 'market',
+          },
+          {
+            title: 'The Product',
+            content: `${formData.ideaName}: ${formData.usp || 'Unique product offering'}`,
+            icon: 'product',
+          },
+        ],
+      };
+
+      setGeneratedSlides(formattedPitchData);
       setShowPitchModal(true);
       toast.success('Pitch deck generated successfully!');
 
@@ -229,56 +155,6 @@ Remember: Return ONLY the JSON object, no additional text or explanations.`;
     solution: Lightbulb,
     market: TrendingUp,
     product: Sparkles,
-  };
-
-  // Random sample data for testing
-  const sampleIdeas = [
-    {
-      ideaName: 'AI-Powered Fitness Coach',
-      problem: 'Most people struggle to maintain consistent workout routines and proper form without expensive personal trainers. Generic workout apps lack personalization and real-time feedback, leading to injuries and poor results.',
-      solution: 'An AI-powered fitness coach that uses computer vision to analyze your form in real-time, provides personalized workout plans based on your goals and fitness level, and adapts to your progress automatically.',
-      audience: 'Busy professionals aged 25-45 who want to stay fit but cannot afford personal trainers',
-      market: '$96 billion global fitness industry with 23% annual growth in digital fitness',
-      usp: 'Real-time form correction using computer vision, personalized AI coaching at 1/10th the cost of a personal trainer, and seamless integration with popular fitness trackers.',
-    },
-    {
-      ideaName: 'EcoCart - Sustainable Shopping Assistant',
-      problem: 'Consumers want to make environmentally friendly purchases but lack the time and knowledge to research product sustainability. Greenwashing makes it difficult to identify truly eco-friendly products.',
-      solution: 'A browser extension and mobile app that instantly shows the environmental impact of products while shopping online, provides sustainable alternatives, and tracks your carbon footprint reduction.',
-      audience: 'Environmentally conscious millennials and Gen Z shoppers who actively seek sustainable products',
-      market: '$150 billion sustainable products market growing at 20% CAGR, with 73% of consumers willing to pay more for sustainable goods',
-      usp: 'Real-time sustainability scoring powered by blockchain-verified supply chain data, instant eco-friendly alternatives, and gamified carbon footprint tracking.',
-    },
-    {
-      ideaName: 'MindfulMeet - AI Meeting Optimizer',
-      problem: 'Companies waste 31 hours per month in unproductive meetings. Poor scheduling, lack of agendas, and ineffective follow-ups result in billions of dollars in lost productivity annually.',
-      solution: 'An AI-powered meeting management platform that automatically schedules optimal meeting times, generates smart agendas, takes notes, assigns action items, and measures meeting effectiveness.',
-      audience: 'Mid-size to enterprise companies (100-10,000 employees) looking to improve team productivity',
-      market: '$4.5 billion enterprise productivity software market with remote work driving 35% annual growth',
-      usp: 'AI-driven meeting effectiveness scoring, automatic action item extraction and follow-up, and seamless integration with Slack, Teams, Zoom, and Google Workspace.',
-    },
-    {
-      ideaName: 'FoodSnap - AI Meal Planning & Grocery Assistant',
-      problem: 'Families waste 30-40% of food they buy and spend hours planning meals and creating grocery lists. Dietary restrictions and picky eaters make meal planning even more challenging.',
-      solution: 'An AI app that generates personalized weekly meal plans based on dietary preferences, creates smart grocery lists, tracks pantry inventory, and suggests recipes using ingredients you already have.',
-      audience: 'Busy families and health-conscious individuals who want to reduce food waste and eat healthier',
-      market: '$12 billion meal kit and food planning market with growing demand for sustainable food solutions',
-      usp: 'Pantry tracking with smart expiration alerts, AI-generated meal plans that adapt to what you already have, and integration with major grocery delivery services.',
-    },
-    {
-      ideaName: 'CareerPath AI - Personalized Career Development',
-      problem: 'Professionals struggle to navigate career transitions and skill development without personalized guidance. Traditional career counseling is expensive and generic online courses lack personalization.',
-      solution: 'An AI-powered career development platform that analyzes your skills, industry trends, and career goals to create personalized learning paths, recommend opportunities, and connect you with mentors.',
-      audience: 'Mid-career professionals (5-15 years experience) seeking career advancement or transitions',
-      market: '$366 billion global e-learning market with professional development being the fastest-growing segment',
-      usp: 'AI-driven skill gap analysis, personalized learning roadmaps with industry-specific certifications, and automated mentor matching based on career trajectories.',
-    },
-  ];
-
-  const handleFillRandom = () => {
-    const randomIdea = sampleIdeas[Math.floor(Math.random() * sampleIdeas.length)];
-    setFormData(randomIdea);
-    toast.success('Form filled with sample data! Feel free to edit and generate.');
   };
 
   // Download pitch deck slides
@@ -482,16 +358,6 @@ Good luck with your pitch!
 
                   {/* Action Buttons */}
                   <div className="space-y-3">
-                    {/* Fill Random Button for Testing */}
-                    <Button
-                      onClick={handleFillRandom}
-                      variant="outline"
-                      className="h-12 w-full rounded-xl hover:bg-primary/10 hover:border-primary/50"
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Fill with Sample Data (For Testing)
-                    </Button>
-
                     {/* Generate Button */}
                     <Button
                       onClick={handleGeneratePitch}

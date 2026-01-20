@@ -74,11 +74,11 @@ export function FounderDashboard() {
 
 
   const aiTips = [
-    "💡 Start with a clear problem statement - it's the foundation of every successful pitch.",
-    '🚀 Focus on one key feature that differentiates you from competitors.',
-    '📊 Validate your assumptions with real user feedback before building.',
-    '💰 Your first 100 users are more valuable than your first dollar.',
-    "🎯 Niche down - it's easier to dominate a small market first.",
+    "Start with a clear problem statement - it's the foundation of every successful pitch.",
+    'Focus on one key feature that differentiates you from competitors.',
+    'Validate your assumptions with real user feedback before building.',
+    'Your first 100 users are more valuable than your first dollar.',
+    "Niche down - it's easier to dominate a small market first.",
   ];
 
   useEffect(() => {

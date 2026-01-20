@@ -57,24 +57,41 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const { user, profile, displayName } = useUser();
   const [ideaTitle, setIdeaTitle] = useState('');
   const [ideaDescription, setIdeaDescription] = useState('');
-  const [targetMarket, setTargetMarket] = useState('');
+  const [selectedMarkets, setSelectedMarkets] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showDemoReportModal, setShowDemoReportModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Predefined target market options
+  const MARKET_OPTIONS = [
+    'B2B',
+    'B2C',
+    'SaaS',
+    'Students',
+    'Enterprises',
+    'Creators',
+    'SMBs',
+    'Developers',
+    'Healthcare',
+    'E-commerce',
+  ];
 
   const COMMUNITY_STORAGE_KEY = 'motif-community-ideas';
 
   const normalizeIdeaValue = (value: string) =>
     value.trim().replace(/\s+/g, ' ').toLowerCase();
 
-  const buildTagsFromTargetMarket = (market: string) => {
-    const tags = market
-      .split(',')
-      .map(tag => tag.trim())
-      .filter(Boolean)
-      .slice(0, 3);
-    return tags.length > 0 ? tags : ['General'];
+  const buildTagsFromTargetMarket = (markets: string[]) => {
+    return markets.length > 0 ? markets.slice(0, 3) : ['General'];
+  };
+
+  const toggleMarket = (market: string) => {
+    setSelectedMarkets(prev =>
+      prev.includes(market)
+        ? prev.filter(m => m !== market)
+        : prev.length < 3 ? [...prev, market] : prev
+    );
   };
 
   const saveCommunityIdea = (idea: CommunityIdea) => {
@@ -123,7 +140,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     try {
       const normalizedTitle = normalizeIdeaValue(ideaTitle);
       const normalizedDescription = normalizeIdeaValue(ideaDescription);
-      const normalizedMarket = normalizeIdeaValue(targetMarket || '');
+      const normalizedMarket = selectedMarkets.join(',').toLowerCase();
 
       const { data: existingAnalyses, error: existingError } = await supabase
         .from('idea_analyses')
@@ -158,7 +175,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       const analysisData = await analyzeIdeaWithGroq({
         title: ideaTitle,
         description: ideaDescription,
-        targetMarket: targetMarket || null,
+        targetMarket: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
       });
 
       setAnalysisResult(analysisData);
@@ -169,7 +186,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
           user_id: user.id,
           idea_title: ideaTitle.trim(),
           idea_description: ideaDescription.trim(),
-          target_market: targetMarket.trim() || null,
+          target_market: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
           score: analysisData.score,
           strengths: analysisData.strengths,
           weaknesses: analysisData.weaknesses,
@@ -209,7 +226,12 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
       setIdeaTitle(generatedIdea.title);
       setIdeaDescription(generatedIdea.description);
-      setTargetMarket(generatedIdea.targetMarket);
+      // Parse target market from generated idea - try to match with predefined options
+      const generatedMarkets = generatedIdea.targetMarket?.split(/[,&]/).map(m => m.trim()) || [];
+      const matchedMarkets = MARKET_OPTIONS.filter(opt => 
+        generatedMarkets.some(gm => gm.toLowerCase().includes(opt.toLowerCase()))
+      ).slice(0, 3);
+      setSelectedMarkets(matchedMarkets.length > 0 ? matchedMarkets : ['B2C']);
       toast.success('New idea generated! Click "Analyze" to see its potential.');
     } catch (error) {
       console.error('Generation error:', error);
@@ -218,24 +240,24 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         {
           title: "EcoTrack: Carbon Footprint Gamification",
           description: "A mobile app that tracks daily activities and calculates carbon footprint in real-time. Users earn points and rewards for eco-friendly choices, competing with friends to lower their impact.",
-          targetMarket: "Environmentally conscious millennials and Gen Z"
+          markets: ["B2C", "Students"]
         },
         {
           title: "SkillSwap: Local Learning Marketplace",
           description: "A hyper-local platform connecting neighbors who want to teach skills (cooking, coding, gardening) with those who want to learn. No money changes hands; it's a time-banking system.",
-          targetMarket: "Community-focused urban residents"
+          markets: ["B2C", "Creators"]
         },
         {
           title: "MediMatch: AI Health Assistant for Seniors",
           description: "Voice-activated AI companion for elderly users that reminds them of medications, tracks symptoms, and alerts family members of any anomalies. Designed with extreme simplicity.",
-          targetMarket: "Seniors 70+ and their caregivers"
+          markets: ["B2C", "Healthcare"]
         }
       ];
       const randomIdea = mockIdeas[Math.floor(Math.random() * mockIdeas.length)];
 
       setIdeaTitle(randomIdea.title);
       setIdeaDescription(randomIdea.description);
-      setTargetMarket(randomIdea.targetMarket);
+      setSelectedMarkets(randomIdea.markets);
 
       toast.success('Generated a sample idea for you!');
     } finally {
@@ -361,7 +383,7 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
     const newIdea: CommunityIdea = {
       title: ideaTitle.trim(),
       description: ideaDescription.trim(),
-      tags: buildTagsFromTargetMarket(targetMarket),
+      tags: buildTagsFromTargetMarket(selectedMarkets),
       upvotes: 0,
       comments: 0,
       author: authorName,
@@ -517,15 +539,28 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
 
                   {/* Target Market */}
                   <div className="space-y-2">
-                    <Label htmlFor="targetMarket">Target Market (Optional)</Label>
-                    <Input
-                      id="targetMarket"
-                      placeholder="e.g., Working professionals aged 25-40"
-                      value={targetMarket}
-                      onChange={e => setTargetMarket(e.target.value)}
-                      className="h-12 rounded-xl"
-                      maxLength={200}
-                    />
+                    <Label>Target Market (Optional - select up to 3)</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {MARKET_OPTIONS.map((market) => (
+                        <button
+                          key={market}
+                          type="button"
+                          onClick={() => toggleMarket(market)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                            selectedMarkets.includes(market)
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background text-muted-foreground border-border hover:border-primary/50'
+                          }`}
+                        >
+                          {market}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedMarkets.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Selected: {selectedMarkets.join(', ')}
+                      </p>
+                    )}
                   </div>
 
                   {/* Analyze Button */}
@@ -769,7 +804,7 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
               transition={{ delay: 0.2 }}
               className="mt-12"
             >
-              <h2 className="mb-8 text-center">How Our AI Analysis Works</h2>
+              <h2 className="mb-4 text-center">How Our AI Analysis Works</h2>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <Card className="glass-card border-border/50 text-center">
                   <CardContent className="pt-6">
@@ -817,7 +852,7 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
             transition={{ delay: 0.3 }}
             className="mt-12"
           >
-            <h2 className="mb-8 text-center">See how AI analyzes your idea</h2>
+            <h2 className="mb-4 text-center">See how AI analyzes your idea</h2>
             <Card className="glass-card border-border/50 hover:border-primary/50 hover:shadow-lavender transition-all">
               <CardContent className="p-6">
                 <div className="flex flex-col gap-6 md:flex-row">

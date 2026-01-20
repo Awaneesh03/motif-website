@@ -266,7 +266,6 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
                 size="lg"
                 className="gradient-lavender shadow-lavender h-12 rounded-xl px-8 text-base font-semibold transition-transform hover:scale-105 active:scale-95"
               >
-                <span className="mr-2 text-xl">✨</span>
                 Generate Your First Idea
               </Button>
             </motion.div>
