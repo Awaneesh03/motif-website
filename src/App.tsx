@@ -275,15 +275,59 @@ function AppContent() {
               <main>
                 <ErrorBoundary>
                   <Routes>
-                    {/* Public Routes */}
+                    {/* Public Routes - Only Home and Auth */}
                     <Route path="/" element={<HomePage onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />} />
-                    <Route path="/about" element={<AboutPage />} />
-                    <Route path="/features" element={<FeaturesPage />} />
-                    <Route path="/contact" element={<ContactPage />} />
                     <Route path="/auth" element={<AuthPage onNavigate={handleNavigate} onLogin={handleLogin} />} />
-                    <Route path="/case-studies" element={<CaseStudiesPage onNavigate={handleNavigate} />} />
-                    <Route path="/case-studies/:caseId" element={<CaseDetailPage onNavigate={handleNavigate} />} />
-                    <Route path="/pricing" element={<PricingPage onNavigate={handleNavigate} />} />
+
+                    {/* Protected Routes - Require login */}
+                    <Route
+                      path="/about"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                          <AboutPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/features"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                          <FeaturesPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/contact"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                          <ContactPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/case-studies"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                          <CaseStudiesPage onNavigate={handleNavigate} />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/case-studies/:caseId"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                          <CaseDetailPage onNavigate={handleNavigate} />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/pricing"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                          <PricingPage onNavigate={handleNavigate} />
+                        </ProtectedRoute>
+                      }
+                    />
 
                     {/* Founder Protected Routes (Admin can access all) */}
                     <Route
