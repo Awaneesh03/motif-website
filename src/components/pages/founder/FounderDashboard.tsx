@@ -601,29 +601,6 @@ export function FounderDashboard() {
                   </CardContent>
                 </Card>
               </motion.div>
-
-              {/* Upgrade CTA */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Card className="glass-surface border-primary/50 gradient-lavender border-2 text-white">
-                  <CardContent className="p-6 text-center">
-                    <TrendingUp className="mx-auto mb-3 h-10 w-10" />
-                    <h4 className="mb-2">Upgrade to Premium</h4>
-                    <p className="mb-4 text-sm text-white/90">
-                      Unlock unlimited analyses and exclusive features
-                    </p>
-                    <Button
-                      className="text-primary w-full rounded-xl bg-white hover:bg-white/90"
-                      onClick={() => navigate('/dashboard/membership')}
-                    >
-                      View Plans
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
             </div>
           </div>
         </div>

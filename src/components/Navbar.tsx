@@ -214,10 +214,6 @@ export function Navbar({
                     <User className="mr-2 h-4 w-4" />
                     <span>View Profile</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onNavigate('Membership')}>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    <span>Your Plan</span>
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLogout}>
                     <span>Logout</span>
