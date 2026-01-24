@@ -14,6 +14,8 @@ interface IdeaCardProps {
   author: string;
   authorAvatar?: string;
   onCommentClick?: () => void;
+  onUpvote?: () => void;
+  hasUpvoted?: boolean;
 }
 
 export function IdeaCard({
@@ -25,29 +27,16 @@ export function IdeaCard({
   author,
   authorAvatar,
   onCommentClick,
+  onUpvote,
+  hasUpvoted,
 }: IdeaCardProps) {
-  const [hasUpvoted, setHasUpvoted] = useState(false);
-  const [currentUpvotes, setCurrentUpvotes] = useState(upvotes);
-
-  const handleUpvote = () => {
-    if (hasUpvoted) {
-      // If already upvoted, remove upvote
-      setHasUpvoted(false);
-      setCurrentUpvotes(currentUpvotes - 1);
-    } else {
-      // Add upvote
-      setHasUpvoted(true);
-      setCurrentUpvotes(currentUpvotes + 1);
-    }
-  };
-
   return (
     <Card className="border-border/50 transition-shadow hover:shadow-lg">
       <CardContent className="p-4">
         <div className="flex gap-4">
           <div className="flex flex-col items-center gap-1">
             <button
-              onClick={handleUpvote}
+              onClick={onUpvote}
               className={`hover:bg-primary/10 rounded-lg p-2 transition-all ${
                 hasUpvoted ? 'bg-primary/20' : ''
               }`}
@@ -56,7 +45,7 @@ export function IdeaCard({
                 className={`h-5 w-5 ${hasUpvoted ? 'text-primary fill-primary' : 'text-primary'}`}
               />
             </button>
-            <span className="text-sm">{currentUpvotes}</span>
+            <span className="text-sm">{upvotes}</span>
           </div>
           <div className="flex-1">
             <h4 className="hover:text-primary mb-2 cursor-pointer transition-colors">{title}</h4>
