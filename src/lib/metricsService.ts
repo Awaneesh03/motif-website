@@ -22,17 +22,30 @@ export interface FounderMetrics {
  */
 export const getFounderMetrics = async (founderId: string): Promise<FounderMetrics> => {
   try {
-    // Get all startups and filter by founder
+    // Get analyzed ideas count from idea_analyses table
+    const { data: analyzedIdeas, error: analyzedError } = await supabase
+      .from('idea_analyses')
+      .select('*')
+      .eq('user_id', founderId);
+
+    if (analyzedError) {
+      console.error('Error fetching analyzed ideas:', analyzedError);
+    }
+
+    // Get all startups/ideas submitted by founder
     const { data: allStartups, error: startupsError } = await supabase
       .from('ideas')
-      .select('*');
+      .select('*')
+      .eq('created_by', founderId);
 
-    if (startupsError) throw startupsError;
+    if (startupsError) {
+      console.error('Error fetching startups:', startupsError);
+    }
 
-    // Filter by founder in JavaScript to avoid column issues
-    const startups = (allStartups || []).filter((s: any) => 
-      s.created_by === founderId || s.user_id === founderId
-    );
+    const startups = allStartups || [];
+
+    // Count total analyzed ideas
+    const totalAnalyzed = analyzedIdeas?.length || 0;
 
     const statusCounts = {
       total: startups?.length || 0,
@@ -50,25 +63,24 @@ export const getFounderMetrics = async (founderId: string): Promise<FounderMetri
       else if (status === 'rejected') statusCounts.rejected++;
     });
 
-    // Get active connections (approved VC intro requests for founder's startups)
-    // Note: Without FK relationship, we count all accepted connections
+    // Get active connections for this founder
     const { data: connections, error: connectionsError } = await supabase
       .from('vc_applications')
-      .select('id, idea_id')
+      .select('id, idea_id, status')
       .eq('status', 'accepted');
 
-    if (connectionsError) throw connectionsError;
-
-    // Count all connections (simplified without FK join)
-    const founderConnections = connections || [];
+    if (connectionsError) {
+      console.error('Error fetching connections:', connectionsError);
+    }
 
     return {
-      totalStartups: statusCounts.total,
+      // Use analyzed ideas count + submitted startups count
+      totalStartups: totalAnalyzed + statusCounts.total,
       draftStartups: statusCounts.draft,
       pendingReview: statusCounts.pending_review,
       approvedForVC: statusCounts.approved_for_vc,
       rejectedStartups: statusCounts.rejected,
-      activeConnections: founderConnections?.length || 0,
+      activeConnections: connections?.length || 0,
     };
   } catch (error) {
     if (import.meta.env.DEV) {

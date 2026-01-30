@@ -17,7 +17,6 @@ import { CaseStudiesPage } from './components/pages/CaseStudiesPage';
 import { CaseDetailPage } from './components/pages/CaseDetailPage';
 import { IdeaAnalyserPage } from './components/pages/IdeaAnalyserPage';
 import { ProfilePage } from './components/pages/ProfilePage';
-import { MembershipPage } from './components/pages/MembershipPage';
 import { PricingPage } from './components/pages/PricingPage';
 import { PitchCreatorPage } from './components/pages/PitchCreatorPage';
 import { DashboardPage } from './components/pages/DashboardPage';
@@ -90,7 +89,6 @@ function AppContent() {
       'Idea Analyser': '/idea-analyser',
       'Profile': '/profile',
       'Settings': '/profile',
-      'Membership': '/membership',
       'Pricing': '/pricing',
       'Pitch Creator': '/pitch-creator',
       'Dashboard': '/dashboard',
@@ -149,7 +147,6 @@ function AppContent() {
       '/case-studies': 'Case Studies',
       '/idea-analyser': 'Idea Analyser',
       '/profile': 'Profile',
-      '/membership': 'Membership',
       '/pricing': 'Pricing',
       '/pitch-creator': 'Pitch Creator',
       '/dashboard': 'Dashboard',
@@ -359,14 +356,6 @@ function AppContent() {
                       element={
                         <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
                           <ProfilePage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/membership"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <MembershipPage onNavigate={handleNavigate} />
                         </ProtectedRoute>
                       }
                     />
