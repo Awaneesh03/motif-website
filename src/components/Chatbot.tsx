@@ -5,13 +5,9 @@ import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
 
 import { useUser } from '../contexts/UserContext';
-
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+import { API_CONFIG, getAuthHeaders } from '../lib/apiConfig';
 
 interface ChatMessage {
   id: string;
@@ -28,45 +24,29 @@ async function chatWithGroq(
   message: string,
   history: { role: string; content: string }[]
 ): Promise<string> {
-  if (!GROQ_API_KEY) {
-    throw new Error('Chat is not configured. Please add VITE_GROQ_API_KEY to your .env file.');
+  try {
+    const headers = await getAuthHeaders();
+
+    const response = await fetch(`${API_CONFIG.baseURL}${API_CONFIG.endpoints.chat}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        message,
+        history: history.map(h => ({ role: h.role, content: h.content }))
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to send message' }));
+      throw new Error(error.message || `API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.message || 'Sorry, I could not generate a response.';
+  } catch (error) {
+    console.error('Chat API error:', error);
+    throw error;
   }
-
-  const systemPrompt = `You are Motif AI, a helpful assistant for startup founders. You help with:
-- Validating and refining startup ideas
-- Providing market insights and competitive analysis
-- Offering advice on pitching, fundraising, and growth strategies
-- Answering questions about entrepreneurship
-
-Be concise, practical, and encouraging. Focus on actionable advice.`;
-
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...history.map(h => ({ role: h.role as 'user' | 'assistant', content: h.content })),
-    { role: 'user', content: message },
-  ];
-
-  const response = await fetch(GROQ_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages,
-      temperature: 0.7,
-      max_tokens: 1024,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: { message: response.statusText } }));
-    throw new Error(error.error?.message || `API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
 }
 
 export function Chatbot({ isDark }: ChatbotProps) {
@@ -83,8 +63,6 @@ export function Chatbot({ isDark }: ChatbotProps) {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [apiKey, setApiKey] = useState(GROQ_API_KEY || '');
-  const [systemPrompt, setSystemPrompt] = useState('You are Motif AI, a helpful assistant for startup founders.');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const chatButtonRef = useRef<HTMLDivElement>(null);
@@ -165,8 +143,8 @@ export function Chatbot({ isDark }: ChatbotProps) {
 
       if (errorMessage.includes('Rate limit') || errorMessage.includes('rate_limit')) {
         toast.error('Rate limit exceeded. Please try again in a moment.');
-      } else if (errorMessage.includes('not configured')) {
-        toast.error('Chat is not configured. Please contact support.');
+      } else if (errorMessage.includes('Not authenticated')) {
+        toast.error('Please login to use the chat feature.');
       } else {
         toast.error(errorMessage);
       }
@@ -195,17 +173,8 @@ export function Chatbot({ isDark }: ChatbotProps) {
   };
 
   const saveSettings = () => {
-    try {
-      localStorage.setItem('chatbot_settings', JSON.stringify({
-        apiKey,
-        systemPrompt
-      }));
-      setIsSettingsOpen(false);
-      toast.success('Settings saved successfully!');
-    } catch (error) {
-      console.error('Error saving chatbot settings:', error);
-      toast.error('Failed to save settings');
-    }
+    setIsSettingsOpen(false);
+    toast.success('Chat cleared successfully!');
   };
 
   return (
@@ -361,45 +330,12 @@ export function Chatbot({ isDark }: ChatbotProps) {
                     <DialogTitle>Chatbot Settings</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="apiKey">Groq API Key</Label>
-                      <Input
-                        id="apiKey"
-                        type="password"
-                        placeholder="Enter your Groq API key"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                      />
-                      <p className="text-muted-foreground text-xs">
-                        Get your free API key from{' '}
-                        <a
-                          href="https://console.groq.com/keys"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline"
-                        >
-                          Groq Console
-                        </a>
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="systemPrompt">System Prompt</Label>
-                      <Textarea
-                        id="systemPrompt"
-                        placeholder="Customize the AI's behavior..."
-                        value={systemPrompt}
-                        onChange={(e) => setSystemPrompt(e.target.value)}
-                        rows={3}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={saveSettings} className="flex-1">
-                        Save Settings
-                      </Button>
-                      <Button onClick={clearChat} variant="outline">
-                        Clear Chat
-                      </Button>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Clear your conversation history to start fresh.
+                    </p>
+                    <Button onClick={clearChat} className="w-full">
+                      Clear Chat History
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
