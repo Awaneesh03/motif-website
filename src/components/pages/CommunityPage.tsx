@@ -4,18 +4,6 @@ import { TrendingUp, Clock, MessageCircle, Award, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '../ui/button';
-import { createNotification, subscribeToNotifications } from '../../lib/notificationService';
-  // Real-time notification listener
-  useEffect(() => {
-    if (!profile?.id) return;
-    const subscription = subscribeToNotifications(profile.id, notif => {
-      toast.info(notif.title + ': ' + notif.message);
-    });
-    return () => {
-      subscription?.unsubscribe?.();
-    };
-  }, [profile?.id]);
-import { fetchComments, addComment, fetchUpvotes, addUpvote, removeUpvote } from '../../lib/communityService';
 import { IdeaCard } from '../IdeaCard';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -39,7 +27,6 @@ interface CommunityIdea {
   author: string;
   authorAvatar?: string;
   createdAt?: string;
-  userId: string; // Added for notification delivery
 }
 
 interface CommunityComment {
@@ -198,86 +185,68 @@ interface CommunityPageProps {
 
 const normalizeIdeaValue = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
 
-// NOTE: For seed ideas, use fake userIds for demo purposes
-const seedIdeas: CommunityIdea[] = [
-  {
-    title: 'AI-powered meal planning app for busy professionals',
-    description:
-      'An AI-powered assistant that helps users manage daily meal planning using predictive nutrition analysis and personalized recipes based on dietary preferences.',
-    upvotes: 234,
-    comments: 45,
-    tags: ['AI', 'HealthTech', 'Mobile'],
-    author: 'Alex Kim',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-    userId: 'seed-user-alex',
-  },
-  {
-    title: 'Blockchain-based freelancer marketplace with escrow',
-    description:
-      'A decentralized platform connecting freelancers with clients, featuring smart contract escrow payments and reputation tracking on-chain.',
-    upvotes: 189,
-    comments: 32,
-    tags: ['Web3', 'Marketplace', 'Fintech'],
-    author: 'Jordan Lee',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
-    userId: 'seed-user-jordan',
-  },
-  {
-    title: 'No-code platform for building internal tools',
-    description:
-      'Empower non-technical teams to build custom internal tools and workflows without writing code, integrating with existing business systems.',
-    upvotes: 156,
-    comments: 28,
-    tags: ['SaaS', 'No-Code', 'B2B'],
-    author: 'Sam Patel',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-    userId: 'seed-user-sam',
-  },
-  {
-    title: 'Virtual reality training platform for medical students',
-    description:
-      'Immersive VR simulations for medical procedures and diagnostics, providing hands-on practice in a safe, controlled environment.',
-    upvotes: 142,
-    comments: 24,
-    tags: ['VR', 'EdTech', 'Healthcare'],
-    author: 'Maya Rodriguez',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=100&h=100&fit=crop',
-    userId: 'seed-user-maya',
-  },
-  {
-    title: 'AI-powered code review tool',
-    description:
-      'Intelligent code analysis tool that provides automated security checks, style suggestions, and performance optimizations.',
-    upvotes: 43,
-    comments: 5,
-    tags: ['AI', 'Developer Tools', 'SaaS'],
-    author: 'Priya Sharma',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&h=100&fit=crop',
-    userId: 'seed-user-priya',
-  },
-];
+const loadCommunityIdeas = (): CommunityIdea[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(COMMUNITY_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Failed to load community ideas:', error);
+    return [];
+  }
+};
+
+const persistCommunityIdeas = (ideas: CommunityIdea[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(COMMUNITY_STORAGE_KEY, JSON.stringify(ideas));
+  } catch (error) {
+    console.error('Failed to save community ideas:', error);
+  }
+};
+
+const parseTags = (value: string) =>
+  value
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+
+const getIdeaKey = (idea: Pick<CommunityIdea, 'title' | 'description'>) =>
+  `${normalizeIdeaValue(idea.title)}::${normalizeIdeaValue(idea.description)}`;
+
+const loadCommunityComments = (): Record<string, CommunityComment[]> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const stored = localStorage.getItem(COMMUNITY_COMMENTS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch (error) {
+    console.error('Failed to load community comments:', error);
+    return {};
+  }
+};
+
+const persistCommunityComments = (comments: Record<string, CommunityComment[]>) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(COMMUNITY_COMMENTS_KEY, JSON.stringify(comments));
+  } catch (error) {
+    console.error('Failed to save community comments:', error);
+  }
+};
+
+export function CommunityPage({ onNavigate }: CommunityPageProps) {
+  const { profile, displayName } = useUser();
+  const [filter, setFilter] = useState('trending');
+  const [displayCount, setDisplayCount] = useState(5);
+  const [commentPanelOpen, setCommentPanelOpen] = useState(false);
+  const [selectedIdea, setSelectedIdea] = useState<any>(null);
+  const [newComment, setNewComment] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [communityIdeas, setCommunityIdeas] = useState<CommunityIdea[]>(() => loadCommunityIdeas());
-  const [comments, setComments] = useState<CommunityComment[]>([]);
-  const [upvotes, setUpvotes] = useState<{ [ideaId: string]: Set<string> }>({});
-  // Fetch upvotes from Supabase for all visible ideas
-  useEffect(() => {
-    const fetchAllUpvotes = async () => {
-      const ids = allIdeas.map(i => i.id).filter(Boolean);
-      const upvoteMap: { [ideaId: string]: Set<string> } = {};
-      for (const id of ids) {
-        const upvoteList = await fetchUpvotes(id);
-        upvoteMap[id] = new Set(upvoteList.map(u => u.userId));
-      }
-      setUpvotes(upvoteMap);
-    };
-    fetchAllUpvotes();
-  }, [communityIdeas, seedIdeas]);
+  const [commentStore, setCommentStore] = useState<Record<string, CommunityComment[]>>(
+    () => loadCommunityComments()
+  );
 
   // Post Idea form state
   const [postFormOpen, setPostFormOpen] = useState(false);
@@ -291,17 +260,9 @@ const seedIdeas: CommunityIdea[] = [
     persistCommunityIdeas(communityIdeas);
   }, [communityIdeas]);
 
-
-  // Fetch comments from Supabase when selectedIdea changes
   useEffect(() => {
-    if (selectedIdea && selectedIdea.id) {
-      fetchComments(selectedIdea.id)
-        .then(setComments)
-        .catch(() => setComments([]));
-    } else {
-      setComments([]);
-    }
-  }, [selectedIdea]);
+    persistCommunityComments(commentStore);
+  }, [commentStore]);
 
   const allIdeas = [...communityIdeas, ...seedIdeas].map(idea => {
     const key = getIdeaKey(idea);
@@ -393,7 +354,6 @@ const seedIdeas: CommunityIdea[] = [
       author: authorName,
       authorAvatar: profile?.avatar || undefined,
       createdAt: new Date().toISOString(),
-      userId: profile?.id || '',
     };
 
     setCommunityIdeas(prev => [newIdea, ...prev]);
@@ -407,41 +367,39 @@ const seedIdeas: CommunityIdea[] = [
     setCommentPanelOpen(true);
   };
 
-  const handleSendComment = async () => {
-    if (!newComment.trim() || !selectedIdea?.id || !profile?.id) return;
+  const handleSendComment = () => {
+    if (!newComment.trim() || !selectedIdea) return;
+
+    const key = getIdeaKey(selectedIdea);
     const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
-    const commentObj = {
-      ideaId: selectedIdea.id,
-      authorId: profile.id,
+    const newEntry: CommunityComment = {
+      id: `${Date.now()}`,
       author: authorName,
       avatar: profile?.avatar || undefined,
       message: newComment.trim(),
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toLocaleString(),
     };
-    try {
-      const saved = await addComment(commentObj);
-      if (saved) {
-        setComments(prev => [...prev, saved]);
-        setNewComment('');
-        // Send notification to idea owner (if not commenting on own idea)
-        if (selectedIdea.userId && selectedIdea.userId !== profile.id) {
-          await createNotification(
-            selectedIdea.userId,
-            'startup_submitted',
-            'New comment on your idea',
-            `${authorName} commented: "${commentObj.message.slice(0, 100)}"`,
-            selectedIdea.id
-          );
-        }
-        toast.success('Comment posted.');
-      }
-    } catch {
-      toast.error('Failed to post comment.');
-    }
+
+    setCommentStore(prev => {
+      const existing = prev[key] || [];
+      return {
+        ...prev,
+        [key]: [...existing, newEntry],
+      };
+    });
+
+    setSelectedIdea({
+      ...selectedIdea,
+      comments: (selectedIdea.comments || 0) + 1,
+    });
+    setNewComment('');
+    toast.success('Comment posted.');
   };
 
 
-  const selectedIdeaComments = comments;
+  const selectedIdeaComments = selectedIdea
+    ? commentStore[getIdeaKey(selectedIdea)] || []
+    : [];
 
   return (
     <div className="min-h-screen">
@@ -623,52 +581,16 @@ const seedIdeas: CommunityIdea[] = [
                     </CardContent>
                   </Card>
                 ) : (
-                  ideas.map((idea, index) => {
-                    const userId = profile?.id;
-                    const hasUpvoted = !!(userId && upvotes[idea.id]?.has(userId));
-                    const handleUpvote = async () => {
-                      if (!userId) {
-                        toast.info('Sign in to upvote.');
-                        return;
-                      }
-                      try {
-                        if (hasUpvoted) {
-                          await removeUpvote(idea.id, userId);
-                          setUpvotes(prev => ({ ...prev, [idea.id]: new Set([...prev[idea.id]].filter(uid => uid !== userId)) }));
-                        } else {
-                          await addUpvote({ ideaId: idea.id, userId, createdAt: new Date().toISOString() });
-                          setUpvotes(prev => ({ ...prev, [idea.id]: new Set([...(prev[idea.id] || []), userId]) }));
-                          // Send notification to idea owner (if not upvoting own idea)
-                          if (idea.userId && idea.userId !== userId) {
-                            await createNotification(
-                              idea.userId,
-                              'startup_submitted',
-                              'Your idea was upvoted!',
-                              `${profile?.name || displayName || 'Someone'} upvoted your idea: "${idea.title}"`,
-                              idea.id
-                            );
-                          }
-                        }
-                      } catch {
-                        toast.error('Failed to update upvote.');
-                      }
-                    };
-                    return (
-                      <motion.div
-                        key={idea.title}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <IdeaCard
-                          {...idea}
-                          onCommentClick={() => handleCommentClick(idea)}
-                          onUpvote={handleUpvote}
-                          hasUpvoted={hasUpvoted}
-                        />
-                      </motion.div>
-                    );
-                  })
+                  ideas.map((idea, index) => (
+                    <motion.div
+                      key={idea.title}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <IdeaCard {...idea} onCommentClick={() => handleCommentClick(idea)} />
+                    </motion.div>
+                  ))
                 )}
               </div>
 
