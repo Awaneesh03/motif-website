@@ -1,18 +1,3 @@
-// Subscribe to real-time notifications for a user
-export function subscribeToNotifications(userId: string, onNew: (notification: Notification) => void) {
-  return supabase
-    .channel('notifications')
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-      payload => {
-        if (payload.new) {
-          onNew(transformToNotification(payload.new));
-        }
-      }
-    )
-    .subscribe();
-}
 // Notification service for Motif platform
 // Handles creating, fetching, and managing system notifications
 
@@ -261,3 +246,21 @@ export const notifyVCIntroApproved = async (
     startupId
   );
 };
+
+// Subscribe to real-time notifications for a user
+export function subscribeToNotifications(userId: string, onNew: (notification: Notification) => void) {
+  const channel = supabase
+    .channel(`notifications:${userId}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+      (payload) => {
+        if (payload.new) {
+          onNew(transformToNotification(payload.new));
+        }
+      }
+    )
+    .subscribe();
+
+  return channel;
+}

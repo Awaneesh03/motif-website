@@ -9,6 +9,7 @@ import { UserRole } from '../../types/roles';
 import {
   getUserNotifications,
   markAllAsRead,
+  subscribeToNotifications,
   Notification,
   NotificationType,
 } from '../../lib/notificationService';
@@ -40,6 +41,48 @@ export function NotificationsPage({ onNavigate }: NotificationsPageProps) {
       setNotifications([]);
       setIsLoading(false);
     }
+  }, [user]);
+
+  // Real-time subscription for new notifications
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = subscribeToNotifications(user.id, async (newNotification) => {
+      // Enrich the new notification with startup name if needed
+      let enrichedNotification: EnrichedNotification = { ...newNotification };
+
+      if (newNotification.relatedId) {
+        try {
+          const { data, error } = await supabase
+            .from('ideas')
+            .select('name, title')
+            .eq('id', newNotification.relatedId)
+            .single();
+
+          if (!error && data) {
+            enrichedNotification = {
+              ...newNotification,
+              startupName: data.name || data.title || 'Untitled Startup',
+            };
+          }
+        } catch (err) {
+          console.error('Error fetching startup name for new notification:', err);
+        }
+      }
+
+      // Add new notification to the top of the list
+      setNotifications((prev) => [enrichedNotification, ...prev]);
+
+      // Show toast notification
+      toast.info(newNotification.title, {
+        description: newNotification.message,
+      });
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [user]);
 
   const loadNotifications = async () => {
