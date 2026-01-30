@@ -15,12 +15,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getApprovedStartups, type Startup } from '@/lib/startupService';
+import { type Startup } from '@/lib/startupService';
+import { supabase } from '@/lib/supabase';
+
+// Extended Startup with score
+interface ScoredStartup extends Startup {
+  score?: number;
+}
 
 const VCStartups = () => {
   const navigate = useNavigate();
-  const [startups, setStartups] = useState<Startup[]>([]);
-  const [filteredStartups, setFilteredStartups] = useState<Startup[]>([]);
+  const [startups, setStartups] = useState<ScoredStartup[]>([]);
+  const [filteredStartups, setFilteredStartups] = useState<ScoredStartup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,9 +46,33 @@ const VCStartups = () => {
     setError(null);
 
     try {
-      const approved = await getApprovedStartups();
-      setStartups(approved);
-      setFilteredStartups(approved);
+      // Fetch idea analyses with score >= 80
+      const { data: highScoringAnalyses, error: analysesError } = await supabase
+        .from('idea_analyses')
+        .select('idea_title, idea_description, score, created_at, user_id')
+        .gte('score', 80)
+        .order('score', { ascending: false });
+
+      if (analysesError) throw analysesError;
+
+      // Transform to Startup format
+      const highScoringStartups: Startup[] = (highScoringAnalyses || []).map((analysis: any) => ({
+        id: `analysis-${analysis.created_at}`, // Use timestamp as ID since analyses don't have their own ID
+        name: analysis.idea_title || 'Untitled',
+        pitch: analysis.idea_description || '',
+        problem: analysis.idea_description || '',
+        solution: analysis.idea_description || '',
+        industry: 'Not specified',
+        stage: 'Validated Idea',
+        status: 'approved_for_vc' as const,
+        createdBy: analysis.user_id,
+        founderName: 'Founder',
+        createdAt: analysis.created_at || new Date().toISOString(),
+        score: analysis.score,
+      }));
+
+      setStartups(highScoringStartups);
+      setFilteredStartups(highScoringStartups);
     } catch (err) {
       console.error('Error loading startups:', err);
       setError('Failed to load startups. Please refresh the page.');
@@ -200,7 +230,7 @@ const VCStartups = () => {
                   <p className="text-muted-foreground mb-4">
                     {searchQuery || selectedStage !== 'all' || selectedIndustry !== 'all'
                       ? 'Try adjusting your filters'
-                      : 'Check back soon for new opportunities'}
+                      : 'No high-potential ideas yet (score ≥ 80). Check back soon for new opportunities.'}
                   </p>
                   {(searchQuery || selectedStage !== 'all' || selectedIndustry !== 'all') && (
                     <Button
@@ -240,10 +270,17 @@ const VCStartups = () => {
                             {startup.pitch}
                           </p>
                         </div>
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-0 whitespace-nowrap">
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                          Motif Approved
-                        </Badge>
+                        <div className="flex flex-col gap-2">
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-0 whitespace-nowrap">
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                            Motif Approved
+                          </Badge>
+                          {startup.score && (
+                            <Badge className="bg-primary/10 text-primary border-0 whitespace-nowrap">
+                              AI Score: {startup.score}/100
+                            </Badge>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3">
