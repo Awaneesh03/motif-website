@@ -83,6 +83,8 @@ export function Chatbot({ isDark }: ChatbotProps) {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [apiKey, setApiKey] = useState(GROQ_API_KEY || '');
+  const [systemPrompt, setSystemPrompt] = useState('You are Motif AI, a helpful assistant for startup founders.');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const chatButtonRef = useRef<HTMLDivElement>(null);
@@ -189,7 +191,6 @@ export function Chatbot({ isDark }: ChatbotProps) {
         timestamp: new Date()
       }
     ]);
-    setConversationId(null);
     toast.success('Chat cleared!');
   };
 
