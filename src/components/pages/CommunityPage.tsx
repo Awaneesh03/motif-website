@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { TrendingUp, Clock, MessageCircle, Award, Send } from 'lucide-react';
+import { TrendingUp, Clock, MessageCircle, Award, Send, Lightbulb, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '../ui/button';
@@ -14,6 +14,7 @@ import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { useUser } from '../../contexts/UserContext';
+import { supabase } from '../../lib/supabase';
 
 const COMMUNITY_STORAGE_KEY = 'motif-community-ideas';
 const COMMUNITY_COMMENTS_KEY = 'motif-community-comments';
@@ -35,6 +36,14 @@ interface CommunityComment {
   avatar?: string;
   message: string;
   timestamp: string;
+}
+
+interface AnalyzedIdea {
+  id: string;
+  idea_title: string;
+  idea_description: string;
+  score?: number;
+  created_at: string;
 }
 
 const seedIdeas: CommunityIdea[] = [
@@ -236,7 +245,7 @@ const persistCommunityComments = (comments: Record<string, CommunityComment[]>) 
 };
 
 export function CommunityPage({ onNavigate }: CommunityPageProps) {
-  const { profile, displayName } = useUser();
+  const { profile, displayName, user } = useUser();
   const [filter, setFilter] = useState('trending');
   const [displayCount, setDisplayCount] = useState(5);
   const [commentPanelOpen, setCommentPanelOpen] = useState(false);
@@ -256,6 +265,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     tags: '',
   });
 
+  // Analyzed ideas from Supabase
+  const [analyzedIdeas, setAnalyzedIdeas] = useState<AnalyzedIdea[]>([]);
+  const [selectedAnalyzedIdeaId, setSelectedAnalyzedIdeaId] = useState<string | null>(null);
+  const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
+
   useEffect(() => {
     persistCommunityIdeas(communityIdeas);
   }, [communityIdeas]);
@@ -263,6 +277,40 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   useEffect(() => {
     persistCommunityComments(commentStore);
   }, [commentStore]);
+
+  // Fetch analyzed ideas when post dialog opens
+  useEffect(() => {
+    if (postFormOpen && user) {
+      fetchAnalyzedIdeas();
+    }
+  }, [postFormOpen, user]);
+
+  const fetchAnalyzedIdeas = async () => {
+    if (!user) return;
+
+    setIsLoadingIdeas(true);
+    try {
+      const { data, error } = await supabase
+        .from('idea_analyses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching analyzed ideas:', error);
+        toast.error('Failed to load your analyzed ideas');
+        setAnalyzedIdeas([]);
+      } else {
+        setAnalyzedIdeas(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to load your analyzed ideas');
+      setAnalyzedIdeas([]);
+    } finally {
+      setIsLoadingIdeas(false);
+    }
+  };
 
   const allIdeas = [...communityIdeas, ...seedIdeas].map(idea => {
     const key = getIdeaKey(idea);
@@ -325,41 +373,86 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const isPostFormValid = isPostTitleValid && isPostDescriptionValid;
 
   const handleSubmitIdea = () => {
-    if (!isPostFormValid) {
-      toast.error('Please fill in all required fields with minimum lengths');
-      return;
+    // Use selected analyzed idea if available
+    if (analyzedIdeas.length > 0) {
+      if (!selectedAnalyzedIdeaId) {
+        toast.error('Please select an idea to share');
+        return;
+      }
+
+      const selectedIdea = analyzedIdeas.find(idea => idea.id === selectedAnalyzedIdeaId);
+      if (!selectedIdea) {
+        toast.error('Selected idea not found');
+        return;
+      }
+
+      const normalizedTitle = normalizeIdeaValue(selectedIdea.idea_title);
+      const normalizedDescription = normalizeIdeaValue(selectedIdea.idea_description);
+      const isDuplicate = communityIdeas.some(
+        idea =>
+          normalizeIdeaValue(idea.title) === normalizedTitle &&
+          normalizeIdeaValue(idea.description) === normalizedDescription
+      );
+
+      if (isDuplicate) {
+        toast.info('This idea is already shared in the community.');
+        return;
+      }
+
+      const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
+      const newIdea: CommunityIdea = {
+        title: selectedIdea.idea_title.trim(),
+        description: selectedIdea.idea_description.trim(),
+        tags: ['AI', 'Innovation'], // Default tags, can be customized
+        upvotes: 0,
+        comments: 0,
+        author: authorName,
+        authorAvatar: profile?.avatar || undefined,
+        createdAt: new Date().toISOString(),
+      };
+
+      setCommunityIdeas(prev => [newIdea, ...prev]);
+      toast.success('Idea posted successfully!');
+      setSelectedAnalyzedIdeaId(null);
+      setPostFormOpen(false);
+    } else {
+      // Fallback to manual form (should not reach here in new flow)
+      if (!isPostFormValid) {
+        toast.error('Please fill in all required fields with minimum lengths');
+        return;
+      }
+
+      const normalizedTitle = normalizeIdeaValue(postForm.title);
+      const normalizedDescription = normalizeIdeaValue(postForm.description);
+      const isDuplicate = communityIdeas.some(
+        idea =>
+          normalizeIdeaValue(idea.title) === normalizedTitle &&
+          normalizeIdeaValue(idea.description) === normalizedDescription
+      );
+
+      if (isDuplicate) {
+        toast.info('This idea is already shared in the community.');
+        return;
+      }
+
+      const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
+      const tags = parseTags(postForm.tags);
+      const newIdea: CommunityIdea = {
+        title: postForm.title.trim(),
+        description: postForm.description.trim(),
+        tags: tags.length > 0 ? tags : ['General'],
+        upvotes: 0,
+        comments: 0,
+        author: authorName,
+        authorAvatar: profile?.avatar || undefined,
+        createdAt: new Date().toISOString(),
+      };
+
+      setCommunityIdeas(prev => [newIdea, ...prev]);
+      toast.success('Idea posted successfully!');
+      setPostForm({ title: '', description: '', tags: '' });
+      setPostFormOpen(false);
     }
-
-    const normalizedTitle = normalizeIdeaValue(postForm.title);
-    const normalizedDescription = normalizeIdeaValue(postForm.description);
-    const isDuplicate = communityIdeas.some(
-      idea =>
-        normalizeIdeaValue(idea.title) === normalizedTitle &&
-        normalizeIdeaValue(idea.description) === normalizedDescription
-    );
-
-    if (isDuplicate) {
-      toast.info('This idea is already shared in the community.');
-      return;
-    }
-
-    const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
-    const tags = parseTags(postForm.tags);
-    const newIdea: CommunityIdea = {
-      title: postForm.title.trim(),
-      description: postForm.description.trim(),
-      tags: tags.length > 0 ? tags : ['General'],
-      upvotes: 0,
-      comments: 0,
-      author: authorName,
-      authorAvatar: profile?.avatar || undefined,
-      createdAt: new Date().toISOString(),
-    };
-
-    setCommunityIdeas(prev => [newIdea, ...prev]);
-    toast.success('Idea posted successfully!');
-    setPostForm({ title: '', description: '', tags: '' });
-    setPostFormOpen(false);
   };
 
   const handleCommentClick = (idea: any) => {
@@ -432,58 +525,91 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Idea Title *</Label>
-                      <Input
-                        id="title"
-                        placeholder="Brief description of your idea"
-                        value={postForm.title}
-                        onChange={e => setPostForm({ ...postForm, title: e.target.value })}
-                        maxLength={150}
-                      />
-                      <p className="text-muted-foreground text-xs">
-                        {isPostTitleValid ? (
-                          <span className="text-green-600">✓ {postForm.title.length}/150</span>
-                        ) : (
-                          <span>Minimum 10 characters ({postForm.title.length}/150)</span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Full Description *</Label>
-                      <Textarea
-                        id="description"
-                        placeholder="Describe your idea in detail..."
-                        rows={5}
-                        value={postForm.description}
-                        onChange={e => setPostForm({ ...postForm, description: e.target.value })}
-                        maxLength={500}
-                      />
-                      <p className="text-muted-foreground text-xs">
-                        {isPostDescriptionValid ? (
-                          <span className="text-green-600">✓ {postForm.description.length}/500</span>
-                        ) : (
-                          <span>Minimum 30 characters ({postForm.description.length}/500)</span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tags">Tags (comma-separated)</Label>
-                      <Input
-                        id="tags"
-                        placeholder="AI, SaaS, Mobile"
-                        value={postForm.tags}
-                        onChange={e => setPostForm({ ...postForm, tags: e.target.value })}
-                        maxLength={100}
-                      />
-                    </div>
-                    <Button
-                      onClick={handleSubmitIdea}
-                      disabled={!isPostFormValid}
-                      className="gradient-lavender shadow-lavender w-full rounded-[16px] hover:opacity-90"
-                    >
-                      Submit Idea
-                    </Button>
+                    {isLoadingIdeas ? (
+                      <div className="flex flex-col items-center justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="mt-4 text-sm text-muted-foreground">Loading your ideas...</p>
+                      </div>
+                    ) : analyzedIdeas.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <Lightbulb className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No Analyzed Ideas Yet</h3>
+                        <p className="text-muted-foreground mb-6 max-w-sm">
+                          Analyze your first idea to share it with the community and get valuable feedback.
+                        </p>
+                        <Button
+                          onClick={() => {
+                            setPostFormOpen(false);
+                            onNavigate?.('Idea Analyser');
+                          }}
+                          className="gradient-lavender shadow-lavender rounded-[16px] hover:opacity-90"
+                        >
+                          Analyze Your First Idea
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Select an idea to share</Label>
+                          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                            {analyzedIdeas.map((idea) => (
+                              <Card
+                                key={idea.id}
+                                className={`cursor-pointer transition-all hover:border-primary ${
+                                  selectedAnalyzedIdeaId === idea.id
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border'
+                                }`}
+                                onClick={() => setSelectedAnalyzedIdeaId(idea.id)}
+                              >
+                                <CardContent className="p-4">
+                                  <div className="flex items-start gap-3">
+                                    <div className="flex-shrink-0 mt-1">
+                                      <div
+                                        className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                                          selectedAnalyzedIdeaId === idea.id
+                                            ? 'border-primary bg-primary'
+                                            : 'border-muted-foreground'
+                                        }`}
+                                      >
+                                        {selectedAnalyzedIdeaId === idea.id && (
+                                          <div className="h-2 w-2 rounded-full bg-white" />
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="font-semibold text-sm mb-1 line-clamp-2">
+                                        {idea.idea_title}
+                                      </h4>
+                                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                                        {idea.idea_description}
+                                      </p>
+                                      <div className="flex items-center gap-2">
+                                        {idea.score && (
+                                          <Badge variant="secondary" className="text-xs">
+                                            Score: {idea.score}/100
+                                          </Badge>
+                                        )}
+                                        <span className="text-xs text-muted-foreground">
+                                          {new Date(idea.created_at).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                        <Button
+                          onClick={handleSubmitIdea}
+                          disabled={!selectedAnalyzedIdeaId}
+                          className="gradient-lavender shadow-lavender w-full rounded-[16px] hover:opacity-90"
+                        >
+                          Share Selected Idea
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </DialogContent>
               </Dialog>
