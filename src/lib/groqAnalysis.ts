@@ -61,6 +61,25 @@ async function callGroqAPI(systemPrompt: string, userPrompt: string): Promise<st
 }
 
 /**
+ * Improve a startup description for clarity and impact
+ */
+export async function improveDescriptionWithGroq(description: string): Promise<string> {
+  const systemPrompt = `You are an expert copywriter specializing in startup pitches. Improve startup descriptions for clarity, impact, and persuasiveness while maintaining the core idea. Keep it concise (2-4 sentences).`;
+
+  const userPrompt = `Improve this startup description for clarity and impact. Return ONLY the improved description, no additional text or formatting:
+
+${description}`;
+
+  try {
+    const response = await callGroqAPI(systemPrompt, userPrompt);
+    return response.trim();
+  } catch (error) {
+    console.error('Description improvement error:', error);
+    throw error;
+  }
+}
+
+/**
  * Generate a startup idea using Groq AI
  */
 export async function generateIdeaWithGroq(): Promise<GeneratedIdea> {

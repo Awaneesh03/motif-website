@@ -26,7 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Progress } from '../ui/progress';
-import { analyzeIdeaWithGroq, generateIdeaWithGroq } from '../../lib/groqAnalysis';
+import { analyzeIdeaWithGroq, generateIdeaWithGroq, improveDescriptionWithGroq } from '../../lib/groqAnalysis';
 
 interface AnalysisResult {
   score: number;
@@ -62,6 +62,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showDemoReportModal, setShowDemoReportModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isImprovingDescription, setIsImprovingDescription] = useState(false);
 
   // Predefined target market options
   const MARKET_OPTIONS = [
@@ -216,6 +217,33 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       return;
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleImproveDescription = async () => {
+    if (!ideaDescription.trim()) {
+      toast.error('Please enter a description first');
+      return;
+    }
+
+    setIsImprovingDescription(true);
+    try {
+      const improvedDescription = await improveDescriptionWithGroq(ideaDescription);
+      setIdeaDescription(improvedDescription);
+      toast.success('Description improved with AI!');
+    } catch (error) {
+      console.error('Improvement error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to improve description';
+
+      if (errorMessage.includes('Rate limit') || errorMessage.includes('rate_limit')) {
+        toast.error('Rate limit exceeded. Please try again in a few moments.');
+      } else if (errorMessage.includes('API key')) {
+        toast.error('AI service is not configured. Please contact support.');
+      } else {
+        toast.error('Failed to improve description. Please try again.');
+      }
+    } finally {
+      setIsImprovingDescription(false);
     }
   };
 
@@ -528,13 +556,34 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                       className="min-h-[160px] resize-none rounded-xl"
                       maxLength={1000}
                     />
-                    <p className="text-muted-foreground text-xs">
-                      {ideaDescription.length >= 20 ? (
-                        <span className="text-green-600">✓ {ideaDescription.length}/1000 characters</span>
-                      ) : (
-                        <span>Minimum 20 characters ({ideaDescription.length}/1000)</span>
-                      )}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-muted-foreground text-xs">
+                        {ideaDescription.length >= 20 ? (
+                          <span className="text-green-600">✓ {ideaDescription.length}/1000 characters</span>
+                        ) : (
+                          <span>Minimum 20 characters ({ideaDescription.length}/1000)</span>
+                        )}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleImproveDescription}
+                        disabled={!ideaDescription.trim() || isImprovingDescription}
+                        className="text-primary hover:text-primary h-auto px-2 py-1"
+                      >
+                        {isImprovingDescription ? (
+                          <>
+                            <Zap className="mr-1.5 h-3.5 w-3.5 animate-pulse" />
+                            <span className="text-xs">Improving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                            <span className="text-xs">Improve with AI</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Target Market */}
