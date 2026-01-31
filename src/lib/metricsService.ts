@@ -13,7 +13,7 @@ export interface FounderMetrics {
   pendingReview: number;
   approvedForVC: number;
   rejectedStartups: number;
-  activeConnections: number;
+  communityIdeas: number;
 }
 
 /**
@@ -63,14 +63,14 @@ export const getFounderMetrics = async (founderId: string): Promise<FounderMetri
       else if (status === 'rejected') statusCounts.rejected++;
     });
 
-    // Get active connections for this founder
-    const { data: connections, error: connectionsError } = await supabase
-      .from('vc_applications')
-      .select('id, idea_id, status')
-      .eq('status', 'accepted');
+    // Get community ideas posted by this founder
+    const { count: communityIdeasCount, error: communityError } = await supabase
+      .from('community_ideas')
+      .select('*', { count: 'exact', head: true })
+      .eq('author_id', founderId);
 
-    if (connectionsError) {
-      console.error('Error fetching connections:', connectionsError);
+    if (communityError) {
+      console.error('Error fetching community ideas:', communityError);
     }
 
     return {
@@ -80,7 +80,7 @@ export const getFounderMetrics = async (founderId: string): Promise<FounderMetri
       pendingReview: statusCounts.pending_review,
       approvedForVC: statusCounts.approved_for_vc,
       rejectedStartups: statusCounts.rejected,
-      activeConnections: connections?.length || 0,
+      communityIdeas: communityIdeasCount || 0,
     };
   } catch (error) {
     if (import.meta.env.DEV) {
@@ -92,7 +92,7 @@ export const getFounderMetrics = async (founderId: string): Promise<FounderMetri
       pendingReview: 0,
       approvedForVC: 0,
       rejectedStartups: 0,
-      activeConnections: 0,
+      communityIdeas: 0,
     };
   }
 };

@@ -938,37 +938,41 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
           >
             <div className="space-y-6">
                 {/* Profile Header */}
-                <Card className="border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-6">
-                        <Avatar className="h-20 w-20 cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>
+                <Card className="border-border/50 shadow-lg" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
+                  <CardContent className="p-8">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                      <div className="flex items-start gap-6">
+                        <Avatar className="h-24 w-24 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/40 transition-all" onClick={() => setIsAvatarModalOpen(true)}>
                           <AvatarImage src={displayProfile.avatar} />
-                          <AvatarFallback className="text-3xl">{getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+                          <AvatarFallback className="text-4xl">{getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
                         </Avatar>
-                        <div>
-                          <h1 className="text-3xl font-bold" style={{ color: '#D8E0FF' }}>
-                            Your Profile
-                          </h1>
-                          <p className="text-muted-foreground text-lg">{getDisplayName()}</p>
-                          {shouldShowRole && (
-                            <p className="text-muted-foreground text-lg">{roleLabel}</p>
-                          )}
-                          {displayProfile.location && (
-                            <p className="text-muted-foreground text-sm">{displayProfile.location}</p>
-                          )}
-                          <div className="mt-2 flex gap-2">
+                        <div className="space-y-3">
+                          <div>
+                            <h1 className="text-4xl font-bold mb-1" style={{ color: '#D8E0FF' }}>
+                              {getDisplayName()}
+                            </h1>
+                            {shouldShowRole && (
+                              <p className="text-lg text-muted-foreground font-medium">{roleLabel}</p>
+                            )}
+                            {displayProfile.location && (
+                              <p className="text-base text-muted-foreground mt-1">{displayProfile.location}</p>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
                             {displayProfile.email && (
-                              <Badge variant="outline">{displayProfile.email}</Badge>
+                              <Badge variant="outline" className="text-sm">{displayProfile.email}</Badge>
                             )}
                             {displayProfile.linkedin && (
-                              <Badge variant="outline">LinkedIn</Badge>
+                              <Badge variant="outline" className="text-sm">LinkedIn</Badge>
+                            )}
+                            {displayProfile.education && (
+                              <Badge variant="secondary" className="text-sm">{displayProfile.education}</Badge>
                             )}
                           </div>
                         </div>
                       </div>
                       <Button
-                        className="gradient-lavender shadow-lavender rounded-[12px] hover:opacity-90"
+                        className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90 px-6 self-start"
                         onClick={handleEditProfile}
                       >
                         Edit Profile
@@ -976,17 +980,18 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                     </div>
 
                     {displayProfile.about && (
-                      <div className="mt-6">
-                        <p className="text-muted-foreground">{displayProfile.about}</p>
+                      <div className="mt-8 pt-6 border-t border-border/50">
+                        <h3 className="text-sm font-semibold text-foreground/80 mb-2">About</h3>
+                        <p className="text-base text-muted-foreground leading-relaxed">{displayProfile.about}</p>
                       </div>
                     )}
 
                     {Array.isArray(displayProfile?.startup_goals) && displayProfile?.startup_goals?.length > 0 && (
-                      <div className="mt-4">
-                        <p className="mb-2 text-sm font-medium">Startup Goals:</p>
+                      <div className="mt-6 pt-6 border-t border-border/50">
+                        <h3 className="text-sm font-semibold text-foreground/80 mb-3">Startup Goals</h3>
                         <div className="flex flex-wrap gap-2">
                           {displayProfile.startup_goals.map(goal => (
-                            <Badge key={goal} variant="secondary">
+                            <Badge key={goal} variant="secondary" className="text-sm px-3 py-1">
                               {goal}
                             </Badge>
                           ))}

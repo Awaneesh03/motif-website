@@ -20,6 +20,7 @@ const COMMUNITY_STORAGE_KEY = 'motif-community-ideas';
 const COMMUNITY_COMMENTS_KEY = 'motif-community-comments';
 
 interface CommunityIdea {
+  id?: string;
   title: string;
   description: string;
   upvotes: number;
@@ -28,6 +29,8 @@ interface CommunityIdea {
   author: string;
   authorAvatar?: string;
   createdAt?: string;
+  hasUpvoted?: boolean;
+  authorId?: string;
 }
 
 interface CommunityComment {
@@ -270,6 +273,10 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const [selectedAnalyzedIdeaId, setSelectedAnalyzedIdeaId] = useState<string | null>(null);
   const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
 
+  // Supabase community ideas
+  const [supabaseIdeas, setSupabaseIdeas] = useState<CommunityIdea[]>([]);
+  const [isLoadingCommunityIdeas, setIsLoadingCommunityIdeas] = useState(true);
+
   useEffect(() => {
     persistCommunityIdeas(communityIdeas);
   }, [communityIdeas]);
@@ -284,6 +291,42 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       fetchAnalyzedIdeas();
     }
   }, [postFormOpen, user]);
+
+  // Fetch community ideas on mount and when user changes
+  useEffect(() => {
+    fetchCommunityIdeas();
+
+    // Subscribe to real-time updates
+    const ideasChannel = supabase
+      .channel('community-ideas-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'community_ideas',
+        },
+        () => {
+          fetchCommunityIdeas();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'community_upvotes',
+        },
+        () => {
+          fetchCommunityIdeas();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ideasChannel);
+    };
+  }, [user]);
 
   const fetchAnalyzedIdeas = async () => {
     if (!user) return;
@@ -312,7 +355,132 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     }
   };
 
-  const allIdeas = [...communityIdeas, ...seedIdeas].map(idea => {
+  // Fetch community ideas from Supabase
+  const fetchCommunityIdeas = async () => {
+    setIsLoadingCommunityIdeas(true);
+    try {
+      // Fetch all community ideas
+      const { data: ideas, error: ideasError } = await supabase
+        .from('community_ideas')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (ideasError) {
+        console.error('Error fetching community ideas:', ideasError);
+        setSupabaseIdeas([]);
+        return;
+      }
+
+      // Fetch user's upvotes if logged in
+      let userUpvotes: string[] = [];
+      if (user) {
+        const { data: upvotes, error: upvotesError } = await supabase
+          .from('community_upvotes')
+          .select('idea_id')
+          .eq('user_id', user.id);
+
+        if (!upvotesError && upvotes) {
+          userUpvotes = upvotes.map(u => u.idea_id);
+        }
+      }
+
+      // Map ideas with upvote status
+      const mappedIdeas: CommunityIdea[] = (ideas || []).map(idea => ({
+        id: idea.id,
+        title: idea.title,
+        description: idea.description,
+        tags: idea.tags || [],
+        upvotes: idea.upvotes_count || 0,
+        comments: idea.comments_count || 0,
+        author: idea.author_name,
+        authorAvatar: idea.author_avatar,
+        authorId: idea.author_id,
+        createdAt: idea.created_at,
+        hasUpvoted: userUpvotes.includes(idea.id),
+      }));
+
+      setSupabaseIdeas(mappedIdeas);
+    } catch (error) {
+      console.error('Error fetching community ideas:', error);
+      setSupabaseIdeas([]);
+    } finally {
+      setIsLoadingCommunityIdeas(false);
+    }
+  };
+
+  // Handle upvote with optimistic UI
+  const handleUpvote = async (ideaId: string) => {
+    if (!user) {
+      toast.error('Please login to upvote ideas');
+      return;
+    }
+
+    // Find the idea
+    const idea = allIdeas.find(i => i.id === ideaId);
+    if (!idea) return;
+
+    const wasUpvoted = idea.hasUpvoted;
+
+    // Optimistic UI update
+    setSupabaseIdeas(prev =>
+      prev.map(i =>
+        i.id === ideaId
+          ? {
+              ...i,
+              upvotes: wasUpvoted ? i.upvotes - 1 : i.upvotes + 1,
+              hasUpvoted: !wasUpvoted,
+            }
+          : i
+      )
+    );
+
+    try {
+      if (wasUpvoted) {
+        // Remove upvote
+        const { error } = await supabase
+          .from('community_upvotes')
+          .delete()
+          .eq('idea_id', ideaId)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      } else {
+        // Add upvote
+        const { error } = await supabase
+          .from('community_upvotes')
+          .insert({
+            idea_id: ideaId,
+            user_id: user.id,
+          });
+
+        if (error) throw error;
+      }
+    } catch (error: any) {
+      console.error('Error toggling upvote:', error);
+
+      // Revert optimistic update on error
+      setSupabaseIdeas(prev =>
+        prev.map(i =>
+          i.id === ideaId
+            ? {
+                ...i,
+                upvotes: wasUpvoted ? i.upvotes + 1 : i.upvotes - 1,
+                hasUpvoted: wasUpvoted,
+              }
+            : i
+        )
+      );
+
+      if (error.code === '23505') {
+        toast.error('You have already upvoted this idea');
+      } else {
+        toast.error('Failed to update upvote');
+      }
+    }
+  };
+
+  // Combine Supabase ideas, localStorage ideas, and seed ideas
+  const allIdeas = [...supabaseIdeas, ...communityIdeas, ...seedIdeas].map(idea => {
     const key = getIdeaKey(idea);
     const storedCount = commentStore[key]?.length ?? idea.comments;
     return { ...idea, comments: storedCount };
@@ -372,7 +540,12 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const isPostDescriptionValid = postForm.description.trim().length >= 30;
   const isPostFormValid = isPostTitleValid && isPostDescriptionValid;
 
-  const handleSubmitIdea = () => {
+  const handleSubmitIdea = async () => {
+    if (!user) {
+      toast.error('Please login to post an idea');
+      return;
+    }
+
     // Use selected analyzed idea if available
     if (analyzedIdeas.length > 0) {
       if (!selectedAnalyzedIdeaId) {
@@ -388,35 +561,48 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
       const normalizedTitle = normalizeIdeaValue(selectedIdea.idea_title);
       const normalizedDescription = normalizeIdeaValue(selectedIdea.idea_description);
-      const isDuplicate = communityIdeas.some(
-        idea =>
+
+      // Check for duplicates in Supabase
+      const { data: existingIdeas } = await supabase
+        .from('community_ideas')
+        .select('id')
+        .eq('author_id', user.id);
+
+      const isDuplicate = existingIdeas?.some(
+        (idea: any) =>
           normalizeIdeaValue(idea.title) === normalizedTitle &&
           normalizeIdeaValue(idea.description) === normalizedDescription
       );
 
       if (isDuplicate) {
-        toast.info('This idea is already shared in the community.');
+        toast.info('You have already shared this idea in the community.');
         return;
       }
 
       const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
-      const newIdea: CommunityIdea = {
-        title: selectedIdea.idea_title.trim(),
-        description: selectedIdea.idea_description.trim(),
-        tags: ['AI', 'Innovation'], // Default tags, can be customized
-        upvotes: 0,
-        comments: 0,
-        author: authorName,
-        authorAvatar: profile?.avatar || undefined,
-        createdAt: new Date().toISOString(),
-      };
 
-      setCommunityIdeas(prev => [newIdea, ...prev]);
-      toast.success('Idea posted successfully!');
-      setSelectedAnalyzedIdeaId(null);
-      setPostFormOpen(false);
+      try {
+        const { error } = await supabase.from('community_ideas').insert({
+          title: selectedIdea.idea_title.trim(),
+          description: selectedIdea.idea_description.trim(),
+          tags: ['AI', 'Innovation'],
+          author_name: authorName,
+          author_avatar: profile?.avatar || null,
+          author_id: user.id,
+        });
+
+        if (error) throw error;
+
+        toast.success('Idea posted successfully!');
+        setSelectedAnalyzedIdeaId(null);
+        setPostFormOpen(false);
+        fetchCommunityIdeas(); // Refresh ideas list
+      } catch (error) {
+        console.error('Error posting idea:', error);
+        toast.error('Failed to post idea. Please try again.');
+      }
     } else {
-      // Fallback to manual form (should not reach here in new flow)
+      // Fallback to manual form
       if (!isPostFormValid) {
         toast.error('Please fill in all required fields with minimum lengths');
         return;
@@ -424,34 +610,47 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
       const normalizedTitle = normalizeIdeaValue(postForm.title);
       const normalizedDescription = normalizeIdeaValue(postForm.description);
-      const isDuplicate = communityIdeas.some(
-        idea =>
+
+      // Check for duplicates in Supabase
+      const { data: existingIdeas } = await supabase
+        .from('community_ideas')
+        .select('id, title, description')
+        .eq('author_id', user.id);
+
+      const isDuplicate = existingIdeas?.some(
+        (idea: any) =>
           normalizeIdeaValue(idea.title) === normalizedTitle &&
           normalizeIdeaValue(idea.description) === normalizedDescription
       );
 
       if (isDuplicate) {
-        toast.info('This idea is already shared in the community.');
+        toast.info('You have already shared this idea in the community.');
         return;
       }
 
       const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
       const tags = parseTags(postForm.tags);
-      const newIdea: CommunityIdea = {
-        title: postForm.title.trim(),
-        description: postForm.description.trim(),
-        tags: tags.length > 0 ? tags : ['General'],
-        upvotes: 0,
-        comments: 0,
-        author: authorName,
-        authorAvatar: profile?.avatar || undefined,
-        createdAt: new Date().toISOString(),
-      };
 
-      setCommunityIdeas(prev => [newIdea, ...prev]);
-      toast.success('Idea posted successfully!');
-      setPostForm({ title: '', description: '', tags: '' });
-      setPostFormOpen(false);
+      try {
+        const { error } = await supabase.from('community_ideas').insert({
+          title: postForm.title.trim(),
+          description: postForm.description.trim(),
+          tags: tags.length > 0 ? tags : ['General'],
+          author_name: authorName,
+          author_avatar: profile?.avatar || null,
+          author_id: user.id,
+        });
+
+        if (error) throw error;
+
+        toast.success('Idea posted successfully!');
+        setPostForm({ title: '', description: '', tags: '' });
+        setPostFormOpen(false);
+        fetchCommunityIdeas(); // Refresh ideas list
+      } catch (error) {
+        console.error('Error posting idea:', error);
+        toast.error('Failed to post idea. Please try again.');
+      }
     }
   };
 
@@ -682,7 +881,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               </div>
 
               {/* Ideas List */}
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2">
                 {ideas.length === 0 ? (
                   <Card className="border-dashed border-2">
                     <CardContent className="p-12 text-center">
@@ -709,12 +908,17 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                 ) : (
                   ideas.map((idea, index) => (
                     <motion.div
-                      key={idea.title}
+                      key={idea.id || idea.title}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <IdeaCard {...idea} onCommentClick={() => handleCommentClick(idea)} />
+                      <IdeaCard
+                        {...idea}
+                        onCommentClick={() => handleCommentClick(idea)}
+                        onUpvote={idea.id ? () => handleUpvote(idea.id!) : undefined}
+                        hasUpvoted={idea.hasUpvoted}
+                      />
                     </motion.div>
                   ))
                 )}

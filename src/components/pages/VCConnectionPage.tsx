@@ -32,6 +32,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '../ui/accordion';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 
 interface VCConnectionPageProps {
   onNavigate?: (page: string) => void;
@@ -74,10 +81,11 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
     const isValid =
       qualificationForm.name.trim().length > 0 &&
       qualificationForm.email.trim().length > 0 &&
-      qualificationForm.ideaDescription.trim().length >= 30;
+      qualificationForm.ideaDescription.trim().length >= 30 &&
+      qualificationForm.stage.trim().length > 0;
 
     if (!isValid) {
-      toast.error('Please complete the required fields before submitting.');
+      toast.error('Please complete all required fields (Name, Email, Idea Description, and Stage).');
       return;
     }
 
@@ -150,13 +158,23 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="qual-stage">Stage</Label>
-                <Input
-                  id="qual-stage"
+                <Label htmlFor="qual-stage">
+                  Idea Stage <span className="text-destructive">*</span>
+                </Label>
+                <Select
                   value={qualificationForm.stage}
-                  onChange={e => setQualificationForm({ ...qualificationForm, stage: e.target.value })}
-                  placeholder="Pre-seed"
-                />
+                  onValueChange={value => setQualificationForm({ ...qualificationForm, stage: value })}
+                >
+                  <SelectTrigger id="qual-stage">
+                    <SelectValue placeholder="Select stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="idea">Idea</SelectItem>
+                    <SelectItem value="mvp">MVP</SelectItem>
+                    <SelectItem value="early-revenue">Early Revenue</SelectItem>
+                    <SelectItem value="growth">Growth</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="qual-traction">Traction</Label>

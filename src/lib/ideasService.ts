@@ -16,11 +16,12 @@ export interface Idea {
 // Get ideas for the logged-in user that have pitches (startups)
 export const getUserIdeas = async (userId: string): Promise<Idea[]> => {
   try {
-    // First get the ideas
+    // Get ideas for the specific user
     const { data, error } = await supabase
       .from('ideas')
       .select('*')
-      .order('id', { ascending: false });
+      .eq('created_by', userId)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 

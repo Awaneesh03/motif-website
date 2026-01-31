@@ -64,8 +64,8 @@ export function FounderDashboard() {
       bgColor: 'bg-green-600/10',
     },
     {
-      label: 'Active Connections',
-      value: metrics?.activeConnections.toString() || '0',
+      label: 'Community Ideas',
+      value: metrics?.communityIdeas.toString() || '0',
       icon: Users,
       color: 'text-[#A9F5D0]',
       bgColor: 'bg-[#A9F5D0]/10',
