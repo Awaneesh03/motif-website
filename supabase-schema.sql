@@ -188,3 +188,16 @@ CREATE TRIGGER trigger_update_comments_count
   AFTER INSERT OR DELETE ON community_comments
   FOR EACH ROW
   EXECUTE FUNCTION update_idea_comments_count();
+
+-- ============================================================================
+-- ENABLE REAL-TIME REPLICATION (Critical for live updates)
+-- ============================================================================
+
+-- Enable real-time for all community tables
+-- This allows WebSocket subscriptions to receive instant updates
+ALTER PUBLICATION supabase_realtime ADD TABLE community_ideas;
+ALTER PUBLICATION supabase_realtime ADD TABLE community_upvotes;
+ALTER PUBLICATION supabase_realtime ADD TABLE community_comments;
+
+-- Note: You can verify real-time is enabled in Supabase Dashboard:
+-- Database → Replication → Check that tables are listed

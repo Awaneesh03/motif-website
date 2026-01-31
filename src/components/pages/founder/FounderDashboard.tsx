@@ -117,6 +117,55 @@ export function FounderDashboard() {
       }
     };
     fetchData();
+
+    // Subscribe to real-time updates for community ideas
+    if (user?.id) {
+      const channel = supabase
+        .channel('founder-dashboard-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'community_ideas',
+          },
+          async () => {
+            // Refetch metrics when community ideas change
+            try {
+              const founderMetrics = await getFounderMetrics(user.id);
+              setMetrics(founderMetrics);
+            } catch (err) {
+              console.error('Error updating metrics:', err);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'ideas',
+          },
+          async () => {
+            // Refetch all data when ideas change
+            try {
+              const [ideas, founderMetrics] = await Promise.all([
+                getUserIdeas(user.id),
+                getFounderMetrics(user.id),
+              ]);
+              setMyStartups(ideas);
+              setMetrics(founderMetrics);
+            } catch (err) {
+              console.error('Error updating data:', err);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user]);
 
   // Async action for submitting idea for review
