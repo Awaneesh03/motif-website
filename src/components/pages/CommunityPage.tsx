@@ -277,6 +277,21 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const [supabaseIdeas, setSupabaseIdeas] = useState<CommunityIdea[]>([]);
   const [isLoadingCommunityIdeas, setIsLoadingCommunityIdeas] = useState(true);
   const [postOptionDialogOpen, setPostOptionDialogOpen] = useState(false);
+  
+  // Local upvotes for demo ideas (stored in localStorage)
+  const [localUpvotes, setLocalUpvotes] = useState<Record<string, { count: number; hasUpvoted: boolean }>>(() => {
+    try {
+      const stored = localStorage.getItem('motif-demo-upvotes');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Persist local upvotes
+  useEffect(() => {
+    localStorage.setItem('motif-demo-upvotes', JSON.stringify(localUpvotes));
+  }, [localUpvotes]);
 
   useEffect(() => {
     persistCommunityIdeas(communityIdeas);
@@ -368,9 +383,15 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
       if (ideasError) {
         console.error('Error fetching community ideas:', ideasError);
+        // Show more specific error messages
+        if (ideasError.code === '42P01') {
+          console.warn('⚠️ community_ideas table does not exist. Please run supabase-schema.sql');
+        }
         setSupabaseIdeas([]);
         return;
       }
+
+      console.log(`Loaded ${ideas?.length || 0} community ideas from Supabase`);
 
       // Fetch user's upvotes if logged in
       let userUpvotes: string[] = [];
@@ -380,8 +401,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
           .select('idea_id')
           .eq('user_id', user.id);
 
-        if (!upvotesError && upvotes) {
+        if (upvotesError) {
+          console.error('Error fetching user upvotes:', upvotesError);
+        } else if (upvotes) {
           userUpvotes = upvotes.map(u => u.idea_id);
+          console.log(`User has ${userUpvotes.length} upvotes`);
         }
       }
 
@@ -416,9 +440,12 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       return;
     }
 
-    // Find the idea
-    const idea = allIdeas.find(i => i.id === ideaId);
-    if (!idea) return;
+    // Find the idea in supabaseIdeas (only Supabase ideas can be upvoted)
+    const idea = supabaseIdeas.find(i => i.id === ideaId);
+    if (!idea) {
+      toast.error('This idea cannot be upvoted');
+      return;
+    }
 
     const wasUpvoted = idea.hasUpvoted;
 
@@ -444,7 +471,10 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
           .eq('idea_id', ideaId)
           .eq('user_id', user.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Delete upvote error:', error);
+          throw error;
+        }
       } else {
         // Add upvote
         const { error } = await supabase
@@ -454,8 +484,13 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
             user_id: user.id,
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert upvote error:', error);
+          throw error;
+        }
       }
+      
+      // Success - no toast needed as optimistic UI already updated
     } catch (error: any) {
       console.error('Error toggling upvote:', error);
 
@@ -472,19 +507,51 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         )
       );
 
+      // Show specific error messages
       if (error.code === '23505') {
         toast.error('You have already upvoted this idea');
+      } else if (error.code === '42P01') {
+        toast.error('Database tables not set up. Please run the Supabase schema.');
+      } else if (error.code === '42501' || error.message?.includes('policy')) {
+        toast.error('Permission denied. Please check RLS policies.');
+      } else if (error.message) {
+        toast.error(`Failed to update upvote: ${error.message}`);
       } else {
-        toast.error('Failed to update upvote');
+        toast.error('Failed to update upvote. Please try again.');
       }
     }
+  };
+
+  // Handle upvote for demo/seed ideas (local only)
+  const handleDemoUpvote = (ideaTitle: string, currentUpvotes: number) => {
+    const key = `demo:${ideaTitle}`;
+    const current = localUpvotes[key] || { count: currentUpvotes, hasUpvoted: false };
+    
+    setLocalUpvotes(prev => ({
+      ...prev,
+      [key]: {
+        count: current.hasUpvoted ? current.count - 1 : current.count + 1,
+        hasUpvoted: !current.hasUpvoted
+      }
+    }));
   };
 
   // Combine Supabase ideas, localStorage ideas, and seed ideas
   const allIdeas = [...supabaseIdeas, ...communityIdeas, ...seedIdeas].map(idea => {
     const key = getIdeaKey(idea);
     const storedCount = commentStore[key]?.length ?? idea.comments;
-    return { ...idea, comments: storedCount };
+    
+    // Apply local upvotes for demo ideas (those without id)
+    const demoKey = `demo:${idea.title}`;
+    const localUpvote = localUpvotes[demoKey];
+    
+    return { 
+      ...idea, 
+      comments: storedCount,
+      // Use local upvote data for demo ideas
+      upvotes: localUpvote ? localUpvote.count : idea.upvotes,
+      hasUpvoted: idea.id ? idea.hasUpvoted : (localUpvote?.hasUpvoted || false)
+    };
   });
 
   // Filter and sort ideas based on selected filter and tag
@@ -777,7 +844,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
               {/* Post Form Dialog */}
               <Dialog open={postFormOpen} onOpenChange={setPostFormOpen}>
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
                   </DialogHeader>
@@ -974,7 +1041,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                       <IdeaCard
                         {...idea}
                         onCommentClick={() => handleCommentClick(idea)}
-                        onUpvote={idea.id ? () => handleUpvote(idea.id!) : undefined}
+                        onUpvote={
+                          idea.id 
+                            ? () => handleUpvote(idea.id!) 
+                            : () => handleDemoUpvote(idea.title, idea.upvotes)
+                        }
                         hasUpvoted={idea.hasUpvoted}
                       />
                     </motion.div>

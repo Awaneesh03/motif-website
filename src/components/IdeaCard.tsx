@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ArrowUp, MessageCircle } from 'lucide-react';
 
 import { Card, CardContent } from './ui/card';
@@ -30,6 +29,8 @@ export function IdeaCard({
   onUpvote,
   hasUpvoted,
 }: IdeaCardProps) {
+  const canUpvote = !!onUpvote;
+
   return (
     <Card className="border-border/50 transition-shadow hover:shadow-lg">
       <CardContent className="p-4">
@@ -37,9 +38,11 @@ export function IdeaCard({
           <div className="flex flex-col items-center gap-1">
             <button
               onClick={onUpvote}
-              className={`hover:bg-primary/10 rounded-lg p-2 transition-all ${
-                hasUpvoted ? 'bg-primary/20' : ''
-              }`}
+              disabled={!canUpvote}
+              title={canUpvote ? (hasUpvoted ? 'Remove upvote' : 'Upvote this idea') : 'Login and refresh to upvote'}
+              className={`rounded-lg p-2 transition-all ${
+                hasUpvoted ? 'bg-primary/20 hover:bg-primary/30' : 'hover:bg-primary/10'
+              } ${!canUpvote ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
             >
               <ArrowUp
                 className={`h-5 w-5 ${hasUpvoted ? 'text-primary fill-primary' : 'text-primary'}`}

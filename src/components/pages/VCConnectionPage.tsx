@@ -78,14 +78,25 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   const validatedIdeas = MOCK_IDEAS.filter(idea => idea.score > 70);
 
   const handleQualificationSubmit = () => {
-    const isValid =
-      qualificationForm.name.trim().length > 0 &&
-      qualificationForm.email.trim().length > 0 &&
-      qualificationForm.ideaDescription.trim().length >= 30 &&
-      qualificationForm.stage.trim().length > 0;
+    const isNameValid = qualificationForm.name.trim().length > 0;
+    const isEmailValid = qualificationForm.email.trim().length > 0 && qualificationForm.email.includes('@');
+    const isDescriptionValid = qualificationForm.ideaDescription.trim().length >= 10;
+    const isStageValid = qualificationForm.stage.trim().length > 0;
 
-    if (!isValid) {
-      toast.error('Please complete all required fields (Name, Email, Idea Description, and Stage).');
+    if (!isNameValid) {
+      toast.error('Please enter your full name.');
+      return;
+    }
+    if (!isEmailValid) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+    if (!isDescriptionValid) {
+      toast.error('Please describe your idea (at least 10 characters).');
+      return;
+    }
+    if (!isStageValid) {
+      toast.error('Please select your idea stage.');
       return;
     }
 
@@ -173,6 +184,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                     <SelectItem value="mvp">MVP</SelectItem>
                     <SelectItem value="early-revenue">Early Revenue</SelectItem>
                     <SelectItem value="growth">Growth</SelectItem>
+                    <SelectItem value="scale">Scale</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

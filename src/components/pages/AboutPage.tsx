@@ -115,14 +115,22 @@ export function AboutPage() {
             {timeline.map((item, index) => (
               <motion.div
                 key={`${item.month}-${item.year}`}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                initial={{ opacity: 0, x: -30, scale: 0.95 }}
+                whileInView={{ opacity: 1, x: 0, scale: 1 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ 
+                  delay: index * 0.15,
+                  duration: 0.5,
+                  ease: [0.25, 0.1, 0.25, 1]
+                }}
                 className="flex gap-6 items-center"
               >
-                <div className="flex-shrink-0">
-                  <div className="flex h-24 w-24 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-lg">
+                <motion.div 
+                  className="flex-shrink-0"
+                  whileHover={{ scale: 1.05, rotate: 2 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <div className="flex h-24 w-24 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-lg hover:shadow-xl transition-shadow duration-300">
                     {/* Month Header */}
                     <div className="flex h-8 items-center justify-center bg-gradient-to-r from-primary to-purple-600">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-white">
@@ -136,8 +144,8 @@ export function AboutPage() {
                       </span>
                     </div>
                   </div>
-                </div>
-                <Card className="border-border/50 flex-1">
+                </motion.div>
+                <Card className="border-border/50 flex-1 hover:border-primary/30 transition-colors duration-300">
                   <CardContent className="p-6">
                     <h3 className="mb-1 text-xl font-bold">{item.event}</h3>
                     <p className="text-muted-foreground leading-relaxed">{item.desc}</p>

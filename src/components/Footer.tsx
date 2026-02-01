@@ -18,11 +18,11 @@ export function Footer({ onNavigate }: FooterProps) {
               AI-powered platform helping founders validate and launch successful startups.
             </p>
             <a
-              href="mailto:support@motif.com"
+              href="mailto:teammotif.ai@gmail.com"
               className="text-muted-foreground hover:text-primary flex items-center gap-2 transition-colors"
             >
               <Mail className="h-4 w-4" />
-              <span className="text-sm">support@motif.com</span>
+              <span className="text-sm">teammotif.ai@gmail.com</span>
             </a>
           </div>
 

@@ -46,6 +46,12 @@ const emojis = [
   '🎨', '🧠', '👨‍💼', '👩‍💼', '🦄', '🌈', '⚡',
 ];
 
+// Helper function to check if avatar is a URL or an emoji
+function isAvatarUrl(avatar: string | undefined): boolean {
+  if (!avatar) return false;
+  return avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:');
+}
+
 // ============================================================================
 // 🔒 EXPLICIT STATE MACHINE (5 STATES - DETERMINISTIC)
 // ============================================================================
@@ -943,8 +949,14 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
                       <div className="flex items-start gap-6">
                         <Avatar className="h-24 w-24 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/40 transition-all" onClick={() => setIsAvatarModalOpen(true)}>
-                          <AvatarImage src={displayProfile.avatar} />
-                          <AvatarFallback className="text-4xl">{getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+                          {isAvatarUrl(displayProfile.avatar) ? (
+                            <AvatarImage src={displayProfile.avatar} />
+                          ) : null}
+                          <AvatarFallback className="text-4xl">
+                            {displayProfile.avatar && !isAvatarUrl(displayProfile.avatar) 
+                              ? displayProfile.avatar 
+                              : getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}
+                          </AvatarFallback>
                         </Avatar>
                         <div className="space-y-3">
                           <div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle, Linkedin } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 
@@ -284,6 +284,33 @@ export function AuthPage({ onLogin }: AuthPageProps) {
     toast.error('Failed to sign in with Google. Please try again.');
   };
 
+  const handleLinkedInSignIn = async () => {
+    if (!supabaseConfigured) {
+      toast.error('Supabase credentials are missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY and restart.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'linkedin_oidc',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        console.error('LinkedIn Login Error:', error);
+        toast.error(error.message || 'Failed to sign in with LinkedIn. Please try again.');
+      }
+    } catch (error) {
+      console.error('LinkedIn Login Failed:', error);
+      toast.error('Failed to sign in with LinkedIn. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="bg-background min-h-screen flex items-center justify-center py-12 px-4">
       {/* Auth Form Section */}
@@ -488,6 +515,20 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                         width="100%"
                       />
                     </div>
+
+                    {/* LinkedIn Sign In */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleLinkedInSignIn}
+                      disabled={!supabaseConfigured || isLoading}
+                      className="w-full h-12 rounded-xl mt-3 flex items-center justify-center gap-2 hover:bg-[#0077B5]/10 border-[#0077B5]/30"
+                    >
+                      <Linkedin className="h-5 w-5 text-[#0077B5]" />
+                      <span className="text-sm font-medium">
+                        {isLogin ? 'Sign in with LinkedIn' : 'Sign up with LinkedIn'}
+                      </span>
+                    </Button>
                   </>
                 )}
 

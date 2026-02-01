@@ -39,6 +39,7 @@ import VCDashboard from './components/pages/vc/VCDashboard';
 import VCStartups from './components/pages/vc/VCStartups';
 import VCStartupDetail from './components/pages/vc/VCStartupDetail';
 import VCPendingPage from './components/pages/vc/VCPendingPage';
+import VCOnboarding from './components/pages/vc/VCOnboarding';
 
 // Admin Pages
 import AdminDashboard from './components/pages/admin/AdminDashboard';
@@ -251,6 +252,14 @@ function AppContent() {
             element={
               <ProtectedRoute allowedRoles={[UserRole.VC]}>
                 <VCStartupDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vc/onboarding"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.VC, UserRole.VC_PENDING, UserRole.FOUNDER]}>
+                <VCOnboarding />
               </ProtectedRoute>
             }
           />

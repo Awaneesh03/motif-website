@@ -7,7 +7,6 @@ import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
 import { useUser } from '../contexts/UserContext';
-import { API_CONFIG, getAuthHeaders } from '../lib/apiConfig';
 
 interface ChatMessage {
   id: string;
@@ -20,29 +19,70 @@ interface ChatbotProps {
   isDark: boolean;
 }
 
+/**
+ * Send chat message directly to Groq API
+ * Using frontend API key for now until backend is hosted
+ */
 async function chatWithGroq(
   message: string,
   history: { role: string; content: string }[]
 ): Promise<string> {
   try {
-    const headers = await getAuthHeaders();
+    const apiKey = import.meta.env.VITE_GROQ_API_KEY;
 
-    const response = await fetch(`${API_CONFIG.baseURL}${API_CONFIG.endpoints.chat}`, {
+    if (!apiKey || apiKey === 'your_groq_api_key_here') {
+      throw new Error('Groq API key not configured. Please add VITE_GROQ_API_KEY to your .env file.');
+    }
+
+    // Build messages array with system prompt
+    const messages = [
+      {
+        role: 'system',
+        content: `You are Motif AI, a helpful assistant for the Motif platform that helps entrepreneurs and founders with their startup ideas. You specialize in:
+
+- Evaluating startup ideas and providing constructive feedback
+- Answering questions about business strategy, market validation, and product development
+- Offering insights on fundraising, growth strategies, and scaling
+- Providing resources and best practices for startups
+
+Be conversational, supportive, and practical. Provide actionable advice when possible.
+If you don't know something, admit it rather than making up information.
+Keep responses concise but informative.`
+      },
+      ...history,
+      {
+        role: 'user',
+        content: message
+      }
+    ];
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers,
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        message,
-        history: history.map(h => ({ role: h.role, content: h.content }))
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        temperature: 0.7,
+        max_tokens: 4000
       })
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Invalid API key. Please check your VITE_GROQ_API_KEY.');
+      }
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a moment.');
+      }
       const error = await response.json().catch(() => ({ message: 'Failed to send message' }));
       throw new Error(error.message || `API error: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.message || 'Sorry, I could not generate a response.';
+    return data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
   } catch (error) {
     console.error('Chat API error:', error);
     throw error;
@@ -121,7 +161,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
     setIsLoading(true);
 
     try {
-      // Send message to Groq API directly
+      // Send message to Groq API directly (temporary until backend is hosted)
       const history = messages.slice(1).map(msg => ({
         role: msg.role,
         content: msg.content
