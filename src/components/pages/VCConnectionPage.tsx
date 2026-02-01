@@ -262,27 +262,46 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
               {validatedIdeas.length === 0 ? (
                 <Card className="border-dashed border-2 border-muted-foreground/30">
                   <CardContent className="text-center py-10">
-                    <p className="text-muted-foreground mb-3">You don’t have any validated ideas yet.</p>
-                    <Button onClick={() => onNavigate?.('Idea Analyser')} className="rounded-xl">
-                      Run Idea Analyser
+                    <p className="text-muted-foreground mb-3">You don't have any validated ideas yet.</p>
+                    <Button onClick={() => {
+                      setFundingModalOpen(false);
+                      onNavigate?.('Idea Analyser');
+                    }} className="rounded-xl">
+                      Analyze Your First Idea
                     </Button>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid gap-4">
-                  {validatedIdeas.map((idea) => (
-                    <Card
-                      key={idea.id}
-                      className={`cursor-pointer border ${selectedIdea?.id === idea.id ? 'border-primary' : 'border-border'}`}
-                      onClick={() => setSelectedIdea(idea)}
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-muted-foreground">Select an idea or analyze a new one</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFundingModalOpen(false);
+                        onNavigate?.('Idea Analyser');
+                      }}
+                      className="rounded-xl"
                     >
-                      <CardContent className="p-4">
-                        <h4 className="font-semibold">{idea.title}</h4>
-                        <p className="text-muted-foreground text-sm line-clamp-2">{idea.description}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                      + Analyze New Idea
+                    </Button>
+                  </div>
+                  <div className="grid gap-4">
+                    {validatedIdeas.map((idea) => (
+                      <Card
+                        key={idea.id}
+                        className={`cursor-pointer border ${selectedIdea?.id === idea.id ? 'border-primary' : 'border-border'}`}
+                        onClick={() => setSelectedIdea(idea)}
+                      >
+                        <CardContent className="p-4">
+                          <h4 className="font-semibold">{idea.title}</h4>
+                          <p className="text-muted-foreground text-sm line-clamp-2">{idea.description}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}

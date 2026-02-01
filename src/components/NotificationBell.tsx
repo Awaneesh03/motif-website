@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '../contexts/UserContext';
+import { supabase } from '../lib/supabase';
 import { getUnreadCount, getAllNotifications, getUserNotifications } from '../lib/notificationService';
 import { Button } from './ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -29,12 +30,42 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
       loadUnreadCount();
       loadNotifications();
 
-      // Poll for new notifications every 30 seconds
-      const interval = setInterval(() => {
-        loadUnreadCount();
-        loadNotifications();
-      }, 30000);
-      return () => clearInterval(interval);
+      // Subscribe to real-time notifications
+      const subscription = supabase
+        .channel(`notifications-bell:${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            // Reload notifications when new notification arrives
+            loadUnreadCount();
+            loadNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            // Reload when notification is updated (e.g., marked as read)
+            loadUnreadCount();
+            loadNotifications();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(subscription);
+      };
     } else {
       setUnreadCount(0);
       setNotifications([]);

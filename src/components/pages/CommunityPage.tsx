@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { TrendingUp, Clock, MessageCircle, Award, Send, Lightbulb, Loader2 } from 'lucide-react';
+import { TrendingUp, Clock, MessageCircle, Award, Send, Lightbulb, Loader2, Sparkles, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '../ui/button';
@@ -8,7 +8,7 @@ import { IdeaCard } from '../IdeaCard';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -276,6 +276,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   // Supabase community ideas
   const [supabaseIdeas, setSupabaseIdeas] = useState<CommunityIdea[]>([]);
   const [isLoadingCommunityIdeas, setIsLoadingCommunityIdeas] = useState(true);
+  const [postOptionDialogOpen, setPostOptionDialogOpen] = useState(false);
 
   useEffect(() => {
     persistCommunityIdeas(communityIdeas);
@@ -710,7 +711,8 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               Share your ideas, get feedback, and connect with fellow entrepreneurs
             </p>
             <div className="flex justify-center gap-4">
-              <Dialog open={postFormOpen} onOpenChange={setPostFormOpen}>
+              {/* Post Option Dialog */}
+              <Dialog open={postOptionDialogOpen} onOpenChange={setPostOptionDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
                     size="lg"
@@ -719,6 +721,62 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     Post an Idea
                   </Button>
                 </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Share Your Idea</DialogTitle>
+                    <DialogDescription>
+                      Choose how you'd like to proceed
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3 py-6">
+                    <Card
+                      className="cursor-pointer transition-all hover:border-primary hover:shadow-md"
+                      onClick={() => {
+                        setPostOptionDialogOpen(false);
+                        onNavigate?.('Idea Analyser');
+                      }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-purple-500/20">
+                            <Sparkles className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold mb-1">Analyze a New Idea</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Get AI-powered insights before sharing with the community
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card
+                      className="cursor-pointer transition-all hover:border-primary hover:shadow-md"
+                      onClick={() => {
+                        setPostOptionDialogOpen(false);
+                        setPostFormOpen(true);
+                      }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/20">
+                            <MessageSquare className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold mb-1">Post an Existing Analyzed Idea</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Share an idea you've already analyzed with AI
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Post Form Dialog */}
+              <Dialog open={postFormOpen} onOpenChange={setPostFormOpen}>
                 <DialogContent className="sm:max-w-lg">
                   <DialogHeader>
                     <DialogTitle>Share Your Startup Idea</DialogTitle>

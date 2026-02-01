@@ -145,6 +145,8 @@ export function Chatbot({ isDark }: ChatbotProps) {
         toast.error('Rate limit exceeded. Please try again in a moment.');
       } else if (errorMessage.includes('Not authenticated')) {
         toast.error('Please login to use the chat feature.');
+      } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network')) {
+        toast.error('Cannot connect to AI service. Please ensure the backend is running.');
       } else {
         toast.error(errorMessage);
       }
