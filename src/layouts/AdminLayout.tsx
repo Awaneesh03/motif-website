@@ -42,15 +42,15 @@ export const AdminLayout = () => {
                 className="flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors"
               >
                 <Shield className="h-5 w-5 text-blue-600" />
-                <span className="hidden xs:inline">Motif</span>
+                <span>Motif</span>
               </Link>
               <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700 hidden sm:inline-flex">
                 Admin
               </Badge>
             </div>
 
-            {/* Center Section - Primary Admin Navigation (Desktop/Large Tablet) */}
-            <div className="hidden lg:flex items-center space-x-1">
+            {/* Center Section - Primary Admin Navigation (Desktop/Tablet) */}
+            <div className="hidden md:flex items-center space-x-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
@@ -98,10 +98,10 @@ export const AdminLayout = () => {
                 <span className="hidden lg:inline">Sign out</span>
               </Button>
 
-              {/* Mobile/Tablet Menu Button */}
+              {/* Mobile Menu Button */}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
+                  <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
