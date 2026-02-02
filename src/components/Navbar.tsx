@@ -1,4 +1,4 @@
-import { Moon, Sun, Sparkles, User, MoreVertical, DollarSign } from 'lucide-react';
+import { Moon, Sun, Sparkles, User, Menu, DollarSign } from 'lucide-react';
 import { useState } from 'react';
 import { useUser } from '@/contexts/UserContext';
 
@@ -116,8 +116,8 @@ export function Navbar({
             {/* Mobile Menu - Three Dots */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full md:hidden">
-                  <MoreVertical className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="rounded-full md:hidden" aria-label="Open menu">
+                  <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] sm:w-[320px]">

@@ -665,14 +665,97 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Choose Your Avatar</DialogTitle>
-            <DialogDescription>Pick an emoji that represents you</DialogDescription>
+            <DialogDescription>Pick an emoji or upload a custom image</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-5 gap-2 py-4">
+          
+          {/* Current Avatar Preview */}
+          {displayProfile?.avatar && (
+            <div className="flex justify-center mb-4">
+              <div className="relative">
+                <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-primary/30 flex items-center justify-center bg-muted">
+                  {isAvatarUrl(displayProfile.avatar) ? (
+                    <img 
+                      src={displayProfile.avatar} 
+                      alt="Current avatar" 
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <span className="text-4xl">{displayProfile.avatar}</span>
+                  )}
+                </div>
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-xs text-muted-foreground bg-background px-2 rounded">
+                  Current
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Section */}
+          <div className="mb-4 p-4 border-2 border-dashed border-border rounded-lg text-center hover:border-primary/50 transition-colors">
+            <input
+              type="file"
+              id="avatar-upload"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !authUser) return;
+                
+                // Validate file size (max 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                  toast.error('Image must be less than 2MB');
+                  return;
+                }
+
+                try {
+                  // Upload to Supabase Storage
+                  const fileExt = file.name.split('.').pop();
+                  const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
+                  
+                  const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(fileName, file, { upsert: true });
+
+                  if (uploadError) {
+                    // If storage bucket doesn't exist, show helpful message
+                    if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
+                      toast.error('Avatar storage not configured. Using emoji avatars instead.');
+                      return;
+                    }
+                    throw uploadError;
+                  }
+
+                  // Get public URL
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(fileName);
+
+                  // Update profile with new avatar URL
+                  await handleAvatarChange(publicUrl);
+                  toast.success('Avatar uploaded successfully!');
+                } catch (error: any) {
+                  console.error('Avatar upload error:', error);
+                  toast.error(error?.message || 'Failed to upload avatar. Try an emoji instead.');
+                }
+              }}
+            />
+            <label htmlFor="avatar-upload" className="cursor-pointer">
+              <p className="text-sm font-medium text-primary mb-1">Upload Image</p>
+              <p className="text-xs text-muted-foreground">PNG, JPG up to 2MB</p>
+            </label>
+          </div>
+
+          <div className="text-center text-sm text-muted-foreground mb-2">or choose an emoji</div>
+          
+          <div className="grid grid-cols-5 gap-2 py-2">
             {emojis.map(emoji => (
               <Button
                 key={emoji}
                 variant="outline"
-                className="h-16 text-3xl hover:scale-110 transition-transform"
+                className="h-14 text-2xl hover:scale-110 transition-transform"
                 onClick={() => {
                   setSelectedEmoji(emoji);
                   handleAvatarChange(emoji);

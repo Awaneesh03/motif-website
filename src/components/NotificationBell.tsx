@@ -24,6 +24,8 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [serviceAvailable, setServiceAvailable] = useState(true);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -78,10 +80,14 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
     try {
       const count = await getUnreadCount(user.id);
       setUnreadCount(count);
-    } catch (error) {
-      // Silently fail - notifications are non-critical UI
-      console.warn('Failed to load notification count (non-critical):', error);
-      setUnreadCount(0); // Safe fallback
+      setServiceAvailable(true);
+      setLastError(null);
+    } catch (error: any) {
+      // Track service availability for UI feedback
+      console.warn('Failed to load notification count:', error);
+      setUnreadCount(0);
+      setServiceAvailable(false);
+      setLastError(error?.message || 'Service unavailable');
     }
   };
 
@@ -93,9 +99,13 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
         ? await getAllNotifications(10)
         : await getUserNotifications(user.id, 10);
       setNotifications(data);
-    } catch (error) {
-      console.warn('Failed to load notifications (non-critical):', error);
+      setServiceAvailable(true);
+      setLastError(null);
+    } catch (error: any) {
+      console.warn('Failed to load notifications:', error);
       setNotifications([]);
+      setServiceAvailable(false);
+      setLastError(error?.message || 'Service unavailable');
     }
   };
 
@@ -175,7 +185,21 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
         </div>
 
         <ScrollArea className="h-80">
-          {notifications.length === 0 ? (
+          {!serviceAvailable ? (
+            <div className="p-4 text-center text-muted-foreground">
+              <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Notifications unavailable</p>
+              <p className="text-xs mt-1 text-muted-foreground">
+                {lastError || 'Service temporarily unavailable. Please try again later.'}
+              </p>
+              <button
+                onClick={() => { loadUnreadCount(); loadNotifications(); }}
+                className="mt-3 text-xs text-primary hover:underline"
+              >
+                Retry
+              </button>
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
               <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No notifications yet</p>

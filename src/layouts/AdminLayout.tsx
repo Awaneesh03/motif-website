@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -6,16 +7,27 @@ import { AdminToolsDropdown } from '@/components/AdminToolsDropdown';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Building2, TrendingUp, LogOut, Shield, BookOpen, BarChart3 } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Building2, TrendingUp, LogOut, Shield, BookOpen, BarChart3, Menu } from 'lucide-react';
 
 export const AdminLayout = () => {
   const { profile } = useUser();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = '/auth';
   };
+
+  const navLinks = [
+    { to: '/admin/dashboard', icon: BarChart3, label: 'Dashboard' },
+    { to: '/admin/startups', icon: Building2, label: 'Startups' },
+    { to: '/admin/intro-requests', icon: TrendingUp, label: 'Intro Requests' },
+    { to: '/admin/case-studies', icon: BookOpen, label: 'Case Studies' },
+    { to: '/idea-analyser', icon: TrendingUp, label: 'Idea Analyser' },
+    { to: '/pitch-creator', icon: BookOpen, label: 'Pitch Creator' },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -24,162 +36,131 @@ export const AdminLayout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-14 items-center">
             {/* Left Section - Logo & Admin Badge */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 sm:gap-6">
               <Link
                 to="/admin/dashboard"
                 className="flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors"
               >
                 <Shield className="h-5 w-5 text-blue-600" />
-                Motif
+                <span className="hidden xs:inline">Motif</span>
               </Link>
-              <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700">
+              <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700 hidden sm:inline-flex">
                 Admin
               </Badge>
             </div>
 
-            {/* Center Section - Primary Admin Navigation */}
-            <div className="hidden md:flex items-center space-x-1">
-              <Link
-                to="/admin/dashboard"
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  location.pathname === '/admin/dashboard'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <BarChart3 className="h-4 w-4" />
-                Dashboard
-              </Link>
-              <Link
-                to="/admin/startups"
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  location.pathname === '/admin/startups'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <Building2 className="h-4 w-4" />
-                Startups
-              </Link>
-              <Link
-                to="/admin/intro-requests"
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  location.pathname === '/admin/intro-requests'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <TrendingUp className="h-4 w-4" />
-                Intro Requests
-              </Link>
-              <Link
-                to="/admin/case-studies"
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  location.pathname.startsWith('/admin/case-studies')
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <BookOpen className="h-4 w-4" />
-                Case Studies
-              </Link>
-              <Link
-                to="/idea-analyser"
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  location.pathname === '/idea-analyser'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <TrendingUp className="h-4 w-4" />
-                Idea Analyser
-              </Link>
-              <Link
-                to="/pitch-creator"
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  location.pathname === '/pitch-creator'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <BookOpen className="h-4 w-4" />
-                Pitch Creator
-              </Link>
+            {/* Center Section - Primary Admin Navigation (Desktop/Large Tablet) */}
+            <div className="hidden lg:flex items-center space-x-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    location.pathname === link.to || (link.to !== '/admin/dashboard' && location.pathname.startsWith(link.to))
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <link.icon className="h-4 w-4" />
+                  <span className="whitespace-nowrap">{link.label}</span>
+                </Link>
+              ))}
             </div>
 
-            {/* Right Section - Tools, Notifications, Profile, Logout */}
-            <div className="flex items-center gap-3">
-              <AdminToolsDropdown />
+            {/* Right Section - Tools, Notifications, Profile, Mobile Menu */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden sm:block">
+                <AdminToolsDropdown />
+              </div>
               <NotificationBell variant="default" />
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 cursor-default">
+              
+              {/* Profile - Hidden on small screens */}
+              <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 cursor-default">
                 <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                   <span className="text-xs font-semibold text-white">
                     {profile?.name?.charAt(0).toUpperCase() || 'A'}
                   </span>
                 </div>
-                <div className="hidden sm:block">
+                <div className="hidden lg:block">
                   <span className="text-sm font-medium text-gray-900">{profile?.name || 'Admin'}</span>
                 </div>
               </div>
+
+              {/* Logout Button - Hidden on mobile */}
               <Button
                 onClick={handleLogout}
                 variant="outline"
                 size="sm"
-                className="text-gray-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors flex items-center gap-2"
+                className="hidden sm:flex text-gray-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors items-center gap-2"
                 title="Sign out"
               >
                 <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sign out</span>
+                <span className="hidden lg:inline">Sign out</span>
               </Button>
-            </div>
-          </div>
-        </div>
 
-        {/* Mobile Navigation */}
-        <div className="md:hidden border-t border-gray-200 bg-gray-50">
-          <div className="px-4 py-3 space-y-1">
-            <Link
-              to="/admin/dashboard"
-              className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white rounded-md transition-colors"
-            >
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </Link>
-            <Link
-              to="/admin/startups"
-              className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white rounded-md transition-colors"
-            >
-              <Building2 className="h-4 w-4" />
-              Startups
-            </Link>
-            <Link
-              to="/admin/intro-requests"
-              className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white rounded-md transition-colors"
-            >
-              <TrendingUp className="h-4 w-4" />
-              Intro Requests
-            </Link>
-            <Link
-              to="/admin/case-studies"
-              className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white rounded-md transition-colors"
-            >
-              <BookOpen className="h-4 w-4" />
-              Case Studies
-            </Link>
-            <Link
-              to="/idea-analyser"
-              className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white rounded-md transition-colors"
-            >
-              <TrendingUp className="h-4 w-4" />
-              Idea Analyser
-            </Link>
-            <Link
-              to="/pitch-creator"
-              className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white rounded-md transition-colors"
-            >
-              <BookOpen className="h-4 w-4" />
-              Pitch Creator
-            </Link>
+              {/* Mobile/Tablet Menu Button */}
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px] sm:w-[320px]">
+                  <div className="mt-6 flex flex-col gap-2">
+                    {/* Profile in mobile menu */}
+                    <div className="flex items-center gap-3 px-4 py-3 mb-4 bg-gray-50 rounded-lg">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-white">
+                          {profile?.name?.charAt(0).toUpperCase() || 'A'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{profile?.name || 'Admin'}</p>
+                        <Badge variant="secondary" className="text-xs">Admin</Badge>
+                      </div>
+                    </div>
+
+                    {/* Navigation Links */}
+                    {navLinks.map((link) => (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                          location.pathname === link.to || (link.to !== '/admin/dashboard' && location.pathname.startsWith(link.to))
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        }`}
+                      >
+                        <link.icon className="h-4 w-4" />
+                        {link.label}
+                      </Link>
+                    ))}
+
+                    {/* Divider */}
+                    <div className="h-px bg-gray-200 my-4" />
+
+                    {/* Admin Tools in mobile */}
+                    <div className="px-4 sm:hidden">
+                      <AdminToolsDropdown />
+                    </div>
+
+                    {/* Logout Button */}
+                    <Button
+                      onClick={() => {
+                        handleLogout();
+                        setMobileMenuOpen(false);
+                      }}
+                      variant="outline"
+                      className="mx-4 mt-4 text-red-600 hover:bg-red-50 hover:border-red-200"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign out
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
       </nav>

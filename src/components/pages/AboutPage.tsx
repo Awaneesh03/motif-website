@@ -130,25 +130,25 @@ export function AboutPage() {
                   whileHover={{ scale: 1.05, rotate: 2 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  <div className="flex h-24 w-24 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex h-28 w-28 sm:h-32 sm:w-32 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-lg hover:shadow-xl transition-shadow duration-300">
                     {/* Month Header */}
-                    <div className="flex h-8 items-center justify-center bg-gradient-to-r from-primary to-purple-600">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-white">
+                    <div className="flex h-10 items-center justify-center bg-gradient-to-r from-primary to-purple-600">
+                      <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white">
                         {item.month}
                       </span>
                     </div>
                     {/* Year Body */}
                     <div className="flex flex-1 items-center justify-center bg-card">
-                      <span className="text-2xl font-bold text-foreground">
+                      <span className="text-2xl sm:text-3xl font-bold text-foreground">
                         {item.year}
                       </span>
                     </div>
                   </div>
                 </motion.div>
                 <Card className="border-border/50 flex-1 hover:border-primary/30 transition-colors duration-300">
-                  <CardContent className="p-6">
-                    <h3 className="mb-1 text-xl font-bold">{item.event}</h3>
-                    <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
+                  <CardContent className="p-5 sm:p-6">
+                    <h3 className="mb-2 text-lg sm:text-xl font-bold">{item.event}</h3>
+                    <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">{item.desc}</p>
                   </CardContent>
                 </Card>
               </motion.div>

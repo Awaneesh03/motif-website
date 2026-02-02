@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import {
   Target,
@@ -11,7 +11,11 @@ import {
   ArrowRight,
   MessageCircle,
   FileText,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
+import { useUser } from '../../contexts/UserContext';
+import { supabase } from '../../lib/supabase';
 
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -47,17 +51,20 @@ interface VCConnectionPageProps {
 const QUALIFICATION_STORAGE_KEY = 'motif-qualification-requests';
 const FUNDING_STORAGE_KEY = 'motif-funding-requests';
 
-// Mock data for validated ideas
-const MOCK_IDEAS = [
-  { id: 1, title: 'AI-Powered Resume Builder', score: 85, description: 'Automated resume creation using AI', category: 'SaaS' },
-  { id: 2, title: 'Sustainable Fashion Marketplace', score: 92, description: 'Platform for eco-friendly clothing', category: 'E-commerce' },
-  { id: 3, title: 'Local Food Delivery Network', score: 45, description: 'Community-based food delivery', category: 'Marketplace' },
-  { id: 4, title: 'EdTech Learning Platform', score: 78, description: 'Interactive online courses', category: 'Education' },
-  { id: 5, title: 'Smart Home Energy Manager', score: 60, description: 'AI-based energy optimization', category: 'IoT' },
-  { id: 6, title: 'Healthcare Appointment System', score: 88, description: 'Streamlined medical scheduling', category: 'Healthcare' },
-];
+// Minimum score required for funding eligibility
+const FUNDING_ELIGIBILITY_SCORE = 85;
+
+interface UserIdea {
+  id: string;
+  idea_title: string;
+  idea_description: string;
+  score: number;
+  target_market?: string;
+  created_at: string;
+}
 
 export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
+  const { user } = useUser();
   const [qualificationOpen, setQualificationOpen] = useState(false);
   const [qualificationForm, setQualificationForm] = useState({
     name: '',
@@ -68,14 +75,58 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
     fundingAmount: '',
   });
 
+  // User's analyzed ideas from Supabase
+  const [userIdeas, setUserIdeas] = useState<UserIdea[]>([]);
+  const [isLoadingIdeas, setIsLoadingIdeas] = useState(true);
+  const [ideasLoadError, setIdeasLoadError] = useState<string | null>(null);
+
   // Raise Funding Modal State
   const [fundingModalOpen, setFundingModalOpen] = useState(false);
   const [fundingStep, setFundingStep] = useState(1);
-  const [selectedIdea, setSelectedIdea] = useState<(typeof MOCK_IDEAS)[number] | null>(null);
+  const [selectedIdea, setSelectedIdea] = useState<UserIdea | null>(null);
   const [pitchFile, setPitchFile] = useState<File | null>(null);
 
-  // Filter ideas with score > 70%
-  const validatedIdeas = MOCK_IDEAS.filter(idea => idea.score > 70);
+  // Load user's analyzed ideas from Supabase
+  useEffect(() => {
+    if (user) {
+      loadUserIdeas();
+    } else {
+      setIsLoadingIdeas(false);
+      setUserIdeas([]);
+    }
+  }, [user]);
+
+  const loadUserIdeas = async () => {
+    if (!user) return;
+
+    setIsLoadingIdeas(true);
+    setIdeasLoadError(null);
+
+    try {
+      const { data, error } = await supabase
+        .from('idea_analyses')
+        .select('id, idea_title, idea_description, score, target_market, created_at')
+        .eq('user_id', user.id)
+        .order('score', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setUserIdeas(data || []);
+    } catch (error: any) {
+      console.error('Error loading ideas:', error);
+      setIdeasLoadError(error?.message || 'Failed to load your ideas');
+      setUserIdeas([]);
+    } finally {
+      setIsLoadingIdeas(false);
+    }
+  };
+
+  // Filter ideas with score >= 85 (funding eligibility threshold)
+  const fundingEligibleIdeas = userIdeas.filter(idea => idea.score >= FUNDING_ELIGIBILITY_SCORE);
+  // All ideas with score > 70 for general view
+  const validatedIdeas = userIdeas.filter(idea => idea.score > 70);
 
   const handleQualificationSubmit = () => {
     const isNameValid = qualificationForm.name.trim().length > 0;
@@ -271,22 +322,94 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
           {/* Step 1: Select Validated Idea */}
           {fundingStep === 1 && (
             <div className="space-y-6 py-4">
-              {validatedIdeas.length === 0 ? (
+              {/* Loading State */}
+              {isLoadingIdeas ? (
                 <Card className="border-dashed border-2 border-muted-foreground/30">
                   <CardContent className="text-center py-10">
-                    <p className="text-muted-foreground mb-3">You don't have any validated ideas yet.</p>
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
+                    <p className="text-muted-foreground">Loading your analyzed ideas...</p>
+                  </CardContent>
+                </Card>
+              ) : ideasLoadError ? (
+                /* Error State */
+                <Card className="border-dashed border-2 border-red-300 bg-red-50 dark:bg-red-900/10">
+                  <CardContent className="text-center py-10">
+                    <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-3" />
+                    <p className="text-red-700 dark:text-red-400 mb-3">{ideasLoadError}</p>
+                    <Button onClick={loadUserIdeas} variant="outline" className="rounded-xl">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Retry
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : !user ? (
+                /* Not Logged In State */
+                <Card className="border-dashed border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/10">
+                  <CardContent className="text-center py-10">
+                    <AlertCircle className="h-8 w-8 text-amber-500 mx-auto mb-3" />
+                    <p className="text-amber-700 dark:text-amber-400 mb-3">Please sign in to view your ideas</p>
                     <Button onClick={() => {
                       setFundingModalOpen(false);
-                      onNavigate?.('Idea Analyser');
+                      onNavigate?.('Auth');
                     }} className="rounded-xl">
-                      Analyze Your First Idea
+                      Sign In
                     </Button>
+                  </CardContent>
+                </Card>
+              ) : fundingEligibleIdeas.length === 0 ? (
+                /* No Eligible Ideas State - Score < 85 */
+                <Card className="border-dashed border-2 border-muted-foreground/30">
+                  <CardContent className="text-center py-10">
+                    {validatedIdeas.length > 0 ? (
+                      <>
+                        <Target className="h-12 w-12 text-amber-500 mx-auto mb-3" />
+                        <p className="text-lg font-semibold mb-2">Almost There!</p>
+                        <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                          You have {validatedIdeas.length} validated idea{validatedIdeas.length > 1 ? 's' : ''}, but 
+                          funding eligibility requires a score of <strong>{FUNDING_ELIGIBILITY_SCORE}+</strong>.
+                        </p>
+                        <div className="bg-muted/50 rounded-lg p-4 mb-4 max-w-md mx-auto">
+                          <p className="text-sm text-muted-foreground">Your highest score: <strong>{Math.max(...validatedIdeas.map(i => i.score))}%</strong></p>
+                          <p className="text-xs text-muted-foreground mt-1">Improve your idea description or try a new analysis</p>
+                        </div>
+                        <Button onClick={() => {
+                          setFundingModalOpen(false);
+                          onNavigate?.('Idea Analyser');
+                        }} className="rounded-xl">
+                          Improve Your Ideas
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-muted-foreground mb-3">You don't have any validated ideas yet.</p>
+                        <Button onClick={() => {
+                          setFundingModalOpen(false);
+                          onNavigate?.('Idea Analyser');
+                        }} className="rounded-xl">
+                          Analyze Your First Idea
+                        </Button>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               ) : (
                 <>
+                  {/* Funding Eligibility Notice */}
+                  <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-green-800 dark:text-green-200">
+                          {fundingEligibleIdeas.length} idea{fundingEligibleIdeas.length > 1 ? 's' : ''} eligible for funding
+                        </p>
+                        <p className="text-sm text-green-700 dark:text-green-300">
+                          Ideas with a score of {FUNDING_ELIGIBILITY_SCORE}+ qualify for VC introductions
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm text-muted-foreground">Select an idea or analyze a new one</p>
+                    <p className="text-sm text-muted-foreground">Select an eligible idea (score ≥ {FUNDING_ELIGIBILITY_SCORE})</p>
                     <Button
                       variant="outline"
                       size="sm"
@@ -299,16 +422,33 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                       + Analyze New Idea
                     </Button>
                   </div>
-                  <div className="grid gap-4">
-                    {validatedIdeas.map((idea) => (
+                  <div className="grid gap-4 max-h-[300px] overflow-y-auto pr-2">
+                    {fundingEligibleIdeas.map((idea) => (
                       <Card
                         key={idea.id}
-                        className={`cursor-pointer border ${selectedIdea?.id === idea.id ? 'border-primary' : 'border-border'}`}
+                        className={`cursor-pointer border transition-all ${selectedIdea?.id === idea.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
                         onClick={() => setSelectedIdea(idea)}
                       >
                         <CardContent className="p-4">
-                          <h4 className="font-semibold">{idea.title}</h4>
-                          <p className="text-muted-foreground text-sm line-clamp-2">{idea.description}</p>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold">{idea.idea_title}</h4>
+                              <p className="text-muted-foreground text-sm line-clamp-2">{idea.idea_description}</p>
+                              {idea.target_market && (
+                                <p className="text-xs text-muted-foreground mt-1">Target: {idea.target_market}</p>
+                              )}
+                            </div>
+                            <div className="flex-shrink-0 flex flex-col items-center">
+                              <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                                idea.score >= 90 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                idea.score >= 85 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                              }`}>
+                                {idea.score}
+                              </div>
+                              <span className="text-[10px] text-muted-foreground mt-1">Score</span>
+                            </div>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -394,10 +534,14 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                     const existing = stored ? JSON.parse(stored) : [];
                     const newEntry = {
                       ideaId: selectedIdea?.id,
-                      ideaTitle: selectedIdea?.title,
+                      ideaTitle: selectedIdea?.idea_title,
+                      ideaScore: selectedIdea?.score,
                       pitchFileName: pitchFile.name,
                       pitchFileSize: pitchFile.size,
                       createdAt: new Date().toISOString(),
+                      // TODO: Backend API - When backend is deployed, replace localStorage with:
+                      // POST /api/funding-requests { ideaId, pitchFile }
+                      // This should upload to Supabase storage and create a funding_requests record
                     };
                     localStorage.setItem(FUNDING_STORAGE_KEY, JSON.stringify([newEntry, ...existing]));
                     toast.success('Funding request submitted. We’ll update you soon.');

@@ -292,4 +292,35 @@ html {
   .dark button[variant='secondary'] {
     color: #cbd5e1;
   }
+
+  /* Dark mode hover contrast improvements */
+  .dark a:hover,
+  .dark button:hover {
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* Improved Motif logo hover in dark mode */
+  .dark .text-gradient-lavender:hover {
+    filter: brightness(1.15);
+    transition: filter 0.2s ease-in-out;
+  }
+
+  /* Better contrast for navigation links in dark mode */
+  .dark nav a:hover,
+  .dark nav button:hover {
+    color: #e0e7ff;
+  }
+
+  /* Accessible focus states in dark mode */
+  .dark button:focus-visible,
+  .dark a:focus-visible {
+    outline: 2px solid #818cf8;
+    outline-offset: 2px;
+  }
+
+  /* Card hover improvements in dark mode */
+  .dark .card:hover,
+  .dark [class*="Card"]:hover {
+    border-color: rgba(129, 140, 248, 0.4);
+  }
 }

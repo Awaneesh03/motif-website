@@ -141,7 +141,28 @@ const VCOnboarding = () => {
           })
           .eq('id', profile.id);
 
-        if (error) throw error;
+        if (error) {
+          // Log detailed error for debugging
+          console.error('Supabase update error:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+          });
+          
+          // Provide specific error messages
+          if (error.code === '42501') {
+            toast.error('Permission denied. Please contact support.');
+          } else if (error.code === '23505') {
+            toast.error('Duplicate entry detected. Please refresh and try again.');
+          } else if (error.message?.includes('column')) {
+            // Schema mismatch - some columns may not exist
+            toast.error('Database schema issue. Some preferences may not have been saved. Please contact support.');
+          } else {
+            toast.error(`Failed to save: ${error.message || 'Unknown error'}`);
+          }
+          return;
+        }
       } else {
         // Demo mode - just simulate success
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -150,9 +171,9 @@ const VCOnboarding = () => {
       toast.success('Onboarding complete! Welcome to the VC Portal.');
       // Refresh the page to update profile
       window.location.href = '/vc/dashboard';
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving preferences:', error);
-      toast.error('Failed to save preferences. Please try again.');
+      toast.error(error?.message || 'Failed to save preferences. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
