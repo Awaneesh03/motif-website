@@ -777,7 +777,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
             <p className="mx-auto mb-8 max-w-2xl text-xl text-white/90">
               Share your ideas, get feedback, and connect with fellow entrepreneurs
             </p>
-            <div className="flex justify-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
               {/* Post Option Dialog */}
               <Dialog open={postOptionDialogOpen} onOpenChange={setPostOptionDialogOpen}>
                 <DialogTrigger asChild>
@@ -952,9 +952,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       {/* Main Content */}
       <section className="bg-background py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-3">
             {/* Ideas Feed */}
-            <div className="space-y-6 lg:col-span-2">
+            <div className="space-y-6 md:col-span-2">
               {/* Filters */}
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-2">

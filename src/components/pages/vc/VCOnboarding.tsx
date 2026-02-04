@@ -279,7 +279,7 @@ const VCOnboarding = () => {
                 </p>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {INDUSTRY_OPTIONS.map((industry) => (
                     <motion.div
                       key={industry}
@@ -364,7 +364,7 @@ const VCOnboarding = () => {
               <CardContent className="space-y-6">
                 <div>
                   <Label className="mb-3 block">Geographic Focus</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {GEOGRAPHY_OPTIONS.map((geo) => (
                       <motion.div
                         key={geo}

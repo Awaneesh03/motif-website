@@ -203,9 +203,9 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <section className="py-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-4 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-4">
             {/* Main Content Area */}
-            <div className="space-y-4 lg:col-span-3">
+            <div className="space-y-4 md:col-span-3">
               {/* Demo Mode Banner */}
               {isDemoMode && (
                 <motion.div
@@ -400,7 +400,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* Right Sidebar */}
-            <div className="space-y-4 lg:col-span-1">
+            <div className="space-y-4 md:col-span-1">
               {/* Admin Actions */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}

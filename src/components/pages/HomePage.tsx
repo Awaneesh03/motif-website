@@ -268,7 +268,7 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
             <h2 className="mb-4">How It Works</h2>
             <p className="text-muted-foreground">Four simple steps to validate your idea</p>
           </motion.div>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4">
             {[
               {
                 num: '01',
@@ -467,7 +467,7 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
             <h2 className="mb-4">Best Startups Grown from Our Platform</h2>
             <p className="text-muted-foreground">Success stories from founders who started here</p>
           </motion.div>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 name: 'CloudNest',

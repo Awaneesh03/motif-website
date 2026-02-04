@@ -180,9 +180,9 @@ const VCDashboard = () => {
             </motion.div>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-4">
             {/* Main Content Area */}
-            <div className="space-y-6 lg:col-span-3">
+            <div className="space-y-6 md:col-span-3">
               {/* Stats Cards */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {stats.map((stat, index) => (
@@ -435,7 +435,7 @@ const VCDashboard = () => {
             </div>
 
             {/* Right Sidebar */}
-            <div className="space-y-6 lg:col-span-1">
+            <div className="space-y-6 md:col-span-1">
               {/* Quick Actions */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}

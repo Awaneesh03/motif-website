@@ -465,7 +465,7 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
       {/* Main Content */}
       <section className="py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Input Form - Left Column */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -705,7 +705,7 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
               </Card>
 
               {/* Key Metrics */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                 <Card className="glass-card border-border/50">
                   <CardContent className="pt-6">
                     <div className="flex items-start gap-3">
@@ -816,13 +816,13 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
               <Card className="glass-card border-border/50 bg-gradient-to-br from-[#C9A7EB]/10 to-[#B084E8]/10">
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-                    <div>
+                    <div className="text-center md:text-left">
                       <h3 className="mb-1">Ready to validate your idea?</h3>
                       <p className="text-muted-foreground text-sm">
                         Join our community and get feedback from fellow founders
                       </p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         className="rounded-xl"
@@ -854,7 +854,7 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
               className="mt-12"
             >
               <h2 className="mb-4 text-center">How Our AI Analysis Works</h2>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
                 <Card className="glass-card border-border/50 text-center">
                   <CardContent className="pt-6">
                     <div className="gradient-lavender mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl">

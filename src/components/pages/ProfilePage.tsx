@@ -635,7 +635,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
             <DialogTitle>Select Startup Goals</DialogTitle>
             <DialogDescription>Choose the goals that resonate with your startup journey</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-4">
             {[
               'Build an MVP',
               'Get first users',
@@ -750,7 +750,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
 
           <div className="text-center text-sm text-muted-foreground mb-2">or choose an emoji</div>
           
-          <div className="grid grid-cols-5 gap-2 py-2">
+          <div className="grid grid-cols-5 sm:grid-cols-5 gap-2 py-2">
             {emojis.map(emoji => (
               <Button
                 key={emoji}
@@ -776,7 +776,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
             <DialogDescription>Update your founder profile information</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -811,7 +811,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Input
@@ -1127,7 +1127,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                 </Card>
 
                 {/* Stats Grid */}
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                   <Card>
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
@@ -1174,12 +1174,12 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
                         <p className="text-2xl font-bold">{investorReadiness.score}/100</p>
                         <p className="text-muted-foreground text-sm">{investorReadiness.level}</p>
                       </div>
-                      <Progress value={investorReadiness.score} className="h-2 w-48" />
+                      <Progress value={investorReadiness.score} className="h-2 w-full sm:w-48" />
                     </div>
 
                     {investorReadiness.strengths.length > 0 && (

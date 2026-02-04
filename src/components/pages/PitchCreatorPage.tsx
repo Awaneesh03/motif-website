@@ -281,7 +281,7 @@ Good luck with your pitch!
       {/* Main Content */}
       <section className="py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {/* Input Form - Left Column */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -472,7 +472,7 @@ Good luck with your pitch!
                 <CardTitle>Learn What Makes a Great Pitch</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
                   <div className="flex gap-3">
                     <div className="gradient-lavender flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
                       <Target className="h-5 w-5 text-white" />

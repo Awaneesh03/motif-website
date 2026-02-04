@@ -408,7 +408,7 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
           {activeTab === 'attempts' && (
             <div className="space-y-6">
               {/* Stats Overview */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">

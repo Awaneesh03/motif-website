@@ -147,7 +147,7 @@ const SubmitStartupPage = () => {
                       <p className="text-foreground">{submittedStartup.pitch}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
                           <Building2 className="h-4 w-4" />

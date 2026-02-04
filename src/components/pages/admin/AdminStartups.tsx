@@ -236,7 +236,7 @@ const AdminStartups = () => {
           )}
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 mb-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 mb-6">
             <Card className="glass-surface border-border/50">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
