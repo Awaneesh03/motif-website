@@ -182,7 +182,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="bg-background min-h-screen">
+    <div>
       {/* Header Section */}
       <section className="border-border border-b bg-background py-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

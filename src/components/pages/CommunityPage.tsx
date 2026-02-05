@@ -762,7 +762,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     : [];
 
   return (
-    <div className="min-h-screen">
+    <div className="bg-background">
       {/* Hero */}
       <section className="gradient-lavender relative overflow-hidden py-16">
         <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
@@ -1006,7 +1006,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               </div>
 
               {/* Ideas List */}
-              <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2">
+              <div className="space-y-4">
                 {ideas.length === 0 ? (
                   <Card className="border-dashed border-2">
                     <CardContent className="p-12 text-center">

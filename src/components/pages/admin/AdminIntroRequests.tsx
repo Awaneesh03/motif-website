@@ -179,9 +179,9 @@ const AdminIntroRequests = () => {
   const rejectedCount = requests.filter(r => r.status === 'rejected').length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       {/* Header */}
-      <section className="border-b border-border bg-background py-4">
+      <section className="border-b border-border py-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div>

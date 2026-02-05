@@ -8,7 +8,8 @@ import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { supabase, supabaseConfigured } from '../../lib/supabase';
+import { supabase, supabaseConfigured, setRememberMe, getRememberMe } from '../../lib/supabase';
+import { Checkbox } from '../ui/checkbox';
 
 interface AuthPageProps {
   onNavigate?: (page: string) => void;
@@ -33,6 +34,7 @@ export function AuthPage({ onLogin }: AuthPageProps) {
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [rememberMe, setRememberMeState] = useState(() => getRememberMe());
 
   // Clear errors when switching between login/signup
   useEffect(() => {
@@ -160,6 +162,9 @@ export function AuthPage({ onLogin }: AuthPageProps) {
       toast.error('Please fix the errors before submitting');
       return;
     }
+
+    // Set storage preference before auth call
+    setRememberMe(rememberMe);
 
     setIsLoading(true);
     const loadingTimeout = window.setTimeout(() => {
@@ -475,6 +480,20 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                       </p>
                     )}
                   </div>
+
+                  {/* Remember Me */}
+                  {isLogin && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <Checkbox
+                        id="rememberMe"
+                        checked={rememberMe}
+                        onCheckedChange={(checked) => setRememberMeState(checked === true)}
+                      />
+                      <Label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer select-none">
+                        Remember me for 30 days
+                      </Label>
+                    </div>
+                  )}
 
                   {/* Submit Button */}
                   <Button

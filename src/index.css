@@ -3940,8 +3940,13 @@
   .glass-surface {
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    background: #ffffff0a;
-    border: 1px solid #ffffff14;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .dark .glass-surface {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .shadow-lavender {
@@ -4193,7 +4198,7 @@
   --secondary: #a9f5d0;
   --secondary-foreground: #0e1020;
   --muted: #f3f4f6;
-  --muted-foreground: #b0b3c3;
+  --muted-foreground: #6b7280;
   --accent: #c9a7eb;
   --accent-foreground: #fff;
   --destructive: #ff7c7c;

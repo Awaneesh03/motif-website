@@ -13,6 +13,7 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  TrendingUp,
 } from 'lucide-react';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
@@ -54,6 +55,16 @@ const FUNDING_STORAGE_KEY = 'motif-funding-requests';
 // Minimum score required for funding eligibility
 const FUNDING_ELIGIBILITY_SCORE = 85;
 
+// Startup stages for dropdown
+const STARTUP_STAGES = [
+  { value: 'idea', label: 'Idea Stage' },
+  { value: 'mvp', label: 'MVP / Prototype' },
+  { value: 'pre_revenue', label: 'Pre-Revenue (with users)' },
+  { value: 'revenue_generating', label: 'Revenue Generating' },
+  { value: 'growth', label: 'Growth Stage' },
+  { value: 'scale', label: 'Scale / Expansion' },
+];
+
 interface UserIdea {
   id: string;
   idea_title: string;
@@ -85,6 +96,30 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   const [fundingStep, setFundingStep] = useState(1);
   const [selectedIdea, setSelectedIdea] = useState<UserIdea | null>(null);
   const [pitchFile, setPitchFile] = useState<File | null>(null);
+
+  // Founder Qualification Form State (Step 3)
+  const [founderQualificationForm, setFounderQualificationForm] = useState({
+    startupStage: '',
+    // Basic fields
+    companyName: '',
+    websiteUrl: '',
+    // Revenue Generating extended fields
+    monthlyRevenue: '',
+    revenueGrowthRate: '',
+    customerCount: '',
+    avgRevenuePerCustomer: '',
+    grossMargin: '',
+    burnRate: '',
+    runway: '',
+    teamSize: '',
+    fundingRaised: '',
+    fundingAsk: '',
+    useOfFunds: '',
+    industry: '',
+    businessModel: '',
+    competitiveAdvantage: '',
+    keyMetrics: '',
+  });
 
   // Load user's analyzed ideas from Supabase
   useEffect(() => {
@@ -159,7 +194,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
         createdAt: new Date().toISOString(),
       };
       localStorage.setItem(QUALIFICATION_STORAGE_KEY, JSON.stringify([newEntry, ...existing]));
-      toast.success('Qualification request submitted. We’ll follow up by email.');
+      toast.success('Qualification request submitted. We will follow up by email.');
       setQualificationForm({
         name: '',
         email: '',
@@ -307,15 +342,40 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
           setFundingStep(1);
           setSelectedIdea(null);
           setPitchFile(null);
+          setFounderQualificationForm({
+            startupStage: '',
+            companyName: '',
+            websiteUrl: '',
+            monthlyRevenue: '',
+            revenueGrowthRate: '',
+            customerCount: '',
+            avgRevenuePerCustomer: '',
+            grossMargin: '',
+            burnRate: '',
+            runway: '',
+            teamSize: '',
+            fundingRaised: '',
+            fundingAsk: '',
+            useOfFunds: '',
+            industry: '',
+            businessModel: '',
+            competitiveAdvantage: '',
+            keyMetrics: '',
+          });
         }
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-6">
             <DialogTitle className="text-2xl flex items-center justify-between">
               Raise Funding
+              <span className="text-sm font-normal text-muted-foreground">
+                Step {fundingStep} of 3
+              </span>
             </DialogTitle>
             <DialogDescription className="text-base">
-              Choose a validated idea and upload your pitch deck.
+              {fundingStep === 1 && 'Choose a validated idea to raise funding for.'}
+              {fundingStep === 2 && 'Upload your pitch deck for investor review.'}
+              {fundingStep === 3 && 'Tell us more about your startup to match you with the right VCs.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -506,9 +566,324 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
             </div>
           )}
 
+          {/* Step 3: Founder Qualification Form */}
+          {fundingStep === 3 && (
+            <div className="space-y-6 py-4">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-foreground">
+                      Pitch deck uploaded: {pitchFile?.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Now tell us more about your startup to help VCs evaluate your opportunity
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Startup Stage Dropdown */}
+              <div className="space-y-2">
+                <Label htmlFor="startup-stage" className="text-base font-semibold">
+                  What stage is your startup in? *
+                </Label>
+                <Select
+                  value={founderQualificationForm.startupStage}
+                  onValueChange={(value) => setFounderQualificationForm({ ...founderQualificationForm, startupStage: value })}
+                >
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue placeholder="Select your startup stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STARTUP_STAGES.map((stage) => (
+                      <SelectItem key={stage.value} value={stage.value}>
+                        {stage.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Basic Fields (always shown once stage is selected) */}
+              {founderQualificationForm.startupStage && (
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="company-name">Company Name *</Label>
+                      <Input
+                        id="company-name"
+                        value={founderQualificationForm.companyName}
+                        onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, companyName: e.target.value })}
+                        placeholder="Your company name"
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="website-url">Website URL</Label>
+                      <Input
+                        id="website-url"
+                        value={founderQualificationForm.websiteUrl}
+                        onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, websiteUrl: e.target.value })}
+                        placeholder="https://yourcompany.com"
+                        className="rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="industry">Industry *</Label>
+                      <Select
+                        value={founderQualificationForm.industry}
+                        onValueChange={(value) => setFounderQualificationForm({ ...founderQualificationForm, industry: value })}
+                      >
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Select industry" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="saas">SaaS / Software</SelectItem>
+                          <SelectItem value="fintech">FinTech</SelectItem>
+                          <SelectItem value="healthtech">HealthTech</SelectItem>
+                          <SelectItem value="edtech">EdTech</SelectItem>
+                          <SelectItem value="ecommerce">E-Commerce</SelectItem>
+                          <SelectItem value="marketplace">Marketplace</SelectItem>
+                          <SelectItem value="ai_ml">AI / ML</SelectItem>
+                          <SelectItem value="consumer">Consumer</SelectItem>
+                          <SelectItem value="enterprise">Enterprise</SelectItem>
+                          <SelectItem value="cleantech">CleanTech</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="team-size">Team Size *</Label>
+                      <Select
+                        value={founderQualificationForm.teamSize}
+                        onValueChange={(value) => setFounderQualificationForm({ ...founderQualificationForm, teamSize: value })}
+                      >
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Select team size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Solo Founder</SelectItem>
+                          <SelectItem value="2-5">2-5 people</SelectItem>
+                          <SelectItem value="6-10">6-10 people</SelectItem>
+                          <SelectItem value="11-25">11-25 people</SelectItem>
+                          <SelectItem value="26-50">26-50 people</SelectItem>
+                          <SelectItem value="50+">50+ people</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="funding-raised">Previous Funding Raised</Label>
+                      <Select
+                        value={founderQualificationForm.fundingRaised}
+                        onValueChange={(value) => setFounderQualificationForm({ ...founderQualificationForm, fundingRaised: value })}
+                      >
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Select amount" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bootstrapped">Bootstrapped / None</SelectItem>
+                          <SelectItem value="under_100k">Under $100K</SelectItem>
+                          <SelectItem value="100k_500k">$100K - $500K</SelectItem>
+                          <SelectItem value="500k_1m">$500K - $1M</SelectItem>
+                          <SelectItem value="1m_5m">$1M - $5M</SelectItem>
+                          <SelectItem value="5m_plus">$5M+</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="funding-ask">Current Funding Ask *</Label>
+                      <Input
+                        id="funding-ask"
+                        value={founderQualificationForm.fundingAsk}
+                        onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, fundingAsk: e.target.value })}
+                        placeholder="e.g., $500K"
+                        className="rounded-xl"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Revenue Generating Extended Form */}
+              {founderQualificationForm.startupStage === 'revenue_generating' && (
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <BarChart3 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-green-800 dark:text-green-200">
+                          Revenue Generating Startup
+                        </p>
+                        <p className="text-sm text-green-700 dark:text-green-300">
+                          VCs want to see your key metrics. Fill in as much as you can for a stronger profile.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <h4 className="font-semibold text-lg flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    Revenue & Financial Metrics
+                  </h4>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="monthly-revenue">Monthly Revenue (MRR) *</Label>
+                      <Input
+                        id="monthly-revenue"
+                        value={founderQualificationForm.monthlyRevenue}
+                        onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, monthlyRevenue: e.target.value })}
+                        placeholder="e.g., $10,000"
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="revenue-growth">Revenue Growth Rate (MoM) *</Label>
+                      <Input
+                        id="revenue-growth"
+                        value={founderQualificationForm.revenueGrowthRate}
+                        onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, revenueGrowthRate: e.target.value })}
+                        placeholder="e.g., 15%"
+                        className="rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="customer-count">Number of Paying Customers *</Label>
+                      <Input
+                        id="customer-count"
+                        value={founderQualificationForm.customerCount}
+                        onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, customerCount: e.target.value })}
+                        placeholder="e.g., 150"
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="arpc">Avg Revenue Per Customer (ARPC)</Label>
+                      <Input
+                        id="arpc"
+                        value={founderQualificationForm.avgRevenuePerCustomer}
+                        onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, avgRevenuePerCustomer: e.target.value })}
+                        placeholder="e.g., $67/month"
+                        className="rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="gross-margin">Gross Margin</Label>
+                      <Input
+                        id="gross-margin"
+                        value={founderQualificationForm.grossMargin}
+                        onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, grossMargin: e.target.value })}
+                        placeholder="e.g., 70%"
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="burn-rate">Monthly Burn Rate</Label>
+                      <Input
+                        id="burn-rate"
+                        value={founderQualificationForm.burnRate}
+                        onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, burnRate: e.target.value })}
+                        placeholder="e.g., $25,000"
+                        className="rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="runway">Current Runway</Label>
+                      <Select
+                        value={founderQualificationForm.runway}
+                        onValueChange={(value) => setFounderQualificationForm({ ...founderQualificationForm, runway: value })}
+                      >
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Select runway" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="less_than_3">Less than 3 months</SelectItem>
+                          <SelectItem value="3_6">3-6 months</SelectItem>
+                          <SelectItem value="6_12">6-12 months</SelectItem>
+                          <SelectItem value="12_18">12-18 months</SelectItem>
+                          <SelectItem value="18_plus">18+ months</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="business-model">Business Model *</Label>
+                      <Select
+                        value={founderQualificationForm.businessModel}
+                        onValueChange={(value) => setFounderQualificationForm({ ...founderQualificationForm, businessModel: value })}
+                      >
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Select business model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="subscription">Subscription (SaaS)</SelectItem>
+                          <SelectItem value="transactional">Transactional / Pay-per-use</SelectItem>
+                          <SelectItem value="marketplace">Marketplace (Take Rate)</SelectItem>
+                          <SelectItem value="freemium">Freemium</SelectItem>
+                          <SelectItem value="enterprise">Enterprise Licensing</SelectItem>
+                          <SelectItem value="advertising">Advertising</SelectItem>
+                          <SelectItem value="hardware">Hardware + Software</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="use-of-funds">Use of Funds *</Label>
+                    <Textarea
+                      id="use-of-funds"
+                      value={founderQualificationForm.useOfFunds}
+                      onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, useOfFunds: e.target.value })}
+                      placeholder="How will you use the funding? e.g., 40% Product Development, 30% Sales & Marketing, 20% Hiring, 10% Operations"
+                      className="rounded-xl min-h-[80px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="competitive-advantage">Competitive Advantage</Label>
+                    <Textarea
+                      id="competitive-advantage"
+                      value={founderQualificationForm.competitiveAdvantage}
+                      onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, competitiveAdvantage: e.target.value })}
+                      placeholder="What makes you different from competitors? What's your moat?"
+                      className="rounded-xl min-h-[80px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="key-metrics">Other Key Metrics</Label>
+                    <Textarea
+                      id="key-metrics"
+                      value={founderQualificationForm.keyMetrics}
+                      onChange={(e) => setFounderQualificationForm({ ...founderQualificationForm, keyMetrics: e.target.value })}
+                      placeholder="Any other metrics VCs should know? e.g., CAC, LTV, Churn Rate, NPS Score"
+                      className="rounded-xl min-h-[80px]"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <DialogFooter className="pt-6 gap-3">
-            {fundingStep === 2 && (
-              <Button variant="outline" onClick={() => setFundingStep(1)} className="px-6">
+            {(fundingStep === 2 || fundingStep === 3) && (
+              <Button variant="outline" onClick={() => setFundingStep(fundingStep - 1)} className="px-6">
                 Back
               </Button>
             )}
@@ -519,6 +894,26 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 setFundingStep(1);
                 setSelectedIdea(null);
                 setPitchFile(null);
+                setFounderQualificationForm({
+                  startupStage: '',
+                  companyName: '',
+                  websiteUrl: '',
+                  monthlyRevenue: '',
+                  revenueGrowthRate: '',
+                  customerCount: '',
+                  avgRevenuePerCustomer: '',
+                  grossMargin: '',
+                  burnRate: '',
+                  runway: '',
+                  teamSize: '',
+                  fundingRaised: '',
+                  fundingAsk: '',
+                  useOfFunds: '',
+                  industry: '',
+                  businessModel: '',
+                  competitiveAdvantage: '',
+                  keyMetrics: '',
+                });
               }}
               className="px-6"
             >
@@ -529,6 +924,33 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 if (fundingStep === 1 && selectedIdea) {
                   setFundingStep(2);
                 } else if (fundingStep === 2 && pitchFile) {
+                  setFundingStep(3);
+                } else if (fundingStep === 3) {
+                  // Validate required fields
+                  const isBasicValid = founderQualificationForm.startupStage && 
+                    founderQualificationForm.companyName && 
+                    founderQualificationForm.industry && 
+                    founderQualificationForm.teamSize &&
+                    founderQualificationForm.fundingAsk;
+                  
+                  // Additional validation for revenue generating stage
+                  const isRevenueValid = founderQualificationForm.startupStage !== 'revenue_generating' || 
+                    (founderQualificationForm.monthlyRevenue && 
+                     founderQualificationForm.revenueGrowthRate && 
+                     founderQualificationForm.customerCount &&
+                     founderQualificationForm.businessModel &&
+                     founderQualificationForm.useOfFunds);
+                  
+                  if (!isBasicValid) {
+                    toast.error('Please fill in all required fields');
+                    return;
+                  }
+                  
+                  if (!isRevenueValid) {
+                    toast.error('Please fill in all required revenue metrics');
+                    return;
+                  }
+
                   try {
                     const stored = localStorage.getItem(FUNDING_STORAGE_KEY);
                     const existing = stored ? JSON.parse(stored) : [];
@@ -536,29 +958,51 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                       ideaId: selectedIdea?.id,
                       ideaTitle: selectedIdea?.idea_title,
                       ideaScore: selectedIdea?.score,
-                      pitchFileName: pitchFile.name,
-                      pitchFileSize: pitchFile.size,
+                      pitchFileName: pitchFile?.name,
+                      pitchFileSize: pitchFile?.size,
+                      founderQualification: founderQualificationForm,
                       createdAt: new Date().toISOString(),
-                      // TODO: Backend API - When backend is deployed, replace localStorage with:
-                      // POST /api/funding-requests { ideaId, pitchFile }
-                      // This should upload to Supabase storage and create a funding_requests record
                     };
                     localStorage.setItem(FUNDING_STORAGE_KEY, JSON.stringify([newEntry, ...existing]));
-                    toast.success('Funding request submitted. We’ll update you soon.');
+                    toast.success('Funding request submitted successfully! We will review and connect you with relevant VCs.');
                     setFundingModalOpen(false);
                     setFundingStep(1);
                     setSelectedIdea(null);
                     setPitchFile(null);
+                    setFounderQualificationForm({
+                      startupStage: '',
+                      companyName: '',
+                      websiteUrl: '',
+                      monthlyRevenue: '',
+                      revenueGrowthRate: '',
+                      customerCount: '',
+                      avgRevenuePerCustomer: '',
+                      grossMargin: '',
+                      burnRate: '',
+                      runway: '',
+                      teamSize: '',
+                      fundingRaised: '',
+                      fundingAsk: '',
+                      useOfFunds: '',
+                      industry: '',
+                      businessModel: '',
+                      competitiveAdvantage: '',
+                      keyMetrics: '',
+                    });
                   } catch (error) {
                     console.error('Funding request submission failed:', error);
                     toast.error('Failed to submit your request. Please try again.');
                   }
                 }
               }}
-              disabled={fundingStep === 1 ? !selectedIdea : !pitchFile}
+              disabled={
+                (fundingStep === 1 && !selectedIdea) || 
+                (fundingStep === 2 && !pitchFile) ||
+                (fundingStep === 3 && !founderQualificationForm.startupStage)
+              }
               className="gradient-lavender text-white px-8"
             >
-              {fundingStep === 1 ? 'Next' : 'Submit Request'}
+              {fundingStep === 1 ? 'Next' : fundingStep === 2 ? 'Next' : 'Submit Request'}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </DialogFooter>

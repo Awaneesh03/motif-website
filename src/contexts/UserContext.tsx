@@ -81,6 +81,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
         ]);
 
         if (!error && profile) {
+          // Map avatar_url from DB to avatar for internal use
+          if (profile.avatar_url !== undefined && !profile.avatar) {
+            profile.avatar = profile.avatar_url;
+          }
+
           // Profile exists - ensure role is set
           if (!profile.role || profile.role === 'no-role') {
             const updatedProfile = { ...profile, role: 'founder' };
@@ -104,13 +109,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
           // Profile doesn't exist - create one with default founder role
           console.log('[UserContext] Profile not found, creating default profile...');
 
+          const avatarValue = authUser.user_metadata?.avatar_url || '';
           const defaultProfile = {
             id: authUser.id,
             name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
             email: authUser.email || '',
             about: '',
             linkedin: '',
-            avatar: authUser.user_metadata?.avatar_url || '',
+            avatar_url: avatarValue,
             role: 'founder', // Default to founder role
             location: '',
             education: '',
@@ -129,13 +135,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
           if (!insertError && newProfile) {
             console.log('✅ Profile auto-created successfully');
+            // Map avatar_url from DB to avatar for internal use
+            newProfile.avatar = newProfile.avatar_url || avatarValue;
             setProfile(newProfile);
             setDisplayName(resolveDisplayName(newProfile, authUser));
           } else {
             // If insert fails (e.g., RLS policy), use in-memory profile
             console.warn('⚠️ Failed to create profile in database, using in-memory profile:', insertError);
-            setProfile(defaultProfile as any);
-            setDisplayName(resolveDisplayName(defaultProfile as any, authUser));
+            const inMemoryProfile = { ...defaultProfile, avatar: avatarValue };
+            setProfile(inMemoryProfile as any);
+            setDisplayName(resolveDisplayName(inMemoryProfile as any, authUser));
           }
         }
       } else {
@@ -145,13 +154,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error loading user:', error);
       if (explicitUser) {
+        const fallbackAvatarUrl = explicitUser.user_metadata?.avatar_url || '';
         const fallbackProfile = {
           id: explicitUser.id,
           name: explicitUser.user_metadata?.full_name || explicitUser.email?.split('@')[0] || 'User',
           email: explicitUser.email || '',
           about: '',
           linkedin: '',
-          avatar: explicitUser.user_metadata?.avatar_url || '',
+          avatar: fallbackAvatarUrl,
           role: 'founder',
           location: '',
           education: '',

@@ -275,13 +275,14 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       setProfileCreationAttempted(true);
       setDataLoading(true);
 
+      const avatarValue = user.user_metadata?.avatar_url || '';
       const defaultProfile = {
         id: user.id,
         name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
         email: user.email || '',
         about: '',
         linkedin: '',
-        avatar: user.user_metadata?.avatar_url || '',
+        avatar_url: avatarValue,
         role: '',
         location: '',
         education: '',
@@ -293,8 +294,8 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
         currentStage: 'onboarding',
       };
 
-      // Set profile immediately in memory
-      setProfile(defaultProfile as any);
+      // Set profile immediately in memory (use 'avatar' for internal use)
+      setProfile({ ...defaultProfile, avatar: avatarValue } as any);
 
       // Try to save to database (non-blocking)
       const { error } = await supabase
@@ -579,7 +580,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
 
       const { error } = await supabase
         .from('profiles')
-        .update({ avatar: emoji })
+        .update({ avatar_url: emoji })
         .eq('id', authUser.id);
 
       if (error) throw error;
@@ -765,6 +766,11 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
               </Button>
             ))}
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAvatarModalOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

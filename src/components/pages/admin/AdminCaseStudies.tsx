@@ -129,9 +129,9 @@ const AdminCaseStudies = () => {
   };
 
   return (
-    <div className="bg-background min-h-screen">
+    <div>
       {/* Header Section */}
-      <section className="border-border border-b bg-background py-4">
+      <section className="border-border border-b py-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center justify-between">

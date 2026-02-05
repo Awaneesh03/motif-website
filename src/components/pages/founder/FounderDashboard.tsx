@@ -189,7 +189,7 @@ export function FounderDashboard() {
   );
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background">
       {/* Header Section */}
       <section className="via-background to-background border-border relative overflow-hidden border-b bg-gradient-to-br from-[#C9A7EB]/20 py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -235,9 +235,9 @@ export function FounderDashboard() {
             </motion.div>
           )}
 
-          <div className="grid gap-6 md:grid-cols-4">
+          <div className="grid gap-6 lg:grid-cols-4">
             {/* Main Content Area */}
-            <div className="space-y-6 md:col-span-3">
+            <div className="space-y-6 lg:col-span-3">
               {/* Stats Cards */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {stats.map((stat, index) => (
@@ -309,7 +309,7 @@ export function FounderDashboard() {
                         </div>
 
                         {/* Demo Startup Cards */}
-                        <div className="grid gap-4 md:grid-cols-2 mb-6">
+                        <div className="grid gap-4 sm:grid-cols-2 mb-6">
                           {demoFounderStartups.map((demoStartup, index) => {
                             const getStatusInfo = (status: string) => {
                               switch (status) {
@@ -423,7 +423,7 @@ export function FounderDashboard() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-4 sm:grid-cols-2">
                         {myStartups.map((startup, index) => {
                           // Helper function to get status text and description
                           const getStatusInfo = (status: string) => {
@@ -573,7 +573,7 @@ export function FounderDashboard() {
             </div>
 
             {/* Right Sidebar */}
-            <div className="space-y-6 md:col-span-1">
+            <div className="space-y-6 lg:col-span-1">
               {/* Quick Actions */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}

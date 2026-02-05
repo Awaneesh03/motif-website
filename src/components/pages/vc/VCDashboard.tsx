@@ -128,7 +128,7 @@ const VCDashboard = () => {
   ];
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background">
       {/* Header Section */}
       <section className="via-background to-background border-border relative overflow-hidden border-b bg-gradient-to-br from-[#C9A7EB]/20 py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -180,9 +180,9 @@ const VCDashboard = () => {
             </motion.div>
           )}
 
-          <div className="grid gap-6 md:grid-cols-4">
+          <div className="grid gap-6 lg:grid-cols-4">
             {/* Main Content Area */}
-            <div className="space-y-6 md:col-span-3">
+            <div className="space-y-6 lg:col-span-3">
               {/* Stats Cards */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {stats.map((stat, index) => (
@@ -263,7 +263,7 @@ const VCDashboard = () => {
                         </div>
 
                         {/* Demo Startup Cards */}
-                        <div className="grid gap-4 md:grid-cols-2 mb-6">
+                        <div className="grid gap-4 sm:grid-cols-2 mb-6">
                           {demoVCStartups.slice(0, 3).map((demoStartup, index) => (
                             <motion.div
                               key={demoStartup.id}
@@ -306,7 +306,7 @@ const VCDashboard = () => {
                         <p>No approved startups yet.</p>
                       </div>
                     ) : (
-                      <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-4 sm:grid-cols-2">
                         {approvedStartups.slice(0, 4).map((startup) => (
                           <div
                             key={startup.id}
@@ -435,7 +435,7 @@ const VCDashboard = () => {
             </div>
 
             {/* Right Sidebar */}
-            <div className="space-y-6 md:col-span-1">
+            <div className="space-y-6 lg:col-span-1">
               {/* Quick Actions */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}

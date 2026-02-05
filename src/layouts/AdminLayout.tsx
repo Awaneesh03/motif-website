@@ -30,21 +30,21 @@ export const AdminLayout = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Clean Admin Navbar */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
+      <nav className="bg-background border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-14 items-center">
             {/* Left Section - Logo & Admin Badge */}
             <div className="flex items-center gap-3 sm:gap-6">
               <Link
                 to="/admin/dashboard"
-                className="flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+                className="flex items-center gap-2 text-lg font-semibold text-foreground hover:text-foreground/80 transition-colors"
               >
                 <Shield className="h-5 w-5 text-blue-600" />
                 <span>Motif</span>
               </Link>
-              <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700 hidden sm:inline-flex">
+              <Badge variant="secondary" className="text-xs font-medium hidden sm:inline-flex">
                 Admin
               </Badge>
             </div>
@@ -57,8 +57,8 @@ export const AdminLayout = () => {
                   to={link.to}
                   className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                     location.pathname === link.to || (link.to !== '/admin/dashboard' && location.pathname.startsWith(link.to))
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >
                   <link.icon className="h-4 w-4" />
@@ -73,16 +73,16 @@ export const AdminLayout = () => {
                 <AdminToolsDropdown />
               </div>
               <NotificationBell variant="default" />
-              
+
               {/* Profile - Hidden on small screens */}
-              <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 cursor-default">
+              <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted border border-border cursor-default">
                 <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                   <span className="text-xs font-semibold text-white">
                     {profile?.name?.charAt(0).toUpperCase() || 'A'}
                   </span>
                 </div>
                 <div className="hidden lg:block">
-                  <span className="text-sm font-medium text-gray-900">{profile?.name || 'Admin'}</span>
+                  <span className="text-sm font-medium text-foreground">{profile?.name || 'Admin'}</span>
                 </div>
               </div>
 
@@ -91,7 +91,7 @@ export const AdminLayout = () => {
                 onClick={handleLogout}
                 variant="outline"
                 size="sm"
-                className="hidden sm:flex text-gray-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors items-center gap-2"
+                className="hidden sm:flex text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800 transition-colors items-center gap-2"
                 title="Sign out"
               >
                 <LogOut className="h-4 w-4" />
@@ -108,14 +108,14 @@ export const AdminLayout = () => {
                 <SheetContent side="right" className="w-[280px] sm:w-[320px]">
                   <div className="mt-6 flex flex-col gap-2">
                     {/* Profile in mobile menu */}
-                    <div className="flex items-center gap-3 px-4 py-3 mb-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3 px-4 py-3 mb-4 bg-muted rounded-lg">
                       <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                         <span className="text-sm font-semibold text-white">
                           {profile?.name?.charAt(0).toUpperCase() || 'A'}
                         </span>
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{profile?.name || 'Admin'}</p>
+                        <p className="font-medium text-foreground">{profile?.name || 'Admin'}</p>
                         <Badge variant="secondary" className="text-xs">Admin</Badge>
                       </div>
                     </div>
@@ -128,8 +128,8 @@ export const AdminLayout = () => {
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                           location.pathname === link.to || (link.to !== '/admin/dashboard' && location.pathname.startsWith(link.to))
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                         }`}
                       >
                         <link.icon className="h-4 w-4" />
@@ -138,7 +138,7 @@ export const AdminLayout = () => {
                     ))}
 
                     {/* Divider */}
-                    <div className="h-px bg-gray-200 my-4" />
+                    <div className="h-px bg-border my-4" />
 
                     {/* Admin Tools in mobile */}
                     <div className="px-4 sm:hidden">
@@ -152,7 +152,7 @@ export const AdminLayout = () => {
                         setMobileMenuOpen(false);
                       }}
                       variant="outline"
-                      className="mx-4 mt-4 text-red-600 hover:bg-red-50 hover:border-red-200"
+                      className="mx-4 mt-4 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800"
                     >
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign out
@@ -165,8 +165,8 @@ export const AdminLayout = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content - no max-width here so pages can have full-width headers */}
+      <main>
         <ErrorBoundary
           fallback={
             <div className="flex min-h-[600px] flex-col items-center justify-center p-8">
