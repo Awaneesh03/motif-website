@@ -370,9 +370,9 @@ export function StartupDetailPage() {
       {/* Content */}
       <section className="py-8">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-3">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="md:col-span-2 space-y-6">
               {/* Status Section */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -736,7 +736,7 @@ export function StartupDetailPage() {
             </div>
 
             {/* Sidebar - Conditional Actions Based on Status */}
-            <div className="lg:col-span-1 space-y-6">
+            <div className="md:col-span-1 space-y-6">
               {/* DRAFT - Submit for Review */}
               {profile?.role === 'founder' && startup.status === 'draft' && (
                 <motion.div

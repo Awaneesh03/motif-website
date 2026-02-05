@@ -389,9 +389,9 @@ Provide a comprehensive evaluation. Return ONLY a JSON object with this exact st
 
       {/* Main Content */}
       <div className="mx-auto max-w-[1140px] px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-3">
           {/* Left Content */}
-          <div className="space-y-6 lg:col-span-2">
+          <div className="space-y-6 md:col-span-2">
             {/* Problem Overview */}
             <Card className="glass-surface border-border/50">
               <CardContent className="p-6">

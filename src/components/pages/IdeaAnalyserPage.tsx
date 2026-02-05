@@ -465,12 +465,12 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
       {/* Main Content */}
       <section className="py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {/* Input Form - Left Column */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-2"
+              className="md:col-span-2"
             >
               <Card className="glass-card border-border/50">
                 <CardHeader>

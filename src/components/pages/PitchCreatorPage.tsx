@@ -286,7 +286,7 @@ Good luck with your pitch!
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-2"
+              className="md:col-span-2"
             >
               <Card className="glass-surface border-border/50">
                 <CardHeader>

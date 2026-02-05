@@ -149,9 +149,9 @@ const VCStartupDetail = () => {
       {/* Content */}
       <section className="py-8">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-3">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="md:col-span-2 space-y-6">
               {/* Overview */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -292,7 +292,7 @@ const VCStartupDetail = () => {
             </div>
 
             {/* Sidebar - Request Intro */}
-            <div className="lg:col-span-1 space-y-6">
+            <div className="md:col-span-1 space-y-6">
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
