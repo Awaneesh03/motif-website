@@ -543,147 +543,93 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
 
           {/* Leaderboard Tab */}
           {activeTab === 'leaderboard' && (
-            <div className="space-y-4">
-              {/* Leaderboard Header */}
-              <Card className="gradient-lavender border-none text-white">
-                <CardContent className="p-5 sm:p-6">
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="text-3xl">🏆</span>
-                    <div className="text-center sm:text-left">
-                      <h2 className="text-xl sm:text-2xl font-bold">Top Performers</h2>
-                      <p className="text-white/80 text-sm">
-                        Compete with the best minds in startup strategy
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="space-y-3">
+              {/* Compact Header Banner */}
+              <div className="gradient-lavender rounded-xl px-4 py-3 flex items-center gap-2.5">
+                <span className="text-xl">🏆</span>
+                <div>
+                  <h2 className="text-white font-semibold text-base">Top Performers</h2>
+                  <p className="text-white/70 text-xs">Compete with the best in startup strategy</p>
+                </div>
+              </div>
 
-              {/* Your Rank Card */}
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="p-4 sm:p-5">
-                  <div className="flex items-center gap-4">
-                    {/* Rank Badge */}
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-xl shadow-md shrink-0">
-                      #42
-                    </div>
+              {/* Your Rank - Compact inline card */}
+              <div className="bg-primary/5 border border-primary/20 rounded-xl px-3 py-2.5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-white font-bold text-sm shrink-0">
+                  #42
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">Your Rank</p>
+                  <p className="text-muted-foreground text-xs">8 cases · 85% avg</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-base font-bold text-primary">1,234</p>
+                  <p className="text-[10px] text-muted-foreground">points</p>
+                </div>
+              </div>
 
-                    {/* User Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-lg">🏅</span>
-                        <p className="font-semibold text-base sm:text-lg truncate">You're doing great!</p>
-                      </div>
-                      <p className="text-muted-foreground text-xs sm:text-sm">8 cases completed</p>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="hidden sm:flex items-center gap-4 shrink-0">
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-primary">1,234</p>
-                        <p className="text-xs text-muted-foreground">Points</p>
-                      </div>
-                      <div className="h-8 w-px bg-border"></div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 justify-end">
-                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                          <span className="text-lg font-bold">85%</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Avg Score</p>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Mobile stats */}
-                  <div className="flex sm:hidden items-center justify-around mt-3 pt-3 border-t border-border/50">
-                    <div className="text-center">
-                      <p className="text-base font-bold text-primary">1,234</p>
-                      <p className="text-xs text-muted-foreground">Points</p>
-                    </div>
-                    <div className="h-6 w-px bg-border"></div>
-                    <div className="text-center">
-                      <div className="flex items-center gap-1 justify-center">
-                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                        <span className="text-base font-bold">85%</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Avg Score</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Global Leaderboard Table */}
+              {/* Global Leaderboard */}
               <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <span className="text-lg">🏆</span>
-                    Global Leaderboard
+                <CardHeader className="px-3 py-2.5 pb-2">
+                  <CardTitle className="text-sm font-semibold text-muted-foreground">
+                    Global Rankings
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-1">
+                <CardContent className="px-2 pb-2 pt-0">
+                  <div className="divide-y divide-border/30">
                     {mockLeaderboard.map((user, index) => (
                       <motion.div
                         key={user.rank}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                        className={`flex items-center gap-3 p-2.5 sm:p-3 rounded-lg transition-all hover:bg-muted/50 ${
-                          user.rank === 1
-                            ? 'bg-yellow-500/10 border border-yellow-500/20'
-                            : user.rank === 2
-                              ? 'bg-gray-500/10 border border-gray-500/20'
-                              : user.rank === 3
-                                ? 'bg-orange-500/10 border border-orange-500/20'
-                                : ''
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.02 }}
+                        className={`flex items-center gap-2.5 py-2 px-2 rounded-md transition-colors hover:bg-muted/40 ${
+                          user.rank <= 3 ? 'bg-muted/20' : ''
                         }`}
                       >
-                        {/* Rank Badge */}
-                        <div
-                          className={`flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm shrink-0 ${
-                            user.rank === 1
-                              ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white'
-                              : user.rank === 2
-                                ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white'
-                                : user.rank === 3
-                                  ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white'
-                                  : 'bg-muted text-muted-foreground'
-                          }`}
-                        >
+                        {/* Rank indicator */}
+                        <div className={`w-7 text-center shrink-0 ${
+                          user.rank === 1 ? 'text-yellow-500' :
+                          user.rank === 2 ? 'text-gray-400' :
+                          user.rank === 3 ? 'text-orange-500' :
+                          'text-muted-foreground'
+                        }`}>
                           {user.rank <= 3 ? (
-                            <span className="text-base">{user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : '🥉'}</span>
+                            <span className="text-lg">{user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : '🥉'}</span>
                           ) : (
-                            <span>#{user.rank}</span>
+                            <span className="text-xs font-medium">#{user.rank}</span>
                           )}
                         </div>
 
                         {/* Avatar */}
-                        <Avatar className="h-9 w-9 ring-1 ring-primary/10 shrink-0">
-                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-sm font-medium">
+                        <Avatar className="h-7 w-7 shrink-0">
+                          <AvatarFallback className="bg-muted text-xs font-medium">
                             {user.avatar}
                           </AvatarFallback>
                         </Avatar>
 
-                        {/* User Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm sm:text-base truncate">{user.name}</p>
-                          <p className="text-muted-foreground text-xs">
-                            {user.casesCompleted} cases
+                        {/* Name + cases inline */}
+                        <div className="flex-1 min-w-0 flex items-baseline gap-1.5">
+                          <p className={`text-sm truncate ${user.rank <= 3 ? 'font-semibold' : 'font-medium'}`}>
+                            {user.name}
                           </p>
+                          <span className="text-[10px] text-muted-foreground shrink-0 hidden sm:inline">
+                            {user.casesCompleted} cases
+                          </span>
                         </div>
 
-                        {/* Points */}
-                        <div className="text-right shrink-0">
-                          <div className="text-base sm:text-lg font-bold text-primary">{user.score.toLocaleString()}</div>
-                          <div className="text-[10px] sm:text-xs text-muted-foreground">pts</div>
+                        {/* Avg score - tablet+ */}
+                        <div className="hidden md:flex items-center gap-0.5 text-xs text-muted-foreground shrink-0">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <span>{user.avgScore}%</span>
                         </div>
 
-                        {/* Average Score - hidden on mobile */}
-                        <div className="hidden sm:block text-right shrink-0 w-16">
-                          <div className="flex items-center gap-0.5 justify-end">
-                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-semibold">{user.avgScore}%</span>
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">avg</div>
+                        {/* Points - always visible */}
+                        <div className="text-right shrink-0 w-14">
+                          <span className={`text-sm font-bold ${user.rank <= 3 ? 'text-primary' : ''}`}>
+                            {user.score.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground ml-0.5">pts</span>
                         </div>
                       </motion.div>
                     ))}
