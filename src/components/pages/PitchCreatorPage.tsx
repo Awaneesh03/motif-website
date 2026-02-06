@@ -257,36 +257,37 @@ Good luck with your pitch!
   };
 
   return (
-    <div className="bg-background min-h-screen">
-      {/* Hero Section */}
-      <section className="via-background to-background border-border relative overflow-hidden border-b bg-gradient-to-br from-[#C9A7EB]/20 py-12">
+    <div className="bg-background">
+      {/* Hero Section - Compact intro */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#C9A7EB]/15 via-background to-background py-6 sm:py-8">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center"
+            className="flex flex-col items-center gap-3 text-center sm:flex-row sm:gap-4 sm:text-left"
           >
-            <div className="gradient-lavender mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl">
-              <Presentation className="h-8 w-8 text-white" />
+            <div className="gradient-lavender flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl shadow-lavender">
+              <Presentation className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-gradient-lavender mb-4">Create Your Startup Pitch with AI</h1>
-            <p className="text-muted-foreground mx-auto max-w-2xl">
-              Turn your idea into a professional presentation in minutes. Our AI helps you craft a
-              compelling pitch deck.
-            </p>
+            <div>
+              <h1 className="text-gradient-lavender text-xl sm:text-2xl">Create Your Startup Pitch</h1>
+              <p className="text-muted-foreground text-sm mt-0.5">
+                Turn your idea into a professional pitch deck in minutes
+              </p>
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* Main Content */}
-      <section className="py-12">
+      <section className="py-6 sm:py-8">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Input Form - Left Column */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="md:col-span-2"
+              className="lg:col-span-2"
             >
               <Card className="glass-surface border-border/50">
                 <CardHeader>
@@ -425,33 +426,33 @@ Good luck with your pitch!
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="space-y-6"
+              className="space-y-4"
             >
               <Card className="glass-surface border-border/50">
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-base">Quick Tips</CardTitle>
                 </CardHeader>
-                <CardContent className="text-muted-foreground space-y-4 text-sm">
+                <CardContent className="text-muted-foreground space-y-3 text-sm">
                   <div className="flex gap-2">
-                    <CheckCircle className="text-primary mt-0.5 h-5 w-5 flex-shrink-0" />
+                    <CheckCircle className="text-primary mt-0.5 h-4 w-4 flex-shrink-0" />
                     <p>Keep your problem statement clear and concise</p>
                   </div>
                   <div className="flex gap-2">
-                    <CheckCircle className="text-primary mt-0.5 h-5 w-5 flex-shrink-0" />
+                    <CheckCircle className="text-primary mt-0.5 h-4 w-4 flex-shrink-0" />
                     <p>Focus on the unique value you bring</p>
                   </div>
                   <div className="flex gap-2">
-                    <CheckCircle className="text-primary mt-0.5 h-5 w-5 flex-shrink-0" />
+                    <CheckCircle className="text-primary mt-0.5 h-4 w-4 flex-shrink-0" />
                     <p>Use data to support your market claims</p>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="glass-surface border-border/50 bg-gradient-to-br from-[#C9A7EB]/10 to-[#B084E8]/10">
-                <CardContent className="pt-6">
-                  <div className="space-y-2 text-center">
-                    <Sparkles className="text-primary mx-auto h-8 w-8" />
-                    <p className="text-muted-foreground text-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3 text-center">
+                    <Sparkles className="text-primary h-6 w-6 flex-shrink-0" />
+                    <p className="text-muted-foreground text-sm text-left">
                       AI will generate a professional pitch deck based on your inputs
                     </p>
                   </div>
@@ -465,7 +466,7 @@ Good luck with your pitch!
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mt-12"
+            className="mt-8"
           >
             <Card className="glass-surface border-border/50">
               <CardHeader>
