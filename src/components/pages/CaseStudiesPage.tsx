@@ -553,18 +553,37 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                 </div>
               </div>
 
-              {/* Your Rank - Compact inline card */}
-              <div className="bg-primary/5 border border-primary/20 rounded-xl px-3 py-2.5 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-white font-bold text-sm shrink-0">
-                  #42
+              {/* Your Rank - Highlighted personal card */}
+              <div className="relative bg-gradient-to-r from-primary/15 via-primary/10 to-transparent rounded-xl p-4 ring-2 ring-primary/40 shadow-md">
+                {/* "You" badge */}
+                <div className="absolute -top-2 left-4 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                  You
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">Your Rank</p>
-                  <p className="text-muted-foreground text-xs">8 cases · 85% avg</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-base font-bold text-primary">1,234</p>
-                  <p className="text-[10px] text-muted-foreground">points</p>
+
+                <div className="flex items-center gap-4 mt-1">
+                  {/* Large rank badge */}
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-white font-bold text-lg shadow-lg shrink-0 ring-4 ring-primary/20">
+                    #42
+                  </div>
+
+                  {/* Info section */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-base text-foreground">Your Current Rank</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-sm text-muted-foreground">8 cases completed</span>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                        85% avg
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Points - prominent */}
+                  <div className="text-right shrink-0 bg-primary/10 rounded-lg px-3 py-2">
+                    <p className="text-2xl font-bold text-primary">1,234</p>
+                    <p className="text-xs text-muted-foreground">total points</p>
+                  </div>
                 </div>
               </div>
 
