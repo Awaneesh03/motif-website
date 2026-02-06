@@ -764,26 +764,26 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   return (
     <div className="bg-background">
       {/* Hero */}
-      <section className="gradient-lavender relative overflow-hidden py-20">
+      <section className="relative overflow-hidden py-12 md:py-14" style={{ background: 'linear-gradient(135deg, rgba(201, 167, 235, 0.85) 0%, rgba(176, 132, 232, 0.9) 100%)' }}>
         <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
           >
-            <h1 className="mb-4 font-['Poppins'] text-4xl font-bold text-white md:text-5xl">
-              Join the Founder Community
+            <h1 className="mb-3 font-['Poppins'] text-3xl font-bold text-white md:text-4xl">
+              Founder Community
             </h1>
-            <p className="mx-auto mb-10 max-w-2xl text-lg text-white/90">
+            <p className="mx-auto mb-6 max-w-xl text-base text-white/85">
               Share your ideas, get feedback, and connect with fellow entrepreneurs
             </p>
-            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
               {/* Post Option Dialog */}
               <Dialog open={postOptionDialogOpen} onOpenChange={setPostOptionDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
-                    size="lg"
-                    className="text-primary rounded-[16px] bg-white px-8 hover:bg-white/90"
+                    size="default"
+                    className="rounded-xl bg-white text-primary font-semibold px-6 hover:bg-white/95 shadow-lg"
                   >
                     Post an Idea
                   </Button>
@@ -950,36 +950,39 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       </section>
 
       {/* Main Content */}
-      <section className="bg-background py-16">
+      <section className="bg-background py-8 md:py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-3 lg:gap-8">
             {/* Ideas Feed */}
-            <div className="space-y-6 lg:col-span-2">
+            <div className="space-y-4 lg:col-span-2">
               {/* Filters */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant={filter === 'trending' ? 'default' : 'outline'}
                     onClick={() => handleFilterChange('trending')}
-                    className="rounded-full"
+                    size="sm"
+                    className="rounded-full h-8"
                   >
-                    <TrendingUp className="mr-2 h-4 w-4" />
+                    <TrendingUp className="mr-1.5 h-3.5 w-3.5" />
                     Trending
                   </Button>
                   <Button
                     variant={filter === 'new' ? 'default' : 'outline'}
                     onClick={() => handleFilterChange('new')}
-                    className="rounded-full"
+                    size="sm"
+                    className="rounded-full h-8"
                   >
-                    <Clock className="mr-2 h-4 w-4" />
+                    <Clock className="mr-1.5 h-3.5 w-3.5" />
                     New
                   </Button>
                   <Button
                     variant={filter === 'discussed' ? 'default' : 'outline'}
                     onClick={() => handleFilterChange('discussed')}
-                    className="rounded-full"
+                    size="sm"
+                    className="rounded-full h-8"
                   >
-                    <MessageCircle className="mr-2 h-4 w-4" />
+                    <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
                     Most Discussed
                   </Button>
                 </div>
@@ -1006,7 +1009,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               </div>
 
               {/* Ideas List */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {ideas.length === 0 ? (
                   <Card className="border-dashed border-2">
                     <CardContent className="p-12 text-center">
@@ -1054,8 +1057,8 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               </div>
 
               {hasMore && (
-                <div className="pt-4 text-center">
-                  <Button variant="outline" onClick={handleLoadMore} className="rounded-xl px-8">
+                <div className="pt-2 text-center">
+                  <Button variant="outline" size="sm" onClick={handleLoadMore} className="rounded-lg px-6">
                     Load More Ideas
                   </Button>
                 </div>
@@ -1063,10 +1066,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6">
-              <Card className="border-border/50">
-                <CardContent className="p-6">
-                  <h3 className="mb-4 font-semibold">Popular Tags</h3>
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border/40 bg-card/50 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">Popular Tags</h3>
                   <div className="flex flex-wrap gap-2">
                     {[
                       'AI',
@@ -1098,26 +1100,24 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                         setSelectedTag(null);
                         setDisplayCount(5);
                       }}
-                      className="mt-4 w-full text-xs"
+                      className="mt-3 w-full text-xs"
                     >
                       Clear filter
                     </Button>
                   )}
-                </CardContent>
-              </Card>
+              </div>
 
-              <Card className="border-border/50">
-                <CardContent className="p-6">
-                  <div className="mb-6 flex items-center gap-2">
-                    <Award className="text-primary h-5 w-5" />
-                    <h3>Top Contributors</h3>
-                  </div>
-                  <div className="space-y-4">
+              <div className="rounded-lg border border-border/40 bg-card/50 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Award className="text-primary h-4 w-4" />
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Top Contributors</h3>
+                </div>
+                <div className="space-y-3">
                     {leaderboard.map((user, index) => (
-                      <div key={user.name} className="flex items-center gap-3">
+                      <div key={user.name} className="flex items-center gap-2.5">
                         <div className="flex-shrink-0">
                           <div
-                            className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                            className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
                               index === 0
                                 ? 'bg-yellow-500 text-white'
                                 : index === 1
@@ -1131,16 +1131,15 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                           </div>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate">{user.name}</p>
-                          <p className="text-muted-foreground text-sm">
+                          <p className="truncate text-sm font-medium">{user.name}</p>
+                          <p className="text-muted-foreground text-xs">
                             {user.points} pts · {user.ideas} ideas
                           </p>
                         </div>
                       </div>
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           </div>
         </div>

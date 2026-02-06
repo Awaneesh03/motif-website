@@ -443,18 +443,18 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
   return (
     <div className="bg-background min-h-screen">
       {/* Header Section */}
-      <section className="via-background to-background border-border relative overflow-hidden border-b bg-gradient-to-br from-[#C9A7EB]/20 py-16">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden border-b border-border/50 bg-gradient-to-b from-[#C9A7EB]/15 via-background to-background py-8 md:py-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <div className="gradient-lavender mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl">
-              <Lightbulb className="h-8 w-8 text-white" />
+            <div className="gradient-lavender mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl">
+              <Lightbulb className="h-5 w-5 text-white" />
             </div>
-            <h1 className="text-gradient-lavender mb-4">AI Idea Analyser</h1>
-            <p className="text-muted-foreground mx-auto max-w-2xl">
+            <h1 className="text-gradient-lavender mb-2 text-2xl md:text-3xl font-bold">AI Idea Analyser</h1>
+            <p className="text-muted-foreground mx-auto max-w-xl text-sm md:text-base">
               Get instant AI-powered feedback on your startup idea. Analyze market potential,
               competition, and viability in seconds.
             </p>
@@ -463,44 +463,44 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
       </section>
 
       {/* Main Content */}
-      <section className="py-12">
+      <section className="py-6 md:py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
             {/* Input Form - Left Column */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               className="lg:col-span-8"
             >
-              <Card className="glass-card border-border/50">
-                <CardHeader className="pb-2">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <CardTitle className="flex items-center gap-2 text-xl">
-                      <Sparkles className="text-primary h-5 w-5" />
+              <Card className="glass-card border-border/50 shadow-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <Sparkles className="text-primary h-4 w-4" />
                       Tell Us About Your Idea
                     </CardTitle>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={() => onNavigate?.('saved-ideas')}
-                      className="rounded-xl w-fit"
+                      className="rounded-lg text-muted-foreground hover:text-foreground w-fit h-8 px-3"
                     >
-                      <FolderOpen className="mr-2 h-4 w-4" />
-                      View Saved Ideas
+                      <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
+                      Saved Ideas
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-6 pt-4">
+                <CardContent className="space-y-5 pt-2">
                   {/* Idea Generator Banner */}
-                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-purple-500/10 to-primary/10 p-5 border border-primary/20">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary flex-shrink-0">
-                          <Lightbulb className="h-6 w-6" />
+                  <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-primary/5 via-purple-500/5 to-primary/5 p-4 border border-primary/10">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary flex-shrink-0">
+                          <Lightbulb className="h-4 w-4" />
                         </div>
                         <div>
-                          <h4 className="font-semibold">Stuck for ideas?</h4>
-                          <p className="text-sm text-muted-foreground">Let AI spark your imagination</p>
+                          <h4 className="font-medium text-sm">Stuck for ideas?</h4>
+                          <p className="text-xs text-muted-foreground">Let AI spark your imagination</p>
                         </div>
                       </div>
                       <Button
@@ -526,14 +526,14 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                   </div>
 
                   {/* Idea Title */}
-                  <div className="space-y-2">
-                    <Label htmlFor="ideaTitle">Idea Title *</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ideaTitle" className="text-sm font-medium">Idea Title *</Label>
                     <Input
                       id="ideaTitle"
                       placeholder="e.g., AI-powered fitness coach for busy professionals"
                       value={ideaTitle}
                       onChange={e => setIdeaTitle(e.target.value)}
-                      className="h-12 rounded-xl"
+                      className="h-11 rounded-lg"
                       maxLength={100}
                     />
                     <p className="text-muted-foreground text-xs">
@@ -546,14 +546,14 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                   </div>
 
                   {/* Idea Description */}
-                  <div className="space-y-2">
-                    <Label htmlFor="ideaDescription">Detailed Description *</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ideaDescription" className="text-sm font-medium">Detailed Description *</Label>
                     <Textarea
                       id="ideaDescription"
                       placeholder="Example: A platform that helps students manage study schedules with AI reminders."
                       value={ideaDescription}
                       onChange={e => setIdeaDescription(e.target.value)}
-                      className="min-h-[160px] resize-none rounded-xl"
+                      className="min-h-[140px] resize-none rounded-lg"
                       maxLength={1000}
                     />
                     <div className="flex items-center justify-between">
@@ -587,9 +587,9 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                   </div>
 
                   {/* Target Market */}
-                  <div className="space-y-2">
-                    <Label>Target Market (Optional - select up to 3)</Label>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Target Market (Optional - select up to 3)</Label>
+                    <div className="flex flex-wrap gap-1.5">
                       {MARKET_OPTIONS.map((market) => (
                         <button
                           key={market}
@@ -616,7 +616,7 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                   <Button
                     onClick={handleAnalyze}
                     disabled={!isFormValid || isAnalyzing}
-                    className="gradient-lavender shadow-lavender h-12 w-full rounded-xl hover:opacity-90"
+                    className="gradient-lavender shadow-lavender h-11 w-full rounded-lg hover:opacity-90 mt-2"
                   >
                     {isAnalyzing ? (
                       <>
@@ -638,41 +638,38 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-4 space-y-6"
+              className="lg:col-span-4 space-y-4"
             >
-              <Card className="glass-card border-border/50">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold">Analysis Stats</CardTitle>
+              <Card className="border-border/50 shadow-sm">
+                <CardHeader className="pb-2 pt-4">
+                  <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Platform Stats</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 pt-2">
-                  <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                <CardContent className="space-y-2 pb-4">
+                  <div className="flex items-center justify-between py-2 border-b border-border/50">
                     <span className="text-muted-foreground text-sm">Ideas Analyzed</span>
-                    <span className="font-semibold text-lg">12,450</span>
+                    <span className="font-semibold">12,450</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                  <div className="flex items-center justify-between py-2 border-b border-border/50">
                     <span className="text-muted-foreground text-sm">Success Rate</span>
-                    <span className="font-semibold text-lg text-green-600">67%</span>
+                    <span className="font-semibold text-green-600">67%</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                  <div className="flex items-center justify-between py-2">
                     <span className="text-muted-foreground text-sm">Avg. Score</span>
-                    <span className="font-semibold text-lg">72/100</span>
+                    <span className="font-semibold">72/100</span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="glass-card border-border/50 bg-gradient-to-br from-[#C9A7EB]/10 to-[#B084E8]/10">
-                <CardContent className="p-6">
-                  <div className="space-y-4 text-center">
-                    <div className="gradient-lavender mx-auto flex h-14 w-14 items-center justify-center rounded-xl">
-                      <Sparkles className="h-7 w-7 text-white" />
-                    </div>
-                    <p className="text-muted-foreground">
-                      Our AI analyzes market data, competition, and trends to give you actionable
-                      insights.
-                    </p>
+              <div className="rounded-lg bg-gradient-to-br from-[#C9A7EB]/8 to-[#B084E8]/8 p-4 border border-primary/10">
+                <div className="flex items-start gap-3">
+                  <div className="gradient-lavender flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0">
+                    <Sparkles className="h-4 w-4 text-white" />
                   </div>
-                </CardContent>
-              </Card>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    Our AI analyzes market data, competition, and trends to give you actionable insights.
+                  </p>
+                </div>
+              </div>
             </motion.div>
           </div>
 
