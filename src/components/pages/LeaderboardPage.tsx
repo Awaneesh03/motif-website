@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Trophy, Medal, Award, TrendingUp } from 'lucide-react';
+import { Trophy, Medal, Award, TrendingUp, Target, BarChart3, User } from 'lucide-react';
 
 import { Card, CardContent } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -16,6 +16,15 @@ interface LeaderboardEntry {
   badges: string[];
   trend?: 'up' | 'down' | 'same';
 }
+
+// Current user's stats (would come from auth context in real app)
+const currentUserStats = {
+  rank: 42,
+  name: 'You',
+  points: 486,
+  casesCompleted: 3,
+  avgScore: 78,
+};
 
 const mockLeaderboard: LeaderboardEntry[] = [
   {
@@ -123,188 +132,219 @@ interface LeaderboardPageProps {
 
 export function LeaderboardPage({ onNavigate }: LeaderboardPageProps) {
   const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Trophy className="h-8 w-8 text-yellow-500" />;
-    if (rank === 2) return <Medal className="h-8 w-8 text-gray-400" />;
-    if (rank === 3) return <Medal className="h-8 w-8 text-orange-600" />;
+    if (rank === 1) return <Trophy className="h-5 w-5 text-yellow-500" />;
+    if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
+    if (rank === 3) return <Medal className="h-5 w-5 text-orange-600" />;
     return null;
   };
 
-  const getRankBadgeColor = (rank: number) => {
-    if (rank === 1) return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30';
-    if (rank === 2) return 'bg-gray-400/20 text-gray-400 border-gray-400/30';
-    if (rank === 3) return 'bg-orange-600/20 text-orange-600 border-orange-600/30';
-    return 'bg-primary/20 text-primary border-primary/30';
+  const getRankStyle = (rank: number) => {
+    if (rank === 1) return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600';
+    if (rank === 2) return 'bg-gray-400/10 border-gray-400/30 text-gray-500';
+    if (rank === 3) return 'bg-orange-500/10 border-orange-500/30 text-orange-600';
+    return 'bg-muted text-muted-foreground';
   };
 
   return (
     <div className="bg-background min-h-screen">
-      {/* Header */}
-      <section className="gradient-lavender relative overflow-hidden py-16">
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="mb-4 flex items-center gap-3">
-              <Trophy className="h-12 w-12 text-yellow-300" />
-              <h1 className="font-['Poppins'] text-4xl text-white md:text-5xl">
-                Global Leaderboard
-              </h1>
+      {/* Compact Header */}
+      <section className="border-b border-border/50 bg-gradient-to-r from-[#C9A7EB]/15 via-background to-[#B084E8]/15 py-6">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-400 to-yellow-600">
+              <Trophy className="h-5 w-5 text-white" />
             </div>
-            <p className="max-w-2xl text-xl text-white/80">
-              Top performers solving real business challenges
-            </p>
+            <div>
+              <h1 className="text-xl font-bold md:text-2xl">Global Leaderboard</h1>
+              <p className="text-sm text-muted-foreground">Top performers solving real business challenges</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          YOUR RANK SECTION - CRITICAL: Must be impossible to miss
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <section className="border-b-2 border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 py-4">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            {/* Left: Your Rank Label + Number */}
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-primary/30 bg-primary/10">
+                <User className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary/80">Your Current Rank</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-primary">#{currentUserStats.rank}</span>
+                  <span className="text-lg font-semibold text-foreground">{currentUserStats.points} pts</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Stats Row */}
+            <div className="flex items-center gap-6 rounded-lg border border-border/50 bg-background/80 px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Cases</p>
+                  <p className="text-sm font-semibold">{currentUserStats.casesCompleted}</p>
+                </div>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Avg Score</p>
+                  <p className="text-sm font-semibold">{currentUserStats.avgScore}%</p>
+                </div>
+              </div>
+              <div className="h-8 w-px bg-border hidden sm:block" />
+              <Button
+                size="sm"
+                onClick={() => onNavigate?.('case-studies')}
+                className="hidden sm:inline-flex gradient-lavender text-white rounded-lg h-8 px-3 text-xs"
+              >
+                Improve Rank
+              </Button>
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* Main Content */}
-      <section className="bg-background py-12">
+      <section className="py-6">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          {/* Top 3 Podium */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-3"
-          >
-            {mockLeaderboard.slice(0, 3).map((entry) => (
-              <Card
-                key={entry.rank}
-                className={`border-border/50 shadow-xl ${
-                  entry.rank === 1
-                    ? 'md:z-10 md:order-2 md:scale-110'
-                    : entry.rank === 2
-                      ? 'md:order-1'
-                      : 'md:order-3'
-                }`}
-              >
-                <CardContent className="p-6 text-center">
-                  <div className="mb-4 flex justify-center">{getRankIcon(entry.rank)}</div>
-                  <Avatar className="border-primary/20 mx-auto mb-4 h-24 w-24 border-4">
-                    <AvatarImage src={entry.avatar} alt={entry.name} />
-                    <AvatarFallback>{entry.name[0]}</AvatarFallback>
-                  </Avatar>
-                  <h3 className="mb-2">{entry.name}</h3>
-                  <p className="text-primary mb-3 text-3xl">{entry.points}</p>
-                  <p className="text-muted-foreground mb-2 text-sm">
-                    {entry.casesCompleted} cases • {entry.avgScore}% avg
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-1">
-                    {entry.badges.map(badge => (
-                      <Badge key={badge} variant="secondary" className="rounded-full text-xs">
-                        {badge}
-                      </Badge>
-                    ))}
+          
+          {/* ═══════════════════════════════════════════════════════════════════
+              TOP 3 PERFORMERS - Compact horizontal bar, not podium cards
+              ═══════════════════════════════════════════════════════════════════ */}
+          <div className="mb-6">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Top Performers</h2>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {mockLeaderboard.slice(0, 3).map((entry) => (
+                <motion.div
+                  key={entry.rank}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: entry.rank * 0.1 }}
+                  className={`flex items-center gap-3 rounded-lg border p-3 ${getRankStyle(entry.rank)}`}
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-background/80">
+                    {getRankIcon(entry.rank)}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </motion.div>
+                  <Avatar className="h-9 w-9 border-2 border-background">
+                    <AvatarImage src={entry.avatar} alt={entry.name} />
+                    <AvatarFallback className="text-xs">{entry.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{entry.name}</p>
+                    <p className="text-xs opacity-80">{entry.casesCompleted} cases</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold">{entry.points}</p>
+                    <p className="text-xs opacity-70">pts</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
 
-          {/* Full Leaderboard Table */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Card className="border-border/50 shadow-lg">
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="border-border border-b">
-                      <tr className="text-muted-foreground text-left text-sm">
-                        <th className="w-16 p-4">Rank</th>
-                        <th className="p-4">User</th>
-                        <th className="hidden p-4 text-center md:table-cell">Cases</th>
-                        <th className="hidden p-4 text-center lg:table-cell">Avg Score</th>
-                        <th className="p-4 text-right">Points</th>
-                        <th className="hidden w-16 p-4 text-center sm:table-cell">Trend</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mockLeaderboard.map((entry, index) => (
-                        <motion.tr
-                          key={entry.rank}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="border-border/50 hover:bg-muted/50 border-b transition-colors"
-                        >
-                          <td className="p-4">
-                            <Badge
-                              variant="outline"
-                              className={`rounded-full ${getRankBadgeColor(entry.rank)}`}
-                            >
-                              #{entry.rank}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={entry.avatar} alt={entry.name} />
-                                <AvatarFallback>{entry.name[0]}</AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">{entry.name}</p>
-                                <div className="mt-1 flex gap-1">
-                                  {entry.badges.slice(0, 2).map(badge => (
-                                    <Badge
-                                      key={badge}
-                                      variant="secondary"
-                                      className="rounded-full text-xs"
-                                    >
-                                      {badge}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="hidden p-4 text-center md:table-cell">
-                            {entry.casesCompleted}
-                          </td>
-                          <td className="hidden p-4 text-center lg:table-cell">
-                            <Badge variant="outline" className="rounded-full">
-                              {entry.avgScore}%
-                            </Badge>
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className="text-primary">{entry.points}</span>
-                          </td>
-                          <td className="hidden p-4 text-center sm:table-cell">
+          {/* ═══════════════════════════════════════════════════════════════════
+              GLOBAL RANKINGS - Dense, competitive table
+              ═══════════════════════════════════════════════════════════════════ */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Global Rankings</h2>
+            <Card className="border-border/50 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="w-14 py-2.5 pl-4 pr-2 text-left font-medium">Rank</th>
+                      <th className="py-2.5 px-2 text-left font-medium">User</th>
+                      <th className="hidden py-2.5 px-2 text-center font-medium sm:table-cell">Cases</th>
+                      <th className="hidden py-2.5 px-2 text-center font-medium md:table-cell">Avg</th>
+                      <th className="py-2.5 px-2 pr-4 text-right font-medium">Points</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mockLeaderboard.map((entry, index) => (
+                      <motion.tr
+                        key={entry.rank}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.03 }}
+                        className={`border-b border-border/30 transition-colors hover:bg-muted/30 ${
+                          entry.rank <= 3 ? 'bg-muted/10' : ''
+                        }`}
+                      >
+                        <td className="py-2.5 pl-4 pr-2">
+                          <div className="flex items-center gap-1.5">
+                            {entry.rank <= 3 ? (
+                              getRankIcon(entry.rank)
+                            ) : (
+                              <span className="w-5 text-center text-muted-foreground">{entry.rank}</span>
+                            )}
                             {entry.trend === 'up' && (
-                              <TrendingUp className="mx-auto h-4 w-4 text-green-500" />
+                              <TrendingUp className="h-3 w-3 text-green-500" />
                             )}
                             {entry.trend === 'down' && (
-                              <TrendingUp className="mx-auto h-4 w-4 rotate-180 text-red-500" />
+                              <TrendingUp className="h-3 w-3 rotate-180 text-red-500" />
                             )}
-                            {entry.trend === 'same' && (
-                              <div className="bg-muted-foreground mx-auto h-0.5 w-4" />
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-2">
+                          <div className="flex items-center gap-2.5">
+                            <Avatar className="h-7 w-7">
+                              <AvatarImage src={entry.avatar} alt={entry.name} />
+                              <AvatarFallback className="text-xs">{entry.name[0]}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{entry.name}</span>
+                            {entry.badges.length > 0 && (
+                              <Badge variant="secondary" className="hidden text-[10px] px-1.5 py-0 h-4 lg:inline-flex">
+                                {entry.badges[0]}
+                              </Badge>
                             )}
-                          </td>
-                        </motion.tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
+                          </div>
+                        </td>
+                        <td className="hidden py-2.5 px-2 text-center text-muted-foreground sm:table-cell">
+                          {entry.casesCompleted}
+                        </td>
+                        <td className="hidden py-2.5 px-2 text-center md:table-cell">
+                          <span className={entry.avgScore >= 90 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+                            {entry.avgScore}%
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2 pr-4 text-right">
+                          <span className="font-semibold text-primary">{entry.points.toLocaleString()}</span>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </Card>
 
-            <div className="mt-6 text-center">
-              <p className="text-muted-foreground mb-4 text-sm">
-                Want to climb the leaderboard? Complete more case studies!
+            {/* CTA */}
+            <div className="mt-4 flex items-center justify-between rounded-lg border border-dashed border-border/50 bg-muted/20 px-4 py-3">
+              <p className="text-sm text-muted-foreground">
+                Complete more case studies to climb the rankings
               </p>
               <Button
+                size="sm"
+                variant="outline"
                 onClick={() => onNavigate?.('case-studies')}
-                className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90"
+                className="rounded-lg h-8"
               >
-                <Award className="mr-2 h-4 w-4" />
-                Browse Case Studies
+                <Award className="mr-1.5 h-3.5 w-3.5" />
+                Browse Cases
               </Button>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
     </div>
