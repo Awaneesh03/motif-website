@@ -80,7 +80,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   const [qualificationForm, setQualificationForm] = useState({
     name: '',
     email: '',
-    ideaDescription: '',
     stage: '',
     traction: '',
     fundingAmount: '',
@@ -166,7 +165,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   const handleQualificationSubmit = () => {
     const isNameValid = qualificationForm.name.trim().length > 0;
     const isEmailValid = qualificationForm.email.trim().length > 0 && qualificationForm.email.includes('@');
-    const isDescriptionValid = qualificationForm.ideaDescription.trim().length >= 10;
     const isStageValid = qualificationForm.stage.trim().length > 0;
 
     if (!isNameValid) {
@@ -175,10 +173,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
     }
     if (!isEmailValid) {
       toast.error('Please enter a valid email address.');
-      return;
-    }
-    if (!isDescriptionValid) {
-      toast.error('Please describe your idea (at least 10 characters).');
       return;
     }
     if (!isStageValid) {
@@ -198,7 +192,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
       setQualificationForm({
         name: '',
         email: '',
-        ideaDescription: '',
         stage: '',
         traction: '',
         fundingAmount: '',
@@ -242,16 +235,6 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                   placeholder="jane@startup.com"
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="qual-idea">Idea Description</Label>
-              <Textarea
-                id="qual-idea"
-                value={qualificationForm.ideaDescription}
-                onChange={e => setQualificationForm({ ...qualificationForm, ideaDescription: e.target.value })}
-                placeholder="Describe the problem, your solution, and current traction."
-                rows={4}
-              />
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">

@@ -764,20 +764,20 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   return (
     <div className="bg-background">
       {/* Hero */}
-      <section className="gradient-lavender relative overflow-hidden py-16">
+      <section className="gradient-lavender relative overflow-hidden py-20">
         <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="mb-6 font-['Poppins'] text-4xl text-white md:text-5xl">
+            <h1 className="mb-4 font-['Poppins'] text-4xl font-bold text-white md:text-5xl">
               Join the Founder Community
             </h1>
-            <p className="mx-auto mb-8 max-w-2xl text-xl text-white/90">
+            <p className="mx-auto mb-10 max-w-2xl text-lg text-white/90">
               Share your ideas, get feedback, and connect with fellow entrepreneurs
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               {/* Post Option Dialog */}
               <Dialog open={postOptionDialogOpen} onOpenChange={setPostOptionDialogOpen}>
                 <DialogTrigger asChild>
@@ -950,11 +950,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       </section>
 
       {/* Main Content */}
-      <section className="bg-background py-12">
+      <section className="bg-background py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-10 lg:grid-cols-3">
             {/* Ideas Feed */}
-            <div className="space-y-6 md:col-span-2">
+            <div className="space-y-6 lg:col-span-2">
               {/* Filters */}
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-2">
@@ -1064,9 +1064,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              <Card className="border-border/50 sticky top-20">
+              <Card className="border-border/50">
                 <CardContent className="p-6">
-                  <h3 className="mb-4">Popular Tags</h3>
+                  <h3 className="mb-4 font-semibold">Popular Tags</h3>
                   <div className="flex flex-wrap gap-2">
                     {[
                       'AI',

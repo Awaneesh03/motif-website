@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   ShieldCheck,
   Clock,
-  Info,
   AlertCircle,
   RefreshCw,
   Loader2,
@@ -24,8 +23,6 @@ import { getConnectedStartups, type ConnectedStartup } from '@/lib/introRequestS
 import { getUserNotifications, type Notification } from '@/lib/notificationService';
 import { ActivityTimeline } from '@/components/ActivityTimeline';
 import { getVCMetrics, type VCMetrics } from '@/lib/metricsService';
-import { useVCDemoMode } from '@/hooks/useDemoMode';
-import { demoVCStartups } from '@/lib/demoData';
 
 const VCDashboard = () => {
   const { profile, isVC } = useUser();
@@ -45,9 +42,6 @@ const VCDashboard = () => {
       navigate('/dashboard', { replace: true });
     }
   }, [profile, isVC, navigate]);
-
-  // Check if demo mode should be enabled
-  const { isDemoMode } = useVCDemoMode(myIntroRequests, connectedStartups, metrics);
 
   useEffect(() => {
     const loadData = async () => {
@@ -240,65 +234,6 @@ const VCDashboard = () => {
                       <div className="text-center py-8 text-muted-foreground">
                         <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
                         <p>Loading startups...</p>
-                      </div>
-                    ) : approvedStartups.length === 0 && isDemoMode ? (
-                      <div>
-                        {/* Demo Mode Banner */}
-                        <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-                          <div className="flex items-start gap-3">
-                            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                                Demo Mode - Example Startups
-                              </h4>
-                              <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
-                                These are example startups to demonstrate the platform.
-                                Real startups will appear once approved by our team.
-                              </p>
-                              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                                Process: Discover Startups → Request Introduction → Get Connected
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Demo Startup Cards */}
-                        <div className="grid gap-4 sm:grid-cols-2 mb-6">
-                          {demoVCStartups.slice(0, 3).map((demoStartup, index) => (
-                            <motion.div
-                              key={demoStartup.id}
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: 0.4 + index * 0.05 }}
-                              className="bg-muted/30 border border-dashed border-border rounded-xl p-4 relative opacity-75"
-                            >
-                              {/* Demo Badge */}
-                              <div className="absolute top-2 right-2">
-                                <Badge variant="outline">Demo</Badge>
-                              </div>
-                              <p className="text-muted-foreground text-sm">
-                                {demoStartup.description || 'Curated example startup.'}
-                              </p>
-                              <div className="mt-3 text-xs text-muted-foreground">
-                                {demoStartup.industry || 'Industry'} • {demoStartup.stage || 'Stage'}
-                              </div>
-                              <div className="mt-4 flex gap-2">
-                                <Button size="sm" variant="outline">View</Button>
-                                <Button size="sm">Request Intro</Button>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-
-                        {/* CTA Section */}
-                        <div className="text-center py-8 border-2 border-dashed border-primary/30 rounded-xl bg-gradient-to-br from-primary/5 to-purple-500/5">
-                          <Building2 className="h-12 w-12 mx-auto mb-3 text-primary" />
-                          <p className="text-lg font-semibold mb-2">Submit your thesis to see live matches</p>
-                          <p className="text-muted-foreground mb-4 text-sm">
-                            Complete onboarding to receive curated startups aligned to your preferences.
-                          </p>
-                          <Button onClick={() => navigate('/vc/onboarding')} className="rounded-xl">Complete Onboarding</Button>
-                        </div>
                       </div>
                     ) : approvedStartups.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">

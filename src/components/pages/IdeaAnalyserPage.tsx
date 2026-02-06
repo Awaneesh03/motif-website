@@ -464,18 +464,18 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
 
       {/* Main Content */}
       <section className="py-12">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* Input Form - Left Column */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="md:col-span-2"
+              className="lg:col-span-8"
             >
               <Card className="glass-card border-border/50">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
+                <CardHeader className="pb-2">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <CardTitle className="flex items-center gap-2 text-xl">
                       <Sparkles className="text-primary h-5 w-5" />
                       Tell Us About Your Idea
                     </CardTitle>
@@ -483,24 +483,24 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                       variant="outline"
                       size="sm"
                       onClick={() => onNavigate?.('saved-ideas')}
-                      className="rounded-xl"
+                      className="rounded-xl w-fit"
                     >
                       <FolderOpen className="mr-2 h-4 w-4" />
                       View Saved Ideas
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 pt-4">
                   {/* Idea Generator Banner */}
-                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-purple-500/10 to-primary/10 p-4 border border-primary/10">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary">
-                          <Lightbulb className="h-5 w-5" />
+                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-purple-500/10 to-primary/10 p-5 border border-primary/20">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary flex-shrink-0">
+                          <Lightbulb className="h-6 w-6" />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-sm">Stuck for ideas?</h4>
-                          <p className="text-xs text-muted-foreground">Let AI spark your imagination</p>
+                          <h4 className="font-semibold">Stuck for ideas?</h4>
+                          <p className="text-sm text-muted-foreground">Let AI spark your imagination</p>
                         </div>
                       </div>
                       <Button
@@ -638,33 +638,35 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="space-y-4"
+              className="lg:col-span-4 space-y-6"
             >
               <Card className="glass-card border-border/50">
-                <CardHeader>
-                  <CardTitle className="text-base">Analysis Stats</CardTitle>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-semibold">Analysis Stats</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
+                <CardContent className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                     <span className="text-muted-foreground text-sm">Ideas Analyzed</span>
-                    <span className="font-medium">12,450</span>
+                    <span className="font-semibold text-lg">12,450</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                     <span className="text-muted-foreground text-sm">Success Rate</span>
-                    <span className="font-medium text-green-600">67%</span>
+                    <span className="font-semibold text-lg text-green-600">67%</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                     <span className="text-muted-foreground text-sm">Avg. Score</span>
-                    <span className="font-medium">72/100</span>
+                    <span className="font-semibold text-lg">72/100</span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="glass-card border-border/50 bg-gradient-to-br from-[#C9A7EB]/10 to-[#B084E8]/10">
-                <CardContent className="pt-6">
-                  <div className="space-y-2 text-center">
-                    <Sparkles className="text-primary mx-auto h-8 w-8" />
-                    <p className="text-muted-foreground text-sm">
+                <CardContent className="p-6">
+                  <div className="space-y-4 text-center">
+                    <div className="gradient-lavender mx-auto flex h-14 w-14 items-center justify-center rounded-xl">
+                      <Sparkles className="h-7 w-7 text-white" />
+                    </div>
+                    <p className="text-muted-foreground">
                       Our AI analyzes market data, competition, and trends to give you actionable
                       insights.
                     </p>
