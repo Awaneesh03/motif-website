@@ -269,41 +269,41 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
   return (
     <div className="bg-background min-h-screen">
       {/* Header Section */}
-      <section className="via-background to-background border-border relative overflow-hidden border-b bg-gradient-to-br from-[#C9A7EB]/20 py-12">
+      <section className="via-background to-background border-border relative overflow-hidden border-b bg-gradient-to-br from-[#C9A7EB]/20 py-6 sm:py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <h1 className="text-gradient-lavender mb-4">Case Studies</h1>
-            <p className="text-muted-foreground mx-auto max-w-2xl">
+            <h1 className="text-gradient-lavender text-2xl sm:text-3xl mb-2">Case Studies</h1>
+            <p className="text-muted-foreground mx-auto max-w-2xl text-sm sm:text-base">
               Real challenges inspired by startups and tech leaders. Practice solving business
               problems and climb the leaderboard.
             </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Button
                 variant={activeTab === 'all' ? 'default' : 'outline'}
-                className="rounded-full"
+                className="rounded-full h-9 px-4 text-sm"
                 onClick={() => setActiveTab('all')}
               >
-                <Target className="mr-2 h-4 w-4" />
+                <Target className="mr-1.5 h-4 w-4" />
                 All Cases
               </Button>
               <Button
                 variant={activeTab === 'attempts' ? 'default' : 'outline'}
-                className="rounded-full"
+                className="rounded-full h-9 px-4 text-sm"
                 onClick={() => setActiveTab('attempts')}
               >
-                <CheckCircle className="mr-2 h-4 w-4" />
+                <CheckCircle className="mr-1.5 h-4 w-4" />
                 Your Attempts
               </Button>
               <Button
                 variant={activeTab === 'leaderboard' ? 'default' : 'outline'}
-                className="rounded-full"
+                className="rounded-full h-9 px-4 text-sm"
                 onClick={() => setActiveTab('leaderboard')}
               >
-                <Trophy className="mr-2 h-4 w-4" />
+                <Trophy className="mr-1.5 h-4 w-4" />
                 Leaderboard
               </Button>
             </div>
@@ -314,7 +314,7 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
       {/* Filter Bar - Sticky - Only show for All Cases tab */}
       {activeTab === 'all' && (
         <div className="bg-background/80 border-border sticky top-16 z-40 border-b backdrop-blur-lg">
-          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-4 md:flex-row">
               {/* Difficulty Chips */}
               <div className="flex flex-wrap gap-2">
@@ -371,7 +371,7 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
       )}
 
       {/* Content Area - Conditional Rendering */}
-      <section className="py-8">
+      <section className="py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* All Cases Tab */}
           {activeTab === 'all' && (
@@ -406,39 +406,39 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
 
           {/* Your Attempts Tab */}
           {activeTab === 'attempts' && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Stats Overview */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-                <Card>
-                  <CardContent className="p-6">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Card className="border-border/50">
+                  <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-muted-foreground text-sm">Total Attempts</p>
-                        <p className="text-2xl font-bold">{mockUserAttempts.length}</p>
+                        <p className="text-muted-foreground text-xs sm:text-sm">Total Attempts</p>
+                        <p className="text-xl sm:text-2xl font-bold">{mockUserAttempts.length}</p>
                       </div>
-                      <Target className="text-primary h-8 w-8" />
+                      <Target className="text-primary h-6 w-6" />
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardContent className="p-6">
+                <Card className="border-border/50">
+                  <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-muted-foreground text-sm">Completed</p>
-                        <p className="text-2xl font-bold">
+                        <p className="text-muted-foreground text-xs sm:text-sm">Completed</p>
+                        <p className="text-xl sm:text-2xl font-bold">
                           {mockUserAttempts.filter(a => a.status === 'completed').length}
                         </p>
                       </div>
-                      <CheckCircle className="text-green-500 h-8 w-8" />
+                      <CheckCircle className="text-green-500 h-6 w-6" />
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardContent className="p-6">
+                <Card className="border-border/50">
+                  <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-muted-foreground text-sm">Average Score</p>
-                        <p className="text-2xl font-bold">
+                        <p className="text-muted-foreground text-xs sm:text-sm">Average Score</p>
+                        <p className="text-xl sm:text-2xl font-bold">
                           {Math.round(
                             mockUserAttempts
                               .filter(a => a.status === 'completed')
@@ -448,38 +448,38 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                           %
                         </p>
                       </div>
-                      <TrendingUp className="text-blue-500 h-8 w-8" />
+                      <TrendingUp className="text-blue-500 h-6 w-6" />
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardContent className="p-6">
+                <Card className="border-border/50">
+                  <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-muted-foreground text-sm">Total Time</p>
-                        <p className="text-2xl font-bold">2h 22m</p>
+                        <p className="text-muted-foreground text-xs sm:text-sm">Total Time</p>
+                        <p className="text-xl sm:text-2xl font-bold">2h 22m</p>
                       </div>
-                      <Clock className="text-purple-500 h-8 w-8" />
+                      <Clock className="text-purple-500 h-6 w-6" />
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Attempts List */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {userAttempts.map((attempt, index) => (
                   <motion.div
                     key={attempt.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
+                    transition={{ delay: index * 0.05 }}
                   >
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold">{attempt.title}</h3>
+                    <Card className="hover:shadow-md transition-shadow cursor-pointer border-border/50">
+                      <CardContent className="p-4 sm:p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                              <h3 className="text-sm sm:text-base font-semibold truncate">{attempt.title}</h3>
                               <Badge
                                 variant={
                                   attempt.difficulty === 'Easy'
@@ -488,41 +488,42 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
                                       ? 'default'
                                       : 'destructive'
                                 }
-                                className="rounded-full"
+                                className="rounded-full text-xs"
                               >
                                 {attempt.difficulty}
                               </Badge>
                               {attempt.status === 'completed' ? (
-                                <Badge className="rounded-full bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
+                                <Badge className="rounded-full text-xs bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
                                   Completed
                                 </Badge>
                               ) : (
-                                <Badge className="rounded-full bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20">
+                                <Badge className="rounded-full text-xs bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20">
                                   In Progress
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-muted-foreground text-sm mb-3">{attempt.company}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <p className="text-muted-foreground text-xs sm:text-sm mb-2">{attempt.company}</p>
+                            <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
+                                <Clock className="h-3.5 w-3.5" />
                                 <span>{attempt.timeSpent}</span>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <span>Submitted {attempt.submittedAt}</span>
-                              </div>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="hidden sm:inline">{attempt.submittedAt}</span>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
                             {attempt.status === 'completed' && (
                               <>
-                                <div className="text-3xl font-bold text-primary mb-1">{attempt.score}%</div>
-                                <div className="text-sm text-muted-foreground mb-3">AI Score</div>
-                                
+                                <div>
+                                  <div className="text-2xl sm:text-2xl font-bold text-primary">{attempt.score}%</div>
+                                  <div className="text-xs text-muted-foreground">AI Score</div>
+                                </div>
+
                                 {/* Interactive Star Rating */}
-                                <div className="space-y-2">
-                                  <div className="text-sm text-muted-foreground">Rate this case:</div>
-                                  <StarRating 
+                                <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1 sm:mt-2">
+                                  <span className="text-xs text-muted-foreground hidden sm:block">Rate:</span>
+                                  <StarRating
                                     rating={attempt.userRating}
                                     onRatingChange={(rating) => handleRatingChange(attempt.id, rating)}
                                     size="sm"
@@ -542,125 +543,147 @@ export function CaseStudiesPage({ onNavigate }: CaseStudiesPageProps) {
 
           {/* Leaderboard Tab */}
           {activeTab === 'leaderboard' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Leaderboard Header */}
               <Card className="gradient-lavender border-none text-white">
-                <CardContent className="p-8 text-center">
-                  <div className="text-6xl mb-4">🏆</div>
-                  <h2 className="text-3xl font-bold mb-2">Top Performers</h2>
-                  <p className="text-white/90">
-                    Compete with the best minds in startup strategy and problem-solving
-                  </p>
+                <CardContent className="p-5 sm:p-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-3xl">🏆</span>
+                    <div className="text-center sm:text-left">
+                      <h2 className="text-xl sm:text-2xl font-bold">Top Performers</h2>
+                      <p className="text-white/80 text-sm">
+                        Compete with the best minds in startup strategy
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Your Rank Card - Moved to top */}
-              <Card className="border-primary/50 bg-primary/5">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="text-2xl">🏅</span>
-                    Your Rank
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-6">
+              {/* Your Rank Card */}
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="flex items-center gap-4">
                     {/* Rank Badge */}
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-3xl shadow-lg shrink-0">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-xl shadow-md shrink-0">
                       #42
                     </div>
 
-                    {/* User Info and Stats */}
-                    <div className="flex-1">
-                      <p className="font-semibold text-xl mb-1">You're doing great!</p>
-                      <p className="text-muted-foreground text-sm mb-3">Keep solving to climb higher! • 8 cases completed</p>
-
-                      {/* Stats in single line */}
-                      <div className="flex items-center gap-6 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl font-bold text-primary">1,234</span>
-                          <span className="text-muted-foreground">Points</span>
-                        </div>
-                        <div className="h-4 w-px bg-border"></div>
-                        <div className="flex items-center gap-1.5">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-lg font-semibold">85%</span>
-                          <span className="text-muted-foreground">Avg Score</span>
-                        </div>
+                    {/* User Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-lg">🏅</span>
+                        <p className="font-semibold text-base sm:text-lg truncate">You're doing great!</p>
                       </div>
+                      <p className="text-muted-foreground text-xs sm:text-sm">8 cases completed</p>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="hidden sm:flex items-center gap-4 shrink-0">
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-primary">1,234</p>
+                        <p className="text-xs text-muted-foreground">Points</p>
+                      </div>
+                      <div className="h-8 w-px bg-border"></div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 justify-end">
+                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                          <span className="text-lg font-bold">85%</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Avg Score</p>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Mobile stats */}
+                  <div className="flex sm:hidden items-center justify-around mt-3 pt-3 border-t border-border/50">
+                    <div className="text-center">
+                      <p className="text-base font-bold text-primary">1,234</p>
+                      <p className="text-xs text-muted-foreground">Points</p>
+                    </div>
+                    <div className="h-6 w-px bg-border"></div>
+                    <div className="text-center">
+                      <div className="flex items-center gap-1 justify-center">
+                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                        <span className="text-base font-bold">85%</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Avg Score</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Global Leaderboard Table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="text-xl">🏆</span>
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <span className="text-lg">🏆</span>
                     Global Leaderboard
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
+                <CardContent className="pt-0">
+                  <div className="space-y-1">
                     {mockLeaderboard.map((user, index) => (
                       <motion.div
                         key={user.rank}
-                        initial={{ opacity: 0, x: -20 }}
+                        initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className={`flex items-center gap-4 p-4 rounded-lg transition-all hover:bg-muted/50 ${user.rank <= 3 ? 'bg-muted/30' : ''
-                          }`}
-                      >
-                        {/* Rank Badge with Emoji Medals for top 3 */}
-                        <div
-                          className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-xl ${user.rank === 1
-                            ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg'
+                        transition={{ delay: index * 0.03 }}
+                        className={`flex items-center gap-3 p-2.5 sm:p-3 rounded-lg transition-all hover:bg-muted/50 ${
+                          user.rank === 1
+                            ? 'bg-yellow-500/10 border border-yellow-500/20'
                             : user.rank === 2
-                              ? 'bg-gradient-to-br from-gray-300 to-gray-500 shadow-lg'
+                              ? 'bg-gray-500/10 border border-gray-500/20'
                               : user.rank === 3
-                                ? 'bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg'
-                                : 'bg-muted text-muted-foreground text-sm'
-                            }`}
+                                ? 'bg-orange-500/10 border border-orange-500/20'
+                                : ''
+                        }`}
+                      >
+                        {/* Rank Badge */}
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm shrink-0 ${
+                            user.rank === 1
+                              ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white'
+                              : user.rank === 2
+                                ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white'
+                                : user.rank === 3
+                                  ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white'
+                                  : 'bg-muted text-muted-foreground'
+                          }`}
                         >
-                          {user.rank === 1 ? (
-                            <span>🥇</span>
-                          ) : user.rank === 2 ? (
-                            <span>🥈</span>
-                          ) : user.rank === 3 ? (
-                            <span>🥉</span>
+                          {user.rank <= 3 ? (
+                            <span className="text-base">{user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : '🥉'}</span>
                           ) : (
                             <span>#{user.rank}</span>
                           )}
                         </div>
 
                         {/* Avatar */}
-                        <Avatar className="h-12 w-12 ring-2 ring-primary/20">
-                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 font-semibold">
+                        <Avatar className="h-9 w-9 ring-1 ring-primary/10 shrink-0">
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-sm font-medium">
                             {user.avatar}
                           </AvatarFallback>
                         </Avatar>
 
                         {/* User Info */}
-                        <div className="flex-1">
-                          <p className="font-semibold text-lg">{user.name}</p>
-                          <p className="text-muted-foreground text-sm">
-                            {user.casesCompleted} cases completed
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm sm:text-base truncate">{user.name}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {user.casesCompleted} cases
                           </p>
                         </div>
 
-                        {/* Stats */}
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-primary">{user.score}</div>
-                          <div className="text-xs text-muted-foreground">Total Points</div>
+                        {/* Points */}
+                        <div className="text-right shrink-0">
+                          <div className="text-base sm:text-lg font-bold text-primary">{user.score.toLocaleString()}</div>
+                          <div className="text-[10px] sm:text-xs text-muted-foreground">pts</div>
                         </div>
 
-                        {/* Average Score */}
-                        <div className="text-right min-w-[80px]">
-                          <div className="flex items-center gap-1 justify-end">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-lg font-semibold">{user.avgScore}%</span>
+                        {/* Average Score - hidden on mobile */}
+                        <div className="hidden sm:block text-right shrink-0 w-16">
+                          <div className="flex items-center gap-0.5 justify-end">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-semibold">{user.avgScore}%</span>
                           </div>
-                          <div className="text-xs text-muted-foreground">Avg Score</div>
+                          <div className="text-[10px] text-muted-foreground">avg</div>
                         </div>
                       </motion.div>
                     ))}
