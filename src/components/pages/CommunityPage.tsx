@@ -11,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
 import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
@@ -1149,7 +1148,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       <Sheet open={commentPanelOpen} onOpenChange={setCommentPanelOpen}>
         <SheetContent
           side="right"
-          className="w-full overflow-y-auto border-l border-border bg-background sm:w-[480px]"
+          className="w-full overflow-y-auto border-l border-border bg-background sm:w-[500px]"
         >
           <SheetHeader className="border-b border-border pb-4">
             <SheetTitle className="text-xl font-semibold">
@@ -1161,7 +1160,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
             <div className="mt-4 space-y-4">
               {/* Idea Summary */}
               <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <h4 className="mb-2 font-medium">{selectedIdea.title}</h4>
+                <h4 className="mb-2 font-medium line-clamp-2">{selectedIdea.title}</h4>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={selectedIdea.authorAvatar} alt={selectedIdea.author} />
@@ -1178,8 +1177,10 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               {/* Comments List */}
               <div className="space-y-3">
                 {selectedIdeaComments.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-border p-6 text-center">
-                    <p className="text-sm text-muted-foreground">No comments yet. Be the first to share feedback.</p>
+                  <div className="rounded-lg border border-dashed border-border p-8 text-center">
+                    <MessageCircle className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
+                    <p className="text-sm font-medium mb-1">No comments yet</p>
+                    <p className="text-xs text-muted-foreground">Be the first to share your feedback on this idea.</p>
                   </div>
                 ) : (
                   selectedIdeaComments.map((comment) => (
@@ -1188,7 +1189,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                       className="rounded-lg border border-border bg-card p-3"
                     >
                       <div className="mb-2 flex items-center gap-2">
-                        <Avatar className="h-7 w-7">
+                        <Avatar className="h-8 w-8">
                           <AvatarImage src={comment.avatar} alt={comment.author} />
                           <AvatarFallback className="text-xs">
                             {comment.author[0]}
@@ -1197,7 +1198,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                         <span className="font-medium text-sm">{comment.author}</span>
                         <span className="text-xs text-muted-foreground">{comment.timestamp}</span>
                       </div>
-                      <p className="text-sm text-foreground/90 pl-9">
+                      <p className="text-sm text-foreground/90 pl-10">
                         {comment.message}
                       </p>
                     </div>
@@ -1208,18 +1209,18 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               {/* Add Comment Input */}
               <div className="sticky bottom-0 rounded-lg border border-border bg-background p-3">
                 <div className="flex gap-2">
-                  <Textarea
+                  <Input
                     placeholder="Share your feedback..."
                     value={newComment}
                     onChange={e => setNewComment(e.target.value)}
-                    rows={2}
-                    className="flex-1 resize-none text-sm"
+                    onKeyDown={e => e.key === 'Enter' && handleSendComment()}
+                    className="flex-1 text-sm"
                   />
                   <Button
                     onClick={handleSendComment}
                     disabled={!newComment.trim()}
                     size="sm"
-                    className="self-end"
+                    className="gradient-lavender"
                   >
                     <Send className="h-4 w-4" />
                   </Button>

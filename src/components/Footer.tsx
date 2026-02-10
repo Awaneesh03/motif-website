@@ -66,34 +66,22 @@ export function Footer({ onNavigate }: FooterProps) {
             <div className="flex gap-4">
               <a
                 href="#"
-                className="text-muted-foreground transition-all duration-300 hover:scale-110"
-                style={{
-                  color: 'hsl(var(--muted-foreground))',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#0A66C2'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
+                className="text-muted-foreground transition-all duration-300 hover:scale-110 hover:text-[#0A66C2]"
+                aria-label="LinkedIn"
               >
                 <Linkedin className="h-5 w-5" />
               </a>
               <a
                 href="#"
-                className="text-muted-foreground transition-all duration-300 hover:scale-110"
-                style={{
-                  color: 'hsl(var(--muted-foreground))',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#E4405F'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
+                className="text-muted-foreground transition-all duration-300 hover:scale-110 hover:text-[#E4405F]"
+                aria-label="Instagram"
               >
                 <Instagram className="h-5 w-5" />
               </a>
               <a
                 href="#"
-                className="text-muted-foreground transition-all duration-300 hover:scale-110"
-                style={{
-                  color: 'hsl(var(--muted-foreground))',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#1DA1F2'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
+                className="text-muted-foreground transition-all duration-300 hover:scale-110 hover:text-[#1DA1F2]"
+                aria-label="Twitter"
               >
                 <Twitter className="h-5 w-5" />
               </a>
@@ -102,7 +90,7 @@ export function Footer({ onNavigate }: FooterProps) {
         </div>
 
         <div className="border-border text-muted-foreground mt-8 border-t pt-8 text-center text-sm">
-          © 2025 Motif. All rights reserved.
+          © {new Date().getFullYear()} Motif. All rights reserved.
         </div>
       </div>
     </footer>

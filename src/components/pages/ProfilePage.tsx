@@ -913,20 +913,18 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
   // ============================================================================
   // 🎨 RENDER STATE MACHINE - NO EARLY RETURNS, ALWAYS SHOWS UI
   // ============================================================================
-  const pageBackground = { background: '#0a0a0a' };
-  const containerClass = "mx-auto min-h-screen w-full max-w-7xl px-4 py-8";
 
   return (
-    <div style={pageBackground}>
-      <div className={containerClass}>
+    <div className="bg-background min-h-screen">
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* ============================================================================ */}
         {/* STATE 1: AUTH LOADING */}
         {/* ============================================================================ */}
         {currentRenderState === 'auth_loading' && (
-          <Card className="w-full max-w-md mx-auto border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
+          <Card className="w-full max-w-md mx-auto border-border/50 glass-surface">
             <CardContent className="p-12 text-center">
               <Loader2 className="text-primary mx-auto mb-4 h-12 w-12 animate-spin" />
-              <h2 className="mb-2 text-xl font-semibold" style={{ color: '#D8E0FF' }}>
+              <h2 className="mb-2 text-xl font-semibold text-foreground">
                 Loading your profile...
               </h2>
               <p className="text-muted-foreground text-sm">
@@ -940,10 +938,10 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
         {/* STATE 2: UNAUTHENTICATED */}
         {/* ============================================================================ */}
         {currentRenderState === 'unauthenticated' && (
-          <Card className="w-full max-w-md mx-auto border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
+          <Card className="w-full max-w-md mx-auto border-border/50 glass-surface">
             <CardContent className="p-8 text-center">
               <Users className="text-muted-foreground mx-auto mb-4 h-16 w-16" />
-              <h2 className="mb-2 text-2xl font-bold" style={{ color: '#D8E0FF' }}>Profile Not Available</h2>
+              <h2 className="mb-2 text-2xl font-bold text-foreground">Profile Not Available</h2>
               <p className="text-muted-foreground mb-6">
                 Please log in to view your profile.
               </p>
@@ -966,10 +964,10 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Card className="w-full max-w-2xl mx-auto border-border/50" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
+            <Card className="w-full max-w-2xl mx-auto border-border/50 glass-surface">
               <CardContent className="p-12 text-center">
                 <Sparkles className="text-primary mx-auto mb-6 h-20 w-20" />
-                <h1 className="mb-4 text-4xl font-bold" style={{ color: '#D8E0FF' }}>
+                <h1 className="mb-4 text-4xl font-bold text-foreground">
                   Welcome to Motif
                 </h1>
                 <p className="text-muted-foreground mb-8 text-lg">
@@ -1033,7 +1031,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
           >
             <div className="space-y-6">
                 {/* Profile Header */}
-                <Card className="border-border/50 shadow-lg" style={{ background: 'rgba(180, 200, 255, 0.05)' }}>
+                <Card className="border-border/50 shadow-lg glass-surface">
                   <CardContent className="p-8">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
                       <div className="flex items-start gap-6">
@@ -1042,14 +1040,14 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                             <AvatarImage src={displayProfile.avatar} />
                           ) : null}
                           <AvatarFallback className="text-4xl">
-                            {displayProfile.avatar && !isAvatarUrl(displayProfile.avatar) 
-                              ? displayProfile.avatar 
+                            {displayProfile.avatar && !isAvatarUrl(displayProfile.avatar)
+                              ? displayProfile.avatar
                               : getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="space-y-3">
                           <div>
-                            <h1 className="text-4xl font-bold mb-1" style={{ color: '#D8E0FF' }}>
+                            <h1 className="text-4xl font-bold mb-1 text-foreground">
                               {getDisplayName()}
                             </h1>
                             {shouldShowRole && (
