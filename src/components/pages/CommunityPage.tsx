@@ -843,11 +843,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
               {/* Post Form Dialog */}
               <Dialog open={postFormOpen} onOpenChange={setPostFormOpen}>
-                <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-                  <DialogHeader>
+                <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
+                  <DialogHeader className="flex-shrink-0">
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4 py-4">
+                  <div className="flex-1 overflow-y-auto space-y-4 py-4">
                     {isLoadingIdeas ? (
                       <div className="flex flex-col items-center justify-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -874,7 +874,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                       <>
                         <div className="space-y-2">
                           <Label>Select an idea to share</Label>
-                          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                          <div className="space-y-2 pr-1">
                             {analyzedIdeas.map((idea) => (
                               <Card
                                 key={idea.id}
@@ -924,16 +924,21 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                             ))}
                           </div>
                         </div>
-                        <Button
-                          onClick={handleSubmitIdea}
-                          disabled={!selectedAnalyzedIdeaId}
-                          className="gradient-lavender shadow-lavender w-full rounded-[16px] hover:opacity-90"
-                        >
-                          Share Selected Idea
-                        </Button>
                       </>
                     )}
                   </div>
+                  {/* Fixed button at bottom when ideas exist */}
+                  {!isLoadingIdeas && analyzedIdeas.length > 0 && (
+                    <div className="flex-shrink-0 pt-4 border-t border-border">
+                      <Button
+                        onClick={handleSubmitIdea}
+                        disabled={!selectedAnalyzedIdeaId}
+                        className="gradient-lavender shadow-lavender w-full rounded-[16px] hover:opacity-90"
+                      >
+                        Share Selected Idea
+                      </Button>
+                    </div>
+                  )}
                 </DialogContent>
               </Dialog>
               <Button
