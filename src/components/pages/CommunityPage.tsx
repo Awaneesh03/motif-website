@@ -843,11 +843,13 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
               {/* Post Form Dialog */}
               <Dialog open={postFormOpen} onOpenChange={setPostFormOpen}>
-                <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden gap-0 p-0">
-                  <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
+                <DialogContent className="sm:max-w-lg gap-0 p-0">
+                  <DialogHeader className="px-6 pt-6 pb-3">
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
                   </DialogHeader>
-                  <div className="flex-1 min-h-0 overflow-y-auto space-y-4 px-6 py-2">
+
+                  {/* Scroll area with explicit max-height — no flex sizing dependency */}
+                  <div className="max-h-[60vh] overflow-y-auto px-6 pb-2">
                     {isLoadingIdeas ? (
                       <div className="flex flex-col items-center justify-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -871,65 +873,64 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                         </Button>
                       </div>
                     ) : (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Select an idea to share</Label>
-                          <div className="space-y-2 pr-1">
-                            {analyzedIdeas.map((idea) => (
-                              <Card
-                                key={idea.id}
-                                className={`cursor-pointer transition-all hover:border-primary ${
-                                  selectedAnalyzedIdeaId === idea.id
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-border'
-                                }`}
-                                onClick={() => setSelectedAnalyzedIdeaId(idea.id)}
-                              >
-                                <CardContent className="p-4">
-                                  <div className="flex items-start gap-3">
-                                    <div className="flex-shrink-0 mt-1">
-                                      <div
-                                        className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
-                                          selectedAnalyzedIdeaId === idea.id
-                                            ? 'border-primary bg-primary'
-                                            : 'border-muted-foreground'
-                                        }`}
-                                      >
-                                        {selectedAnalyzedIdeaId === idea.id && (
-                                          <div className="h-2 w-2 rounded-full bg-white" />
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <h4 className="font-semibold text-sm mb-1 line-clamp-2">
-                                        {idea.idea_title}
-                                      </h4>
-                                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                                        {idea.idea_description}
-                                      </p>
-                                      <div className="flex items-center gap-2">
-                                        {idea.score && (
-                                          <Badge variant="secondary" className="text-xs">
-                                            Score: {idea.score}/100
-                                          </Badge>
-                                        )}
-                                        <span className="text-xs text-muted-foreground">
-                                          {new Date(idea.created_at).toLocaleDateString()}
-                                        </span>
-                                      </div>
+                      <div className="space-y-2">
+                        <Label>Select an idea to share</Label>
+                        <div className="space-y-2 pr-1">
+                          {analyzedIdeas.map((idea) => (
+                            <Card
+                              key={idea.id}
+                              className={`cursor-pointer transition-all hover:border-primary ${
+                                selectedAnalyzedIdeaId === idea.id
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border'
+                              }`}
+                              onClick={() => setSelectedAnalyzedIdeaId(idea.id)}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="flex-shrink-0 mt-1">
+                                    <div
+                                      className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                                        selectedAnalyzedIdeaId === idea.id
+                                          ? 'border-primary bg-primary'
+                                          : 'border-muted-foreground'
+                                      }`}
+                                    >
+                                      {selectedAnalyzedIdeaId === idea.id && (
+                                        <div className="h-2 w-2 rounded-full bg-white" />
+                                      )}
                                     </div>
                                   </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-sm mb-1 line-clamp-2">
+                                      {idea.idea_title}
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                                      {idea.idea_description}
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                      {idea.score && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          Score: {idea.score}/100
+                                        </Badge>
+                                      )}
+                                      <span className="text-xs text-muted-foreground">
+                                        {new Date(idea.created_at).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
-                  {/* Fixed button at bottom when ideas exist */}
+
+                  {/* Footer — always visible, never inside scroll area */}
                   {!isLoadingIdeas && analyzedIdeas.length > 0 && (
-                    <div className="flex-shrink-0 px-6 py-4 border-t border-border">
+                    <div className="px-6 py-4 border-t border-border">
                       <Button
                         onClick={handleSubmitIdea}
                         disabled={!selectedAnalyzedIdeaId}
