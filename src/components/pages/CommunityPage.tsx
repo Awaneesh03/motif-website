@@ -843,7 +843,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
               {/* Post Form Dialog */}
               <Dialog open={postFormOpen} onOpenChange={setPostFormOpen}>
-                <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden gap-0 p-0">
+                <DialogContent className="sm:max-w-lg top-[5vh] translate-y-0 max-h-[90vh] overflow-hidden gap-0 p-0">
                   <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-3">
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
                   </DialogHeader>
