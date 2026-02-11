@@ -3,11 +3,11 @@
 
 import { useState, useEffect } from 'react';
 import type { Idea } from '../lib/ideasService';
-import type { FounderMetrics, VCMetrics, AdminMetrics } from '../lib/metricsService';
+import type { FounderMetrics, AdminMetrics } from '../lib/metricsService';
 
 interface DemoModeConfig {
   isDemoMode: boolean;
-  reason?: 'no-startups' | 'no-connections' | 'low-activity' | 'none';
+  reason?: 'no-startups' | 'low-activity' | 'none';
 }
 
 /**
@@ -34,43 +34,6 @@ export const useFounderDemoMode = (startups: Idea[], metrics: FounderMetrics | n
       });
     }
   }, [startups.length, metrics]);
-
-  return config;
-};
-
-/**
- * Determines if VC should see demo mode
- * Enabled when they have zero intro requests/connections
- */
-export const useVCDemoMode = (
-  introRequests: any[],
-  connectedStartups: any[],
-  metrics: VCMetrics | null
-): DemoModeConfig => {
-  const [config, setConfig] = useState<DemoModeConfig>({
-    isDemoMode: false,
-    reason: 'none',
-  });
-
-  useEffect(() => {
-    // Enable demo mode if no intro requests or connections
-    const hasNoActivity =
-      introRequests.length === 0 &&
-      connectedStartups.length === 0 &&
-      metrics?.introRequestsSent === 0;
-
-    if (hasNoActivity) {
-      setConfig({
-        isDemoMode: true,
-        reason: 'no-connections',
-      });
-    } else {
-      setConfig({
-        isDemoMode: false,
-        reason: 'none',
-      });
-    }
-  }, [introRequests.length, connectedStartups.length, metrics]);
 
   return config;
 };

@@ -37,71 +37,6 @@ export const demoFounderStartups: (Idea & { demoDescription?: string })[] = [
   },
 ];
 
-// Demo VCs for display purposes
-export const demoVCProfiles = [
-  {
-    id: 'demo-vc-1',
-    name: 'Sarah Chen',
-    firm: 'Acme Ventures',
-    role: 'Partner',
-    focus: 'B2B SaaS, AI/ML',
-  },
-  {
-    id: 'demo-vc-2',
-    name: 'Michael Rodriguez',
-    firm: 'NextGen Capital',
-    role: 'Investment Director',
-    focus: 'HealthTech, FinTech',
-  },
-  {
-    id: 'demo-vc-3',
-    name: 'Lisa Wang',
-    firm: 'Innovation Partners',
-    role: 'Managing Partner',
-    focus: 'Climate Tech, Energy',
-  },
-];
-
-// Demo startups for VCs to browse
-export const demoVCStartups = [
-  {
-    id: 'demo-vc-startup-1',
-    title: 'CloudSync Pro',
-    name: 'CloudSync Pro',
-    description: 'Enterprise file synchronization with military-grade encryption',
-    stage: 'Series A',
-    status: 'approved_for_vc',
-    industry: 'B2B SaaS',
-    targetMarket: 'Enterprise',
-    fundingGoal: '$2M',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-vc-startup-2',
-    title: 'FitnessPro AI',
-    name: 'FitnessPro AI',
-    description: 'AI-powered personalized fitness coaching and nutrition planning',
-    stage: 'Seed',
-    status: 'approved_for_vc',
-    industry: 'HealthTech',
-    targetMarket: 'Consumer',
-    fundingGoal: '$500K',
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: 'demo-vc-startup-3',
-    title: 'GreenCommute',
-    name: 'GreenCommute',
-    description: 'Electric vehicle fleet management for corporate sustainability',
-    stage: 'MVP',
-    status: 'approved_for_vc',
-    industry: 'Climate Tech',
-    targetMarket: 'B2B',
-    fundingGoal: '$1.5M',
-    created_at: new Date(Date.now() - 172800000).toISOString(),
-  },
-];
-
 // Demo activity timeline items
 export const demoActivityItems = [
   {
@@ -143,14 +78,6 @@ export const demoFounderMetrics = {
   activeConnections: 1,
 };
 
-export const demoVCMetrics = {
-  availableStartups: 12,
-  introRequestsSent: 3,
-  approvedConnections: 1,
-  pendingRequests: 2,
-  rejectedRequests: 0,
-};
-
 export const demoAdminMetrics = {
   totalFounders: 24,
   totalVCs: 8,
@@ -174,11 +101,6 @@ export const demoTooltips = {
     pending: 'Example of a startup under review by the Motif team.',
     approved: 'Example of an approved startup visible to VCs.',
     cta: 'Ready to create your first real startup?',
-  },
-  vc: {
-    startup: 'This is a sample startup. Real startups will appear here once approved by admins.',
-    requestIntro: 'In demo mode, you cannot request introductions. Browse real startups to connect.',
-    flow: 'VC Flow: Discover approved startups → Request intro → Admin reviews → Connect with founder',
   },
   admin: {
     metrics: 'These are example metrics to show how the platform tracks performance.',
