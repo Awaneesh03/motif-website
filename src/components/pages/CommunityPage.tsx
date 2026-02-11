@@ -843,11 +843,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
               {/* Post Form Dialog */}
               <Dialog open={postFormOpen} onOpenChange={setPostFormOpen}>
-                <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
-                  <DialogHeader className="flex-shrink-0">
+                <DialogContent className="sm:max-w-lg max-h-[85vh] !flex !flex-col gap-0 overflow-hidden p-0">
+                  <DialogHeader className="flex-shrink-0 p-6 pb-0">
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
                   </DialogHeader>
-                  <div className="flex-1 overflow-y-auto space-y-4 py-4">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-4 px-6 py-4">
                     {isLoadingIdeas ? (
                       <div className="flex flex-col items-center justify-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -929,7 +929,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                   </div>
                   {/* Fixed button at bottom when ideas exist */}
                   {!isLoadingIdeas && analyzedIdeas.length > 0 && (
-                    <div className="flex-shrink-0 pt-4 border-t border-border">
+                    <div className="flex-shrink-0 px-6 py-4 border-t border-border">
                       <Button
                         onClick={handleSubmitIdea}
                         disabled={!selectedAnalyzedIdeaId}
