@@ -572,20 +572,25 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     }
   };
 
-  const handleAvatarChange = async (emoji: string) => {
+  const handleAvatarChange = async (avatarValue: string) => {
     if (!authUser) return;
 
     try {
-      const updatedProfile = { ...displayProfile, avatar: emoji };
-
+      // 1. Persist to profiles table (source of truth)
       const { error } = await supabase
         .from('profiles')
-        .update({ avatar_url: emoji })
+        .update({ avatar_url: avatarValue })
         .eq('id', authUser.id);
 
       if (error) throw error;
 
-      setProfile(updatedProfile as any);
+      // 2. Also sync to auth user_metadata for cross-device fallback
+      await supabase.auth.updateUser({
+        data: { avatar_url: avatarValue },
+      });
+
+      // 3. Update local state
+      setProfile({ ...displayProfile, avatar: avatarValue } as any);
       setIsAvatarModalOpen(false);
       toast.success('Avatar updated!');
     } catch (error: any) {

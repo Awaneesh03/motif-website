@@ -39,6 +39,9 @@ export function Navbar({
     displayName?.trim()?.charAt(0)?.toUpperCase() ||
     'U';
 
+  const avatarValue = profile?.avatar || '';
+  const isAvatarUrl = avatarValue.startsWith('http://') || avatarValue.startsWith('https://') || avatarValue.startsWith('data:');
+
   // Navigation links change based on login state
   const navLinks = isLoggedIn
     ? ['Home', 'About', 'Case Studies', 'Community']
@@ -204,8 +207,14 @@ export function Navbar({
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 shrink-0">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={profile?.avatar || undefined} alt="User" />
-                      <AvatarFallback className="text-xs">{avatarInitial}</AvatarFallback>
+                      {isAvatarUrl ? (
+                        <AvatarImage src={avatarValue} alt="User" />
+                      ) : null}
+                      <AvatarFallback className="text-xs">
+                        {avatarValue && !isAvatarUrl ? (
+                          <span className="text-lg">{avatarValue}</span>
+                        ) : avatarInitial}
+                      </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>

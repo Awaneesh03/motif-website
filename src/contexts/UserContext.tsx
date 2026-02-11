@@ -81,10 +81,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         ]);
 
         if (!error && profile) {
-          // Map avatar_url from DB to avatar for internal use
-          if (profile.avatar_url !== undefined && !profile.avatar) {
-            profile.avatar = profile.avatar_url;
-          }
+          // Always map avatar_url (DB column) → avatar (internal property)
+          // avatar_url is the single source of truth in the database
+          profile.avatar = profile.avatar_url ?? profile.avatar ?? authUser.user_metadata?.avatar_url ?? '';
 
           // Profile exists - ensure role is set
           if (!profile.role || profile.role === 'no-role') {
