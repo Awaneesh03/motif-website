@@ -843,13 +843,13 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
               {/* Post Form Dialog */}
               <Dialog open={postFormOpen} onOpenChange={setPostFormOpen}>
-                <DialogContent className="sm:max-w-lg top-[5vh] translate-y-0 max-h-[90vh] overflow-hidden gap-0 p-0">
-                  <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-3">
+                <DialogContent className="sm:max-w-lg p-0 gap-0">
+                  <DialogHeader className="px-6 pt-6 pb-3">
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
                   </DialogHeader>
 
-                  {/* Scrollable content — fills remaining space within bounded parent */}
-                  <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-2">
+                  {/* Scroll area with hard max-height cap */}
+                  <div className="max-h-[60vh] overflow-y-auto px-6 pb-2">
                     {isLoadingIdeas ? (
                       <div className="flex flex-col items-center justify-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -930,7 +930,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
                   {/* Footer — always visible, never inside scroll area */}
                   {!isLoadingIdeas && analyzedIdeas.length > 0 && (
-                    <div className="flex-shrink-0 px-6 py-4 border-t border-border">
+                    <div className="px-6 py-4 border-t border-border">
                       <Button
                         onClick={handleSubmitIdea}
                         disabled={!selectedAnalyzedIdeaId}
