@@ -21,10 +21,7 @@ import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
-
-// Groq API configuration
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+import { apiClient, PitchResponse, PitchSlideContent } from '../../lib/api-client';
 
 interface PitchCreatorPageProps {
   onNavigate?: (page: string) => void;
@@ -44,93 +41,76 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
   const [showPitchModal, setShowPitchModal] = useState(false);
   const [generatedSlides, setGeneratedSlides] = useState<any>(null);
 
+  const inferIconFromTitle = (title: string): string => {
+    const lower = title.toLowerCase();
+    if (lower.includes('problem')) return 'problem';
+    if (lower.includes('solution')) return 'solution';
+    if (lower.includes('market')) return 'market';
+    if (lower.includes('product')) return 'product';
+    if (lower.includes('business') || lower.includes('model') || lower.includes('revenue')) return 'business';
+    if (lower.includes('ask') || lower.includes('investment') || lower.includes('funding')) return 'ask';
+    return 'product';
+  };
+
   const handleGeneratePitch = async () => {
     setIsGenerating(true);
 
     try {
       let pitchData;
 
-      if (GROQ_API_KEY) {
-        // Call Groq API directly for pitch generation
-        const systemPrompt = `You are an expert startup pitch deck creator. Create compelling pitch deck slides that are concise and impactful. Always respond in valid JSON format only.`;
-
-        const userPrompt = `Create a pitch deck for this startup:
-
-Startup Name: ${formData.ideaName}
-Problem: ${formData.problem}
-Solution: ${formData.solution}
-Target Audience: ${formData.audience || 'General market'}
-Market Opportunity: ${formData.market || 'To be researched'}
-Unique Selling Point: ${formData.usp || 'To be defined'}
-
-Generate 6 pitch deck slides. Return ONLY a JSON object with this structure:
-{
-  "slides": [
-    { "title": "The Problem", "content": "Compelling problem statement", "icon": "problem" },
-    { "title": "Our Solution", "content": "How we solve it", "icon": "solution" },
-    { "title": "Market Opportunity", "content": "Market size and potential", "icon": "market" },
-    { "title": "The Product", "content": "Key product features", "icon": "product" },
-    { "title": "Business Model", "content": "How we make money", "icon": "business" },
-    { "title": "The Ask", "content": "What we're looking for", "icon": "ask" }
-  ]
-}`;
-
-        const response = await fetch(GROQ_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${GROQ_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-            temperature: 0.7,
-            max_tokens: 2048,
-          }),
+      try {
+        const response = await apiClient.post<PitchResponse>('/api/ai/generate-pitch', {
+          ideaName: formData.ideaName,
+          problem: formData.problem,
+          solution: formData.solution,
+          audience: formData.audience || null,
+          market: formData.market || null,
+          usp: formData.usp || null,
         });
 
-        if (!response.ok) {
-          throw new Error('Failed to generate pitch');
-        }
-
-        const data = await response.json();
-        const content = data.choices[0]?.message?.content || '';
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-
-        if (jsonMatch) {
-          pitchData = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('Invalid response format');
-        }
-      } else {
-        // Fallback to mock pitch data when no API key
+        // Adapt backend response: backend returns {title, content, bulletPoints}
+        // Frontend rendering uses {title, content, icon, bulletPoints}
         pitchData = {
-          slides: [
-            {
-              title: 'The Problem',
-              content: formData.problem || 'Market gap that needs addressing',
-              icon: 'problem',
-            },
-            {
-              title: 'Our Solution',
-              content: formData.solution || 'Innovative approach to solving the problem',
-              icon: 'solution',
-            },
-            {
-              title: 'Market Opportunity',
-              content: formData.market || 'Large and growing addressable market',
-              icon: 'market',
-            },
-            {
-              title: 'The Product',
-              content: `${formData.ideaName}: ${formData.usp || 'Unique product offering'}`,
-              icon: 'product',
-            },
-          ],
+          slides: response.slides.map((slide: PitchSlideContent) => ({
+            title: slide.title,
+            content: slide.content,
+            bulletPoints: slide.bulletPoints,
+            icon: inferIconFromTitle(slide.title),
+          })),
+          speakerNotes: response.speakerNotes,
         };
+      } catch (error) {
+        // Fallback to mock pitch data when backend is unreachable
+        if (error instanceof Error &&
+            (error.message.toLowerCase().includes('failed to fetch') ||
+             error.message.toLowerCase().includes('network'))) {
+          pitchData = {
+            slides: [
+              {
+                title: 'The Problem',
+                content: formData.problem || 'Market gap that needs addressing',
+                icon: 'problem',
+              },
+              {
+                title: 'Our Solution',
+                content: formData.solution || 'Innovative approach to solving the problem',
+                icon: 'solution',
+              },
+              {
+                title: 'Market Opportunity',
+                content: formData.market || 'Large and growing addressable market',
+                icon: 'market',
+              },
+              {
+                title: 'The Product',
+                content: `${formData.ideaName}: ${formData.usp || 'Unique product offering'}`,
+                icon: 'product',
+              },
+            ],
+          };
+        } else {
+          throw error;
+        }
       }
 
       setGeneratedSlides(pitchData);
@@ -142,13 +122,13 @@ Generate 6 pitch deck slides. Return ONLY a JSON object with this structure:
         try {
           // First, create the idea record
           const { data: ideaData, error: ideaError } = await supabase
-            .from('ideas')
+            .from('idea_analyses')
             .insert({
               title: formData.ideaName,
               description: formData.problem,
               stage: 'idea',
               status: 'draft',
-              created_by: user.id,
+              user_id: user.id,
             })
             .select()
             .single();
@@ -191,6 +171,8 @@ Generate 6 pitch deck slides. Return ONLY a JSON object with this structure:
     solution: Lightbulb,
     market: TrendingUp,
     product: Sparkles,
+    business: Presentation,
+    ask: Target,
   };
 
   // Download pitch deck slides
@@ -213,7 +195,7 @@ SLIDE ${index + 1}: ${slide.title}
 ========================================
 
 ${slide.content}
-
+${slide.bulletPoints && slide.bulletPoints.length > 0 ? '\n' + slide.bulletPoints.map((p: string) => `- ${p}`).join('\n') : ''}
 `).join('\n')}
 
 ========================================
@@ -556,6 +538,16 @@ Good luck with your pitch!
                             </Badge>
                             <h4 className="mb-2">{slide.title}</h4>
                             <p className="text-muted-foreground text-sm">{slide.content}</p>
+                            {slide.bulletPoints && slide.bulletPoints.length > 0 && (
+                              <ul className="mt-2 space-y-1">
+                                {slide.bulletPoints.map((point: string, i: number) => (
+                                  <li key={i} className="text-muted-foreground text-sm flex gap-2">
+                                    <span className="text-primary">-</span>
+                                    <span>{point}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
                           </div>
                         </div>
                       </CardContent>

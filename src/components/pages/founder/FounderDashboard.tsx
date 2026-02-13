@@ -172,7 +172,7 @@ export function FounderDashboard() {
   const { loading: submitLoading, execute: handleSubmitForReview } = useAsyncAction(
     async (ideaId: string) => {
       const { error } = await supabase
-        .from('ideas')
+        .from('idea_analyses')
         .update({ status: 'pending_review' })
         .eq('id', ideaId);
 

@@ -26,9 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Progress } from '../ui/progress';
 import { StarRating } from '../ui/star-rating';
 import { supabase } from '@/lib/supabase';
-
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+import { apiClient, CaseEvaluationResponse } from '@/lib/api-client';
 
 interface CaseDetailPageProps {
   onNavigate?: (page: string) => void;
@@ -163,74 +161,24 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     }, 500);
   };
 
-  interface CaseEvaluationResponse {
-    score: number;
-    verdict: string;
-    feedback: string[];
-    strengths: string[];
-    improvements: string[];
-  }
-
   const evaluateSolutionWithAI = async (userSolution: string): Promise<CaseEvaluationResponse> => {
-    if (!GROQ_API_KEY) {
-      console.warn('Groq API key not configured, using fallback evaluation');
-      return getFallbackEvaluation(userSolution);
-    }
-
     try {
-      const systemPrompt = `You are an expert business case study evaluator. Evaluate solutions to business case studies and provide constructive feedback. Always respond in valid JSON format only.`;
-
-      const userPrompt = `Evaluate this solution to a business case study:
-
-Case Title: ${caseData.title}
-Company: ${caseData.company}
-Problem: ${caseData.problem}
-
-Student's Solution:
-${userSolution}
-
-Provide a comprehensive evaluation. Return ONLY a JSON object with this exact structure:
-{
-  "score": <number from 0-100>,
-  "verdict": "<one of: Excellent, Good, Satisfactory, Needs Improvement>",
-  "feedback": ["feedback point 1", "feedback point 2", "feedback point 3"],
-  "strengths": ["strength 1", "strength 2"],
-  "improvements": ["improvement 1", "improvement 2"]
-}`;
-
-      const response = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          temperature: 0.5,
-          max_tokens: 1024,
-        }),
+      const response = await apiClient.post<CaseEvaluationResponse>('/api/ai/evaluate-case', {
+        caseTitle: caseData.title,
+        company: caseData.company,
+        problem: caseData.problem,
+        solution: userSolution,
       });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const content = data.choices[0]?.message?.content || '';
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      
-      if (!jsonMatch) {
-        throw new Error('Invalid response format');
-      }
-
-      return JSON.parse(jsonMatch[0]);
+      return response;
     } catch (error) {
       console.error('AI evaluation error:', error);
-      // Fallback to a basic evaluation based on solution length and keywords
+      // Fallback to basic evaluation when backend is unreachable
+      if (error instanceof Error &&
+          (error.message.toLowerCase().includes('failed to fetch') ||
+           error.message.toLowerCase().includes('network'))) {
+        return getFallbackEvaluation(userSolution);
+      }
       return getFallbackEvaluation(userSolution);
     }
   };

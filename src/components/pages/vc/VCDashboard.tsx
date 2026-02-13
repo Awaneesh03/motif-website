@@ -51,7 +51,7 @@ const VCDashboard = () => {
       try {
         // Load approved startups
         const { data: startups, error: startupsError } = await supabase
-          .from('ideas')
+          .from('idea_analyses')
           .select('*')
           .eq('status', 'approved_for_vc')
           .order('created_at', { ascending: false })

@@ -172,7 +172,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         }
       }
 
-      // Call Groq AI directly for analysis
+      // Call backend API for analysis (backend also persists the result)
       const analysisData = await analyzeIdeaWithGroq({
         title: ideaTitle,
         description: ideaDescription,
@@ -180,29 +180,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       });
 
       setAnalysisResult(analysisData);
-
-      const { error: insertError } = await supabase
-        .from('idea_analyses')
-        .insert({
-          user_id: user.id,
-          idea_title: ideaTitle.trim(),
-          idea_description: ideaDescription.trim(),
-          target_market: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
-          score: analysisData.score,
-          strengths: analysisData.strengths,
-          weaknesses: analysisData.weaknesses,
-          recommendations: analysisData.recommendations,
-          market_size: analysisData.marketSize,
-          competition: analysisData.competition,
-          viability: analysisData.viability,
-        });
-
-      if (insertError) {
-        console.error('Failed to save analysis:', insertError);
-        toast.error('Analysis complete, but failed to save to your vault.');
-      } else {
-        toast.success('Analysis complete and saved to your vault.');
-      }
+      toast.success('Analysis complete and saved to your vault.');
     } catch (error) {
       console.error('Analysis error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to analyze idea. Please try again.';

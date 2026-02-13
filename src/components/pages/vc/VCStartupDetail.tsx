@@ -70,9 +70,9 @@ const VCStartupDetail = () => {
       setRequestExists(true);
 
       // Send notification to founder
-      if (startup.created_by) {
+      if (startup.user_id) {
         await notifyVCIntroRequested(
-          startup.created_by,
+          startup.user_id,
           profile.name || 'A VC',
           id,
           startup.title || startup.name || 'your startup'

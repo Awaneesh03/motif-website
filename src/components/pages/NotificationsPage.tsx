@@ -54,7 +54,7 @@ export function NotificationsPage({ onNavigate }: NotificationsPageProps) {
       if (newNotification.relatedId) {
         try {
           const { data, error } = await supabase
-            .from('ideas')
+            .from('idea_analyses')
             .select('name, title')
             .eq('id', newNotification.relatedId)
             .single();
@@ -99,7 +99,7 @@ export function NotificationsPage({ onNavigate }: NotificationsPageProps) {
           if (notification.relatedId) {
             try {
               const { data, error } = await supabase
-                .from('ideas')
+                .from('idea_analyses')
                 .select('name, title')
                 .eq('id', notification.relatedId)
                 .single();

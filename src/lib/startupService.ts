@@ -29,7 +29,7 @@ export interface Startup {
 export const getAllStartups = async (): Promise<Startup[]> => {
   try {
     const { data, error } = await supabase
-      .from('ideas')
+      .from('idea_analyses')
       .select('*')
       .order('id', { ascending: false });
 
@@ -44,7 +44,7 @@ export const getAllStartups = async (): Promise<Startup[]> => {
       industry: item.industry || 'Not specified',
       stage: 'idea',
       status: item.status || 'draft',
-      createdBy: item.created_by,
+      createdBy: item.user_id,
       founderName: 'Unknown',
       createdAt: item.created_at || new Date().toISOString(),
     }));
@@ -60,18 +60,14 @@ export const getAllStartups = async (): Promise<Startup[]> => {
 export const getStartupsByFounder = async (founderId: string): Promise<Startup[]> => {
   try {
     const { data, error } = await supabase
-      .from('ideas')
+      .from('idea_analyses')
       .select('*')
+      .eq('user_id', founderId)
       .order('id', { ascending: false });
 
     if (error) throw error;
 
-    // Filter by founder in JavaScript to avoid column issues
-    const founderStartups = (data || []).filter((item: any) => 
-      item.created_by === founderId || item.user_id === founderId
-    );
-
-    return founderStartups.map((item: any) => ({
+    return (data || []).map((item: any) => ({
       id: item.id,
       name: item.title || 'Untitled',
       pitch: item.description || '',
@@ -80,7 +76,7 @@ export const getStartupsByFounder = async (founderId: string): Promise<Startup[]
       industry: item.industry || 'Not specified',
       stage: 'idea',
       status: item.status || 'draft',
-      createdBy: item.created_by || item.user_id || founderId,
+      createdBy: item.user_id || founderId,
       founderName: 'Unknown',
       createdAt: item.created_at || new Date().toISOString(),
     }));
@@ -96,7 +92,7 @@ export const getStartupsByFounder = async (founderId: string): Promise<Startup[]
 export const getApprovedStartups = async (): Promise<Startup[]> => {
   try {
     const { data, error } = await supabase
-      .from('ideas')
+      .from('idea_analyses')
       .select('*')
       .eq('status', 'approved_for_vc')
       .order('id', { ascending: false });
@@ -112,7 +108,7 @@ export const getApprovedStartups = async (): Promise<Startup[]> => {
       industry: item.industry || 'Not specified',
       stage: 'idea',
       status: item.status || 'draft',
-      createdBy: item.created_by,
+      createdBy: item.user_id,
       founderName: 'Unknown',
       createdAt: item.created_at || new Date().toISOString(),
     }));
@@ -131,13 +127,13 @@ export const createStartup = async (
   try {
     // Create idea first
     const { data: ideaData, error: ideaError } = await supabase
-      .from('ideas')
+      .from('idea_analyses')
       .insert({
         title: startup.name,
         description: startup.pitch,
         industry: startup.industry,
         status: startup.status,
-        created_by: startup.createdBy,
+        user_id: startup.createdBy,
       })
       .select()
       .single();
@@ -185,7 +181,7 @@ export const updateStartupStatus = async (
   try {
     // Fetch current status first
     const { data: currentData, error: fetchError } = await supabase
-      .from('ideas')
+      .from('idea_analyses')
       .select('status')
       .eq('id', id)
       .single();
@@ -234,7 +230,7 @@ export const updateStartupStatus = async (
     }
 
     const { data, error } = await supabase
-      .from('ideas')
+      .from('idea_analyses')
       .update({ status })
       .eq('id', id)
       .select('*')
@@ -251,7 +247,7 @@ export const updateStartupStatus = async (
       industry: data.industry || 'Not specified',
       stage: 'idea',
       status: data.status || 'draft',
-      createdBy: data.created_by,
+      createdBy: data.user_id,
       founderName: 'Unknown',
       createdAt: data.created_at || new Date().toISOString(),
     };
@@ -268,7 +264,7 @@ export const updateStartupStatus = async (
 export const getStartupById = async (id: string): Promise<Startup | null> => {
   try {
     const { data, error } = await supabase
-      .from('ideas')
+      .from('idea_analyses')
       .select('*')
       .eq('id', id)
       .single();
@@ -284,7 +280,7 @@ export const getStartupById = async (id: string): Promise<Startup | null> => {
       industry: data.industry || 'Not specified',
       stage: 'idea',
       status: data.status || 'draft',
-      createdBy: data.created_by,
+      createdBy: data.user_id,
       founderName: 'Unknown',
       createdAt: data.created_at || new Date().toISOString(),
     };

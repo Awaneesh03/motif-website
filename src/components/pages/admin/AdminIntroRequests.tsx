@@ -70,10 +70,10 @@ const AdminIntroRequests = () => {
       // Fetch startup to get founder ID and send notifications
       if (request.vcId) {
         const startup = await getIdeaById(request.startupId);
-        if (startup && startup.created_by) {
+        if (startup && startup.user_id) {
           await notifyVCIntroApproved(
             request.vcId,
-            startup.created_by,
+            startup.user_id,
             request.startupId,
             request.startupName
           );

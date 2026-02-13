@@ -134,3 +134,23 @@ export interface IdeaResponse {
   description: string;
   targetMarket: string;
 }
+
+export interface CaseEvaluationResponse {
+  score: number;
+  verdict: string;
+  feedback: string[];
+  strengths: string[];
+  improvements: string[];
+  timestamp?: string;
+}
+
+export interface PitchSlideContent {
+  title: string;
+  content: string;
+  bulletPoints: string[];
+}
+
+export interface PitchResponse {
+  slides: PitchSlideContent[];
+  speakerNotes: string;
+}

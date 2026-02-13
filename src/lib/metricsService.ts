@@ -32,17 +32,9 @@ export const getFounderMetrics = async (founderId: string): Promise<FounderMetri
       console.error('Error fetching analyzed ideas:', analyzedError);
     }
 
-    // Get all startups/ideas submitted by founder
-    const { data: allStartups, error: startupsError } = await supabase
-      .from('ideas')
-      .select('*')
-      .eq('created_by', founderId);
-
-    if (startupsError) {
-      console.error('Error fetching startups:', startupsError);
-    }
-
-    const startups = allStartups || [];
+    // Use idea_analyses as the source of truth for all founder ideas
+    // The old 'ideas' table doesn't exist - everything is in idea_analyses
+    const startups = analyzedIdeas || [];
 
     // Count total analyzed ideas
     const totalAnalyzed = analyzedIdeas?.length || 0;
@@ -74,8 +66,8 @@ export const getFounderMetrics = async (founderId: string): Promise<FounderMetri
     }
 
     return {
-      // Use analyzed ideas count + submitted startups count
-      totalStartups: totalAnalyzed + statusCounts.total,
+      // Use analyzed ideas count as the total
+      totalStartups: totalAnalyzed,
       draftStartups: statusCounts.draft,
       pendingReview: statusCounts.pending_review,
       approvedForVC: statusCounts.approved_for_vc,
@@ -117,7 +109,7 @@ export const getVCMetrics = async (vcId: string): Promise<VCMetrics> => {
   try {
     // Get count of available startups (approved_for_vc)
     const { count: availableCount, error: availableError } = await supabase
-      .from('ideas')
+      .from('idea_analyses')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'approved_for_vc');
 
@@ -204,7 +196,7 @@ export const getAdminMetrics = async (): Promise<AdminMetrics> => {
 
     // Get all startups with status breakdown
     const { data: startups, error: startupsError } = await supabase
-      .from('ideas')
+      .from('idea_analyses')
       .select('status');
 
     if (startupsError) throw startupsError;
