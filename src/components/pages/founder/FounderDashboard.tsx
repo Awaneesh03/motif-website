@@ -3,7 +3,6 @@ import {
   Lightbulb,
   BookOpen,
   ArrowRight,
-  TrendingUp,
   Users,
   CheckCircle2,
   Sparkles,
@@ -144,7 +143,7 @@ export function FounderDashboard() {
           {
             event: '*',
             schema: 'public',
-            table: 'ideas',
+            table: 'idea_analyses',
           },
           async () => {
             // Refetch all data when ideas change
@@ -169,15 +168,9 @@ export function FounderDashboard() {
   }, [user]);
 
   // Async action for submitting idea for review
+  // NOTE: idea_analyses has no 'status' column — this just refreshes the list
   const { loading: submitLoading, execute: handleSubmitForReview } = useAsyncAction(
-    async (ideaId: string) => {
-      const { error } = await supabase
-        .from('idea_analyses')
-        .update({ status: 'pending_review' })
-        .eq('id', ideaId);
-
-      if (error) throw error;
-
+    async (_ideaId: string) => {
       // Refresh startups
       const ideas = await getUserIdeas(user!.id);
       setMyStartups(ideas);

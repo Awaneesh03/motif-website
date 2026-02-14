@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { Trophy, Medal, Award, TrendingUp, Target, BarChart3, User } from 'lucide-react';
 
-import { Card, CardContent } from '../ui/card';
+import { Card } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';

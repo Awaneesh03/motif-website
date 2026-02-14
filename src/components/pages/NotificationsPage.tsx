@@ -55,14 +55,14 @@ export function NotificationsPage({ onNavigate }: NotificationsPageProps) {
         try {
           const { data, error } = await supabase
             .from('idea_analyses')
-            .select('name, title')
+            .select('idea_title')
             .eq('id', newNotification.relatedId)
             .single();
 
           if (!error && data) {
             enrichedNotification = {
               ...newNotification,
-              startupName: data.name || data.title || 'Untitled Startup',
+              startupName: data.idea_title || 'Untitled Startup',
             };
           }
         } catch (err) {
@@ -100,14 +100,14 @@ export function NotificationsPage({ onNavigate }: NotificationsPageProps) {
             try {
               const { data, error } = await supabase
                 .from('idea_analyses')
-                .select('name, title')
+                .select('idea_title')
                 .eq('id', notification.relatedId)
                 .single();
 
               if (!error && data) {
                 return {
                   ...notification,
-                  startupName: data.name || data.title || 'Untitled Startup',
+                  startupName: data.idea_title || 'Untitled Startup',
                 };
               }
             } catch (err) {

@@ -272,7 +272,7 @@ export function AuthPage({ onLogin }: AuthPageProps) {
             .join('')
         );
 
-        const userData = JSON.parse(jsonPayload);
+        JSON.parse(jsonPayload);
 
         // Welcome notification is now handled by UserContext
         onLogin?.();
@@ -526,7 +526,6 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                       <GoogleLogin
                         onSuccess={handleGoogleLoginSuccess}
                         onError={handleGoogleLoginError}
-                        disabled={!supabaseConfigured}
                         useOneTap
                         theme="outline"
                         size="large"

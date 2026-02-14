@@ -62,20 +62,21 @@ const AdminDashboard = () => {
             }
             return [];
           }),
-          supabase
-            .from('vc_applications')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(5)
-            .then(({ data, error }) => {
+          Promise.resolve(
+            supabase
+              .from('vc_applications')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .limit(5)
+          ).then(({ data, error }) => {
               if (error) throw error;
               return data;
             })
-            .catch(err => {
+            .catch((err: any) => {
               if (import.meta.env.DEV) {
                 console.error('[AdminDashboard] Error fetching VC apps:', err);
               }
-              return [];
+              return [] as any[];
             }),
           (profile?.role === 'super_admin'
             ? getAllNotifications(20)
@@ -100,7 +101,7 @@ const AdminDashboard = () => {
 
         // Get pending startups for review
         const pending = (startups || [])
-          .filter((s) => s.status === 'pending_review')
+          .filter((s: any) => s.status === 'pending_review')
           .slice(0, 5);
 
         setPendingStartups(pending);

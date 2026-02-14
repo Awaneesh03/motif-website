@@ -33,27 +33,8 @@ export const getFounderMetrics = async (founderId: string): Promise<FounderMetri
     }
 
     // Use idea_analyses as the source of truth for all founder ideas
-    // The old 'ideas' table doesn't exist - everything is in idea_analyses
-    const startups = analyzedIdeas || [];
-
-    // Count total analyzed ideas
+    // NOTE: idea_analyses has no 'status' column — we only count totals
     const totalAnalyzed = analyzedIdeas?.length || 0;
-
-    const statusCounts = {
-      total: startups?.length || 0,
-      draft: 0,
-      pending_review: 0,
-      approved_for_vc: 0,
-      rejected: 0,
-    };
-
-    startups?.forEach((startup: any) => {
-      const status = startup.status as string;
-      if (status === 'draft') statusCounts.draft++;
-      else if (status === 'pending_review') statusCounts.pending_review++;
-      else if (status === 'approved_for_vc') statusCounts.approved_for_vc++;
-      else if (status === 'rejected') statusCounts.rejected++;
-    });
 
     // Get community ideas posted by this founder
     const { count: communityIdeasCount, error: communityError } = await supabase
@@ -66,12 +47,11 @@ export const getFounderMetrics = async (founderId: string): Promise<FounderMetri
     }
 
     return {
-      // Use analyzed ideas count as the total
       totalStartups: totalAnalyzed,
-      draftStartups: statusCounts.draft,
-      pendingReview: statusCounts.pending_review,
-      approvedForVC: statusCounts.approved_for_vc,
-      rejectedStartups: statusCounts.rejected,
+      draftStartups: 0,
+      pendingReview: 0,
+      approvedForVC: 0,
+      rejectedStartups: 0,
       communityIdeas: communityIdeasCount || 0,
     };
   } catch (error) {
@@ -107,11 +87,11 @@ export interface VCMetrics {
  */
 export const getVCMetrics = async (vcId: string): Promise<VCMetrics> => {
   try {
-    // Get count of available startups (approved_for_vc)
+    // Get count of available startups (all analyzed ideas visible to VCs)
+    // NOTE: idea_analyses has no 'status' column — count all ideas
     const { count: availableCount, error: availableError } = await supabase
       .from('idea_analyses')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'approved_for_vc');
+      .select('*', { count: 'exact', head: true });
 
     if (availableError) throw availableError;
 
@@ -194,24 +174,12 @@ export const getAdminMetrics = async (): Promise<AdminMetrics> => {
 
     if (vcError) throw vcError;
 
-    // Get all startups with status breakdown
-    const { data: startups, error: startupsError } = await supabase
+    // Get total startup count (idea_analyses has no 'status' column)
+    const { count: startupCount, error: startupsError } = await supabase
       .from('idea_analyses')
-      .select('status');
+      .select('*', { count: 'exact', head: true });
 
     if (startupsError) throw startupsError;
-
-    const startupCounts = {
-      total: startups?.length || 0,
-      pending: 0,
-      approved: 0,
-    };
-
-    startups?.forEach((startup) => {
-      const status = startup.status as string;
-      if (status === 'pending_review') startupCounts.pending++;
-      else if (status === 'approved_for_vc') startupCounts.approved++;
-    });
 
     // Get all VC intro requests
     const { data: introRequests, error: introError } = await supabase
@@ -241,9 +209,9 @@ export const getAdminMetrics = async (): Promise<AdminMetrics> => {
     return {
       totalFounders: founderCount || 0,
       totalVCs: vcCount || 0,
-      totalStartups: startupCounts.total,
-      pendingReview: startupCounts.pending,
-      approvedStartups: startupCounts.approved,
+      totalStartups: startupCount || 0,
+      pendingReview: 0,
+      approvedStartups: 0,
       totalIntroRequests: introCounts.total,
       approvedIntroRequests: introCounts.approved,
       conversionRate,

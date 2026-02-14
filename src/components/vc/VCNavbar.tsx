@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, Moon, Sun, X, LayoutDashboard, Building2, Clock, LogOut, User } from 'lucide-react';
+import { Menu, Moon, Sun, LayoutDashboard, Building2, Clock, LogOut } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';
 import { NotificationBell } from '@/components/NotificationBell';

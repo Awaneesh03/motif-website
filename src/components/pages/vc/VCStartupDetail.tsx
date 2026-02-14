@@ -20,7 +20,6 @@ import { Button } from '../../ui/button';
 import { getIdeaById, type Idea } from '@/lib/ideasService';
 import { createIntroRequest, hasIntroRequest, isConnected } from '@/lib/introRequestService';
 import { useUser } from '@/contexts/UserContext';
-import { toast } from 'sonner';
 import { notifyVCIntroRequested } from '@/lib/notificationService';
 import { useAsyncAction } from '@/hooks/useAsyncAction';
 

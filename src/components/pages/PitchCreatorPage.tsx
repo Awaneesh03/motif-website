@@ -124,10 +124,8 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
           const { data: ideaData, error: ideaError } = await supabase
             .from('idea_analyses')
             .insert({
-              title: formData.ideaName,
-              description: formData.problem,
-              stage: 'idea',
-              status: 'draft',
+              idea_title: formData.ideaName,
+              idea_description: formData.problem,
               user_id: user.id,
             })
             .select()

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Lightbulb, Target, Rocket, Users, TrendingUp, Bot, CheckCircle2, MessageCircle, Send } from 'lucide-react';
+import { Lightbulb, Target, Rocket, Users, TrendingUp, Bot, CheckCircle2, Send } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '../ui/button';

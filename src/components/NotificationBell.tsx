@@ -22,7 +22,7 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [serviceAvailable, setServiceAvailable] = useState(true);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
             table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
+          () => {
             // Reload notifications when new notification arrives
             loadUnreadCount();
             loadNotifications();
@@ -57,7 +57,7 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
             table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
+          () => {
             // Reload when notification is updated (e.g., marked as read)
             loadUnreadCount();
             loadNotifications();
@@ -119,11 +119,6 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
     } else {
       navigate('/notifications');
     }
-  };
-
-  const handleViewAllNotifications = () => {
-    setIsOpen(false);
-    navigate('/notifications');
   };
 
   if (!user) return null;

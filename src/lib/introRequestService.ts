@@ -37,19 +37,6 @@ export interface ConnectedStartup {
   connectedAt: string;
 }
 
-// Helper to transform DB row to IntroRequest
-const transformToIntroRequest = (row: any): IntroRequest => {
-  return {
-    id: row.id,
-    startupId: row.idea_id,
-    vcId: row.vc_id || null,
-    vcName: row.vc_profile?.name || row.vc_profile?.full_name || 'VC',
-    startupName: row.idea?.title || 'Untitled',
-    status: row.status,
-    createdAt: row.created_at,
-  };
-};
-
 // Get all intro requests
 export const getAllIntroRequests = async (): Promise<IntroRequest[]> => {
   try {

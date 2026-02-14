@@ -11,7 +11,7 @@ export const demoFounderStartups: (Idea & { demoDescription?: string })[] = [
     name: 'EcoTrack',
     stage: 'MVP',
     status: 'draft',
-    created_by: 'demo-user',
+    user_id: 'demo-user',
     created_at: new Date().toISOString(),
     demoDescription: 'AI-powered carbon footprint tracker for businesses',
   },
@@ -21,7 +21,7 @@ export const demoFounderStartups: (Idea & { demoDescription?: string })[] = [
     name: 'SkillMatch AI',
     stage: 'Seed',
     status: 'pending_review',
-    created_by: 'demo-user',
+    user_id: 'demo-user',
     created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
     demoDescription: 'Machine learning platform connecting job seekers with perfect roles',
   },
@@ -31,7 +31,7 @@ export const demoFounderStartups: (Idea & { demoDescription?: string })[] = [
     name: 'HealthBridge',
     stage: 'Series A',
     status: 'approved_for_vc',
-    created_by: 'demo-user',
+    user_id: 'demo-user',
     created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
     demoDescription: 'Telemedicine platform connecting patients with specialists',
   },

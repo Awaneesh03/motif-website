@@ -55,7 +55,7 @@ const isMissingTableError = (error: PostgrestError | null): boolean => {
  * Converts RLS 400 errors into empty arrays
  */
 export async function safeFetchList<T>(
-  queryFn: () => Promise<{ data: T[] | null; error: PostgrestError | null }>,
+  queryFn: () => PromiseLike<{ data: T[] | null; error: PostgrestError | null }>,
   options: SafeFetchOptions = {}
 ): Promise<T[]> {
   try {
@@ -110,7 +110,7 @@ export async function safeFetchList<T>(
  * Converts RLS 400 errors into null
  */
 export async function safeFetchSingle<T>(
-  queryFn: () => Promise<{ data: T | null; error: PostgrestError | null }>,
+  queryFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
   options: SafeFetchOptions = {}
 ): Promise<T | null> {
   try {
@@ -165,7 +165,7 @@ export async function safeFetchSingle<T>(
  * Converts RLS 400 errors into 0
  */
 export async function safeFetchCount(
-  queryFn: () => Promise<{ count: number | null; error: PostgrestError | null }>,
+  queryFn: () => PromiseLike<{ count: number | null; error: PostgrestError | null }>,
   options: SafeFetchOptions = {}
 ): Promise<number> {
   try {
@@ -220,7 +220,7 @@ export async function safeFetchCount(
  * Converts RLS 400 errors into false
  */
 export async function safeFetchExists(
-  queryFn: () => Promise<{ data: any | null; error: PostgrestError | null }>,
+  queryFn: () => PromiseLike<{ data: any | null; error: PostgrestError | null }>,
   options: SafeFetchOptions = {}
 ): Promise<boolean> {
   try {

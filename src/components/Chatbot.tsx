@@ -164,11 +164,6 @@ export function Chatbot({ isDark }: ChatbotProps) {
     toast.success('Chat cleared!');
   };
 
-  const saveSettings = () => {
-    setIsSettingsOpen(false);
-    toast.success('Chat cleared successfully!');
-  };
-
   return (
     <div>
       {/* Chat Toggle Button */}

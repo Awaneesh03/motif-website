@@ -254,7 +254,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const [selectedIdea, setSelectedIdea] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [communityIdeas, setCommunityIdeas] = useState<CommunityIdea[]>(() => loadCommunityIdeas());
+  const [communityIdeas, _setCommunityIdeas] = useState<CommunityIdea[]>(() => loadCommunityIdeas());
   const [commentStore, setCommentStore] = useState<Record<string, CommunityComment[]>>(
     () => loadCommunityComments()
   );
@@ -274,7 +274,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
   // Supabase community ideas
   const [supabaseIdeas, setSupabaseIdeas] = useState<CommunityIdea[]>([]);
-  const [isLoadingCommunityIdeas, setIsLoadingCommunityIdeas] = useState(true);
+  const [_isLoadingCommunityIdeas, setIsLoadingCommunityIdeas] = useState(true);
   const [postOptionDialogOpen, setPostOptionDialogOpen] = useState(false);
   
   // Local upvotes for demo ideas (stored in localStorage)
