@@ -141,7 +141,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     try {
       const normalizedTitle = normalizeIdeaValue(ideaTitle);
       const normalizedDescription = normalizeIdeaValue(ideaDescription);
-      const normalizedMarket = selectedMarkets.join(',').toLowerCase();
+      const normalizedMarket = selectedMarkets.join(', ').trim().replace(/\s+/g, ' ').toLowerCase();
 
       const { data: existingAnalyses, error: existingError } = await supabase
         .from('idea_analyses')

@@ -126,7 +126,15 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
             .insert({
               idea_title: formData.ideaName,
               idea_description: formData.problem,
+              target_market: formData.market || null,
               user_id: user.id,
+              score: 0,
+              strengths: [],
+              weaknesses: [],
+              recommendations: [],
+              market_size: formData.market || null,
+              competition: null,
+              viability: null,
             })
             .select()
             .single();
