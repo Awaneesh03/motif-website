@@ -181,18 +181,18 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="bg-background text-foreground min-h-full">
+    <div className="min-h-full bg-background text-foreground">
       {/* Header Section */}
       <section className="border-b border-border bg-card shadow-sm">
-        <div className="mx-auto max-w-7xl px-6 py-6">
+        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 dark:bg-red-500/20">
-                <Shield className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 dark:bg-red-500/20">
+                <Shield className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">Admin Dashboard</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-2xl font-semibold text-foreground">Admin Dashboard</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Platform overview and management
                 </p>
               </div>
@@ -203,10 +203,10 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <section className="py-8">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid gap-6 md:grid-cols-4">
-            {/* Main Content Area */}
-            <div className="space-y-6 md:col-span-3">
+        <div className="mx-auto max-w-7xl px-6 lg:px-10">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+            {/* Main Content Area — 9 cols */}
+            <div className="space-y-8 lg:col-span-9">
               {/* Demo Mode Banner */}
               {isDemoMode && (
                 <motion.div
@@ -214,7 +214,7 @@ const AdminDashboard = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/50">
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-800 dark:bg-blue-950/50">
                     <div className="flex items-start gap-3">
                       <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
                       <div>
@@ -232,29 +232,28 @@ const AdminDashboard = () => {
               )}
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {statCards.map((stat, index) => (
                   <motion.div
                     key={stat.label}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
+                    className="flex"
                   >
                     <Card
-                      className={`bg-card border border-border shadow-sm transition-all hover:shadow-md ${stat.route ? 'cursor-pointer hover:border-primary/40' : ''}`}
+                      className={`flex w-full flex-col rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-md ${stat.route ? 'cursor-pointer hover:border-primary/40' : ''}`}
                       onClick={() => stat.route && navigate(stat.route)}
                     >
-                      <CardContent className="p-5">
-                        <div className="flex flex-col gap-3">
-                          <div
-                            className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bgColor}`}
-                          >
-                            <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                          </div>
-                          <div>
-                            <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                            <p className="text-sm text-muted-foreground">{stat.label}</p>
-                          </div>
+                      <CardContent className="flex flex-1 flex-col justify-between p-6">
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bgColor}`}
+                        >
+                          <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                        </div>
+                        <div className="mt-4">
+                          <p className="text-3xl font-bold tracking-tight text-foreground">{stat.value}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -268,10 +267,10 @@ const AdminDashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <Card className="bg-card border border-border shadow-sm">
-                  <CardHeader>
+                <Card className="rounded-xl border border-border bg-card shadow-sm">
+                  <CardHeader className="p-6 pb-4">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2 text-foreground">
+                      <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
                         <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                         Pending Reviews
                       </CardTitle>
@@ -279,20 +278,20 @@ const AdminDashboard = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => navigate('/admin/startups')}
-                        className="rounded-xl"
+                        className="rounded-lg"
                       >
                         View All Startups
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-6 pb-6 pt-0">
                     {isLoading ? (
-                      <div className="py-8 text-center">
+                      <div className="py-10 text-center">
                         <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
-                        <p className="text-muted-foreground">Loading...</p>
+                        <p className="text-sm text-muted-foreground">Loading...</p>
                       </div>
                     ) : pendingStartups.length === 0 ? (
-                      <div className="py-8 text-center">
+                      <div className="py-10 text-center">
                         <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-emerald-500" />
                         <p className="mb-1 font-semibold text-foreground">All Caught Up</p>
                         <p className="text-sm text-muted-foreground">No pending startup reviews</p>
@@ -305,7 +304,7 @@ const AdminDashboard = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.4 + index * 0.05 }}
-                            className="rounded-xl border border-border bg-muted/50 p-4"
+                            className="rounded-xl border border-border bg-muted p-4"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="min-w-0 flex-1">
@@ -337,17 +336,17 @@ const AdminDashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Card className="bg-card border border-border shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-foreground">
+                <Card className="rounded-xl border border-border bg-card shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
                       <TrendingUp className="h-5 w-5 text-primary" />
                       Recent Activity
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-6 pb-6 pt-0">
                     {recentActivity.length === 0 ? (
-                      <div className="py-6 text-center">
-                        <Clock className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
+                      <div className="py-8 text-center">
+                        <Clock className="mx-auto mb-2 h-10 w-10 text-muted-foreground/40" />
                         <p className="text-sm text-muted-foreground">No recent platform activity</p>
                       </div>
                     ) : (
@@ -358,13 +357,13 @@ const AdminDashboard = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.4 + index * 0.05 }}
-                            className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/50 p-3"
+                            className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted p-4"
                           >
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium text-foreground">
                                 Introduction requested: {activity.idea?.title || 'Startup'}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="mt-0.5 text-xs text-muted-foreground">
                                 {new Date(activity.created_at).toLocaleDateString()}
                               </p>
                             </div>
@@ -400,23 +399,22 @@ const AdminDashboard = () => {
               </motion.div>
             </div>
 
-            {/* Right Sidebar */}
-            <div className="space-y-6 md:col-span-1">
+            {/* Right Sidebar — 3 cols */}
+            <div className="space-y-6 lg:col-span-3">
               {/* Admin Actions */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <Card className="bg-card border border-border shadow-sm">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-foreground">Admin Actions</CardTitle>
+                <Card className="rounded-xl border border-border bg-card shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <CardTitle className="text-lg font-semibold text-foreground">Admin Actions</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 pt-0">
+                  <CardContent className="space-y-3 px-6 pb-6 pt-0">
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="hover:gradient-lavender group w-full justify-start rounded-lg transition-all hover:border-transparent hover:text-white"
+                      className="hover:gradient-lavender group h-11 w-full justify-start rounded-lg text-sm font-medium transition-all hover:border-transparent hover:text-white"
                       onClick={() => navigate('/admin/startups')}
                     >
                       <Eye className="mr-2 h-4 w-4 group-hover:text-white" />
@@ -424,8 +422,7 @@ const AdminDashboard = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="hover:gradient-lavender group w-full justify-start rounded-lg transition-all hover:border-transparent hover:text-white"
+                      className="hover:gradient-lavender group h-11 w-full justify-start rounded-lg text-sm font-medium transition-all hover:border-transparent hover:text-white"
                       onClick={() => navigate('/admin/intro-requests')}
                     >
                       <TrendingUp className="mr-2 h-4 w-4 group-hover:text-white" />
@@ -433,8 +430,7 @@ const AdminDashboard = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="hover:gradient-lavender group w-full justify-start rounded-lg transition-all hover:border-transparent hover:text-white"
+                      className="hover:gradient-lavender group h-11 w-full justify-start rounded-lg text-sm font-medium transition-all hover:border-transparent hover:text-white"
                       onClick={() => navigate('/admin/case-studies')}
                     >
                       <BookOpen className="mr-2 h-4 w-4 group-hover:text-white" />
@@ -444,57 +440,55 @@ const AdminDashboard = () => {
                 </Card>
               </motion.div>
 
-              {/* Platform Health */}
+              {/* Intro Metrics */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <Card className="border border-border bg-gradient-to-br from-indigo-50 to-purple-50 shadow-sm dark:from-indigo-950/30 dark:to-purple-950/30">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base text-foreground">
+                <Card className="rounded-xl border border-border bg-gradient-to-br from-indigo-50 to-purple-50 shadow-sm dark:from-indigo-950/30 dark:to-purple-950/30">
+                  <CardHeader className="p-6 pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
                       <TrendingUp className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                       Intro Metrics
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground">Conversion Rate</span>
-                        <Badge className="border-0 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
-                          {displayMetrics?.conversionRate || 0}%
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground">Approved Intros</span>
-                        <Badge className="border-0 bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">
-                          {displayMetrics?.approvedIntroRequests || 0}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground">Total Requests</span>
-                        <Badge className="border-0 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                          {displayMetrics?.totalIntroRequests || 0}
-                        </Badge>
-                      </div>
+                  <CardContent className="space-y-4 px-6 pb-6 pt-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-foreground">Conversion Rate</span>
+                      <span className="text-2xl font-semibold text-primary">
+                        {displayMetrics?.conversionRate || 0}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-foreground">Approved Intros</span>
+                      <Badge className="border-0 bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">
+                        {displayMetrics?.approvedIntroRequests || 0}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-foreground">Total Requests</span>
+                      <Badge className="border-0 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                        {displayMetrics?.totalIntroRequests || 0}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
 
-              {/* Quick Stats */}
+              {/* Startup Approval */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Card className="bg-card border border-border shadow-sm">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-foreground">Startup Approval</CardTitle>
+                <Card className="rounded-xl border border-border bg-card shadow-sm">
+                  <CardHeader className="p-6 pb-4">
+                    <CardTitle className="text-lg font-semibold text-foreground">Startup Approval</CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-0">
+                  <CardContent className="px-6 pb-6 pt-0">
                     <div className="text-center">
-                      <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                      <p className="text-4xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
                         {displayMetrics && displayMetrics.totalStartups > 0
                           ? Math.round(
                             (displayMetrics.approvedStartups / displayMetrics.totalStartups) * 100
@@ -502,7 +496,7 @@ const AdminDashboard = () => {
                           : 0}
                         %
                       </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <p className="mt-2 text-sm text-muted-foreground">
                         {displayMetrics?.approvedStartups || 0} of {displayMetrics?.totalStartups || 0} approved
                       </p>
                     </div>
