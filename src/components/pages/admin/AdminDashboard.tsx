@@ -129,70 +129,70 @@ const AdminDashboard = () => {
       label: 'Total Founders',
       value: displayMetrics?.totalFounders || 0,
       icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-600/10',
-      // No route - founders list page not implemented yet
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-100 dark:bg-blue-500/20',
     },
     {
       label: 'Total VCs',
       value: displayMetrics?.totalVCs || 0,
       icon: Users,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-600/10',
-      // No route - VCs list page not implemented yet
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-100 dark:bg-purple-500/20',
     },
     {
       label: 'Total Startups',
       value: displayMetrics?.totalStartups || 0,
       icon: Building2,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
+      color: 'text-indigo-600 dark:text-indigo-400',
+      bgColor: 'bg-indigo-100 dark:bg-indigo-500/20',
       route: '/admin/startups',
     },
     {
       label: 'Pending Review',
       value: displayMetrics?.pendingReview || 0,
       icon: Clock,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-600/10',
+      color: 'text-amber-600 dark:text-amber-400',
+      bgColor: 'bg-amber-100 dark:bg-amber-500/20',
       route: '/admin/startups?status=pending',
     },
     {
       label: 'Approved Startups',
       value: displayMetrics?.approvedStartups || 0,
       icon: CheckCircle2,
-      color: 'text-green-600',
-      bgColor: 'bg-green-600/10',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-100 dark:bg-emerald-500/20',
       route: '/admin/startups?status=approved',
     },
     {
       label: 'Intro Requests',
       value: displayMetrics?.totalIntroRequests || 0,
       icon: TrendingUp,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
+      color: 'text-cyan-600 dark:text-cyan-400',
+      bgColor: 'bg-cyan-100 dark:bg-cyan-500/20',
       route: '/admin/intro-requests',
     },
     {
       label: 'Conversion Rate',
       value: `${displayMetrics?.conversionRate || 0}%`,
       icon: TrendingUp,
-      color: 'text-[#A9F5D0]',
-      bgColor: 'bg-[#A9F5D0]/10',
+      color: 'text-teal-600 dark:text-teal-400',
+      bgColor: 'bg-teal-100 dark:bg-teal-500/20',
     },
   ];
 
   return (
-    <div>
+    <div className="bg-background text-foreground min-h-full">
       {/* Header Section */}
-      <section className="border-border border-b bg-background py-4">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="border-b border-border bg-card shadow-sm">
+        <div className="mx-auto max-w-7xl px-6 py-6">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center gap-3">
-              <Shield className="h-6 w-6 text-red-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 dark:bg-red-500/20">
+                <Shield className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
               <div>
-                <h1 className="text-xl font-bold">Admin Dashboard</h1>
-                <p className="text-xs text-muted-foreground">
+                <h1 className="text-xl font-semibold text-foreground">Admin Dashboard</h1>
+                <p className="text-sm text-muted-foreground">
                   Platform overview and management
                 </p>
               </div>
@@ -202,11 +202,11 @@ const AdminDashboard = () => {
       </section>
 
       {/* Main Content */}
-      <section className="py-4">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-4 md:grid-cols-4">
+      <section className="py-8">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="grid gap-6 md:grid-cols-4">
             {/* Main Content Area */}
-            <div className="space-y-4 md:col-span-3">
+            <div className="space-y-6 md:col-span-3">
               {/* Demo Mode Banner */}
               {isDemoMode && (
                 <motion.div
@@ -214,11 +214,11 @@ const AdminDashboard = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/50">
                     <div className="flex items-start gap-3">
-                      <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
                       <div>
-                        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                        <h4 className="mb-1 font-semibold text-blue-900 dark:text-blue-100">
                           Demo Mode - Example Metrics
                         </h4>
                         <p className="text-sm text-blue-700 dark:text-blue-300">
@@ -232,28 +232,28 @@ const AdminDashboard = () => {
               )}
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {statCards.map((stat, index) => (
                   <motion.div
                     key={stat.label}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
+                    transition={{ delay: index * 0.05 }}
                   >
                     <Card
-                      className={`glass-surface border-border/50 hover:shadow-lg transition-shadow ${stat.route ? 'cursor-pointer hover:border-primary/50' : ''}`}
+                      className={`bg-card border border-border shadow-sm transition-all hover:shadow-md ${stat.route ? 'cursor-pointer hover:border-primary/40' : ''}`}
                       onClick={() => stat.route && navigate(stat.route)}
                     >
-                      <CardContent className="p-6">
+                      <CardContent className="p-5">
                         <div className="flex flex-col gap-3">
                           <div
-                            className={`h-10 w-10 rounded-xl ${stat.bgColor} flex items-center justify-center`}
+                            className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bgColor}`}
                           >
                             <stat.icon className={`h-5 w-5 ${stat.color}`} />
                           </div>
                           <div>
-                            <p className="text-3xl font-bold">{stat.value}</p>
-                            <p className="text-muted-foreground text-sm">{stat.label}</p>
+                            <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+                            <p className="text-sm text-muted-foreground">{stat.label}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -268,11 +268,11 @@ const AdminDashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <Card className="glass-surface border-border/50">
+                <Card className="bg-card border border-border shadow-sm">
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5 text-orange-600" />
+                      <CardTitle className="flex items-center gap-2 text-foreground">
+                        <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                         Pending Reviews
                       </CardTitle>
                       <Button
@@ -287,15 +287,15 @@ const AdminDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     {isLoading ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
-                        <p>Loading...</p>
+                      <div className="py-8 text-center">
+                        <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
+                        <p className="text-muted-foreground">Loading...</p>
                       </div>
                     ) : pendingStartups.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <CheckCircle2 className="h-12 w-12 mx-auto mb-3 opacity-50 text-green-600" />
-                        <p className="mb-2 font-semibold">All Caught Up</p>
-                        <p className="text-sm">No pending startup reviews</p>
+                      <div className="py-8 text-center">
+                        <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-emerald-500" />
+                        <p className="mb-1 font-semibold text-foreground">All Caught Up</p>
+                        <p className="text-sm text-muted-foreground">No pending startup reviews</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -305,21 +305,21 @@ const AdminDashboard = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.4 + index * 0.05 }}
-                            className="bg-muted/30 border border-border/50 rounded-xl p-4"
+                            className="rounded-xl border border-border bg-muted/50 p-4"
                           >
                             <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold mb-1 truncate">
+                              <div className="min-w-0 flex-1">
+                                <h4 className="mb-1 truncate font-semibold text-foreground">
                                   {startup.title || startup.name || 'Untitled'}
                                 </h4>
-                                <p className="text-sm text-muted-foreground mb-2 line-clamp-1">
+                                <p className="mb-2 line-clamp-1 text-sm text-muted-foreground">
                                   {startup.description || 'No description'}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   Submitted {new Date(startup.created_at).toLocaleDateString()}
                                 </p>
                               </div>
-                              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-0 whitespace-nowrap">
+                              <Badge className="whitespace-nowrap border-0 bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
                                 Under Review
                               </Badge>
                             </div>
@@ -337,18 +337,18 @@ const AdminDashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Card className="glass-surface border-border/50">
+                <Card className="bg-card border border-border shadow-sm">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-foreground">
                       <TrendingUp className="h-5 w-5 text-primary" />
                       Recent Activity
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {recentActivity.length === 0 ? (
-                      <div className="text-center py-6 text-muted-foreground">
-                        <Clock className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No recent platform activity</p>
+                      <div className="py-6 text-center">
+                        <Clock className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
+                        <p className="text-sm text-muted-foreground">No recent platform activity</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -358,10 +358,10 @@ const AdminDashboard = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.4 + index * 0.05 }}
-                            className="bg-muted/30 flex items-center justify-between gap-4 rounded-xl p-3"
+                            className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/50 p-3"
                           >
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">
                                 Introduction requested: {activity.idea?.title || 'Startup'}
                               </p>
                               <p className="text-xs text-muted-foreground">
@@ -401,18 +401,18 @@ const AdminDashboard = () => {
             </div>
 
             {/* Right Sidebar */}
-            <div className="space-y-4 md:col-span-1">
+            <div className="space-y-6 md:col-span-1">
               {/* Admin Actions */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <Card className="glass-surface border-border/50">
+                <Card className="bg-card border border-border shadow-sm">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Admin Actions</CardTitle>
+                    <CardTitle className="text-base text-foreground">Admin Actions</CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-0 space-y-2">
+                  <CardContent className="space-y-2 pt-0">
                     <Button
                       variant="outline"
                       size="sm"
@@ -450,30 +450,30 @@ const AdminDashboard = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <Card className="glass-surface border-border/50 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+                <Card className="border border-border bg-gradient-to-br from-indigo-50 to-purple-50 shadow-sm dark:from-indigo-950/30 dark:to-purple-950/30">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-blue-600" />
+                    <CardTitle className="flex items-center gap-2 text-base text-foreground">
+                      <TrendingUp className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                       Intro Metrics
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Conversion Rate</span>
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-0">
+                        <span className="text-sm text-foreground">Conversion Rate</span>
+                        <Badge className="border-0 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
                           {displayMetrics?.conversionRate || 0}%
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Approved Intros</span>
-                        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-0">
+                        <span className="text-sm text-foreground">Approved Intros</span>
+                        <Badge className="border-0 bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">
                           {displayMetrics?.approvedIntroRequests || 0}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Total Requests</span>
-                        <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-0">
+                        <span className="text-sm text-foreground">Total Requests</span>
+                        <Badge className="border-0 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
                           {displayMetrics?.totalIntroRequests || 0}
                         </Badge>
                       </div>
@@ -488,13 +488,13 @@ const AdminDashboard = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Card className="glass-surface border-border/50">
+                <Card className="bg-card border border-border shadow-sm">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Startup Approval</CardTitle>
+                    <CardTitle className="text-base text-foreground">Startup Approval</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="text-center">
-                      <p className="text-3xl font-bold text-green-600">
+                      <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                         {displayMetrics && displayMetrics.totalStartups > 0
                           ? Math.round(
                             (displayMetrics.approvedStartups / displayMetrics.totalStartups) * 100
@@ -502,7 +502,7 @@ const AdminDashboard = () => {
                           : 0}
                         %
                       </p>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         {displayMetrics?.approvedStartups || 0} of {displayMetrics?.totalStartups || 0} approved
                       </p>
                     </div>

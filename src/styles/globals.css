@@ -49,13 +49,13 @@
   --primary-foreground: #ffffff;
   --secondary: #06b6d4;
   --secondary-foreground: #ffffff;
-  --muted: #f3f4f6;
-  --muted-foreground: #cbd5e1;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
   --accent: #6366f1;
   --accent-foreground: #ffffff;
   --destructive: #ff7c7c;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
+  --border: rgba(0, 0, 0, 0.15);
   --input: transparent;
   --input-background: #f9fafb;
   --switch-background: #cbced4;
@@ -252,14 +252,15 @@ html {
   }
 
   .glass-surface {
-    backdrop-filter: blur(12px);
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
   .dark .glass-surface {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
   .shadow-lavender {
