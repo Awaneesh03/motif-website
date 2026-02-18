@@ -86,13 +86,34 @@ const mockIdeas: GeneratedIdea[] = [
   }
 ];
 
-function isNetworkError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
+function shouldFallbackToMock(error: unknown): boolean {
+  if (!(error instanceof Error)) return true; // Unknown error type, fall back
   const msg = error.message.toLowerCase();
-  return msg.includes('failed to fetch') ||
-    msg.includes('network') ||
-    msg.includes('cors') ||
-    msg.includes('econnrefused');
+  
+  // Network/connectivity errors
+  if (msg.includes('failed to fetch') ||
+      msg.includes('network') ||
+      msg.includes('cors') ||
+      msg.includes('econnrefused') ||
+      msg.includes('connection refused') ||
+      msg.includes('timeout') ||
+      msg.includes('aborted')) {
+    return true;
+  }
+  
+  // Server errors (5xx) or backend unavailable
+  if (msg.includes('unexpected') ||
+      msg.includes('500') ||
+      msg.includes('502') ||
+      msg.includes('503') ||
+      msg.includes('504') ||
+      msg.includes('internal server') ||
+      msg.includes('service unavailable') ||
+      msg.includes('bad gateway')) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -119,7 +140,7 @@ export async function analyzeIdeaWithGroq(
     };
   } catch (error) {
     console.error('Idea analysis error:', error);
-    if (isNetworkError(error)) {
+    if (shouldFallbackToMock(error)) {
       console.warn('Backend unreachable, using mock analysis');
       return generateMockAnalysis(request);
     }
@@ -141,7 +162,7 @@ export async function generateIdeaWithGroq(): Promise<GeneratedIdea> {
     };
   } catch (error) {
     console.error('Idea generation error:', error);
-    if (isNetworkError(error)) {
+    if (shouldFallbackToMock(error)) {
       console.warn('Backend unreachable, using mock idea');
       return mockIdeas[Math.floor(Math.random() * mockIdeas.length)];
     }
@@ -161,7 +182,7 @@ export async function improveDescriptionWithGroq(description: string): Promise<s
     return response.message?.trim() || description;
   } catch (error) {
     console.error('Description improvement error:', error);
-    if (isNetworkError(error)) {
+    if (shouldFallbackToMock(error)) {
       console.warn('Backend unreachable, using simple fallback');
       const enhanced = description.trim();
       if (enhanced.length < 100) {

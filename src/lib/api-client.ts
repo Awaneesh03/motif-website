@@ -62,9 +62,13 @@ class ApiClient {
     } catch (error) {
       console.error(`API request failed: ${endpoint}`, error);
       if (error instanceof Error) {
+        // Re-throw with more context if it's a generic error
+        if (error.message === 'Failed to fetch') {
+          throw new Error('Failed to fetch - backend server may be unavailable');
+        }
         throw error;
       }
-      throw new Error('An unexpected error occurred');
+      throw new Error('An unexpected error occurred - backend may be unavailable');
     }
   }
 
