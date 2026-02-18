@@ -112,6 +112,15 @@ function shouldFallbackToMock(error: unknown): boolean {
       msg.includes('bad gateway')) {
     return true;
   }
+
+  // Auth errors that indicate backend misconfiguration (not user error)
+  // These suggest the backend can't validate the token properly
+  if (msg.includes('access denied') ||
+      msg.includes('forbidden') ||
+      msg.includes('401') ||
+      msg.includes('403')) {
+    return true;
+  }
   
   return false;
 }
