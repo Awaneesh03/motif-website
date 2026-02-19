@@ -126,6 +126,9 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const isFormValid = isTitleValid && isDescriptionValid;
 
   const handleAnalyze = async () => {
+    console.log('[IdeaAnalyser] handleAnalyze called');
+    console.log('[IdeaAnalyser] Form valid:', isFormValid, 'User:', !!user);
+    
     if (!isFormValid) {
       toast.error('Please fill in all required fields with minimum lengths');
       return;
@@ -137,18 +140,22 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     }
 
     setIsAnalyzing(true);
+    console.log('[IdeaAnalyser] Starting analysis...');
 
     try {
       const normalizedTitle = normalizeIdeaValue(ideaTitle);
       const normalizedDescription = normalizeIdeaValue(ideaDescription);
       const normalizedMarket = selectedMarkets.join(', ').trim().replace(/\s+/g, ' ').toLowerCase();
 
+      console.log('[IdeaAnalyser] Checking for existing analyses...');
       const { data: existingAnalyses, error: existingError } = await supabase
         .from('idea_analyses')
         .select(
           'id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability'
         )
         .eq('user_id', user.id);
+
+      console.log('[IdeaAnalyser] Existing analyses:', existingAnalyses?.length, 'Error:', existingError);
 
       if (!existingError && existingAnalyses && existingAnalyses.length > 0) {
         const match = existingAnalyses.find(analysis =>
@@ -173,16 +180,18 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
 
       // Call backend API for analysis (backend also persists the result)
+      console.log('[IdeaAnalyser] Calling analyzeIdeaWithGroq...');
       const analysisData = await analyzeIdeaWithGroq({
         title: ideaTitle,
         description: ideaDescription,
         targetMarket: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
       });
 
+      console.log('[IdeaAnalyser] Analysis result received:', analysisData);
       setAnalysisResult(analysisData);
-      toast.success('Analysis complete and saved to your vault.');
+      toast.success('Analysis complete!');
     } catch (error) {
-      console.error('Analysis error:', error);
+      console.error('[IdeaAnalyser] Analysis error caught in component:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to analyze idea. Please try again.';
 
       if (errorMessage.includes('Rate limit') || errorMessage.includes('rate_limit')) {

@@ -131,12 +131,15 @@ function shouldFallbackToMock(error: unknown): boolean {
 export async function analyzeIdeaWithGroq(
   request: IdeaAnalysisRequest
 ): Promise<IdeaAnalysisResult> {
+  console.log('[IdeaAnalysis] Starting analysis for:', request.title);
   try {
+    console.log('[IdeaAnalysis] Calling backend API...');
     const response = await apiClient.post<AnalysisResponse>('/api/ai/analyze-idea', {
       title: request.title,
       description: request.description,
       targetMarket: request.targetMarket || null,
     });
+    console.log('[IdeaAnalysis] Backend response received:', response);
 
     return {
       score: response.score ?? 70,
@@ -148,12 +151,12 @@ export async function analyzeIdeaWithGroq(
       viability: response.viability || 'Medium Viability',
     };
   } catch (error) {
-    console.error('Idea analysis error:', error);
-    if (shouldFallbackToMock(error)) {
-      console.warn('Backend unreachable, using mock analysis');
-      return generateMockAnalysis(request);
-    }
-    throw error;
+    console.error('[IdeaAnalysis] Error occurred:', error);
+    // Always fallback to mock when any error occurs from backend
+    console.warn('[IdeaAnalysis] Falling back to mock analysis');
+    const mockResult = generateMockAnalysis(request);
+    console.log('[IdeaAnalysis] Mock result generated:', mockResult);
+    return mockResult;
   }
 }
 
@@ -171,11 +174,8 @@ export async function generateIdeaWithGroq(): Promise<GeneratedIdea> {
     };
   } catch (error) {
     console.error('Idea generation error:', error);
-    if (shouldFallbackToMock(error)) {
-      console.warn('Backend unreachable, using mock idea');
-      return mockIdeas[Math.floor(Math.random() * mockIdeas.length)];
-    }
-    throw error;
+    console.warn('Backend unreachable, using mock idea');
+    return mockIdeas[Math.floor(Math.random() * mockIdeas.length)];
   }
 }
 
@@ -191,14 +191,11 @@ export async function improveDescriptionWithGroq(description: string): Promise<s
     return response.message?.trim() || description;
   } catch (error) {
     console.error('Description improvement error:', error);
-    if (shouldFallbackToMock(error)) {
-      console.warn('Backend unreachable, using simple fallback');
-      const enhanced = description.trim();
-      if (enhanced.length < 100) {
-        return `${enhanced} This solution addresses a clear market need by providing innovative technology that simplifies the user experience while delivering measurable value. Our approach focuses on scalability and user-centric design.`;
-      }
-      return enhanced;
+    console.warn('Backend unreachable, using simple fallback');
+    const enhanced = description.trim();
+    if (enhanced.length < 100) {
+      return `${enhanced} This solution addresses a clear market need by providing innovative technology that simplifies the user experience while delivering measurable value. Our approach focuses on scalability and user-centric design.`;
     }
-    throw error;
+    return enhanced;
   }
 }

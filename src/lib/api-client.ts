@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+console.log('[ApiClient] Backend URL:', BACKEND_URL);
 
 /**
  * API Client for communicating with the Java Spring Boot backend
@@ -28,12 +29,14 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const token = await this.getAuthToken();
+    console.log('[ApiClient] Token available:', !!token);
 
     if (!token) {
       throw new Error('Authentication required. Please login first.');
     }
 
     const url = `${BACKEND_URL}${endpoint}`;
+    console.log('[ApiClient] Making request to:', url);
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,

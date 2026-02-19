@@ -165,57 +165,66 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
       </section>
 
       {/* Problem / Solution Section */}
-      <section className="bg-background py-12">
+      <section className="bg-background py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-8 md:grid-cols-2">
+          <div className="grid gap-12 lg:gap-16 md:grid-cols-2">
+            {/* Problem Column */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-4"
             >
-              <h2 className="mb-6">The Challenge Every Founder Faces</h2>
-              <p className="text-muted-foreground mb-4">
-                Most startup ideas fail not because they're bad, but because founders skip
-                validation. Without proper market research and community feedback, even brilliant
-                ideas can miss the mark.
-              </p>
-              <p className="text-muted-foreground">
-                Traditional validation takes weeks or months. By then, your window of opportunity
-                might be gone.
-              </p>
+              <span className="text-primary text-sm font-medium tracking-wide uppercase">The Problem</span>
+              <h2 className="text-2xl md:text-3xl font-semibold leading-tight">The Challenge Every Founder Faces</h2>
+              <div className="space-y-4 text-muted-foreground">
+                <p>
+                  Most startup ideas fail not because they're bad, but because founders skip
+                  validation. Without proper market research and community feedback, even brilliant
+                  ideas can miss the mark.
+                </p>
+                <p>
+                  Traditional validation takes weeks or months. By then, your window of opportunity
+                  might be gone.
+                </p>
+              </div>
             </motion.div>
+
+            {/* Solution Column */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="space-y-4"
             >
-              <h2 className="mb-6">How Motif Helps</h2>
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <CheckCircle2 className="text-primary mt-1 h-6 w-6 flex-shrink-0" />
+              <span className="text-primary text-sm font-medium tracking-wide uppercase">The Solution</span>
+              <h2 className="text-2xl md:text-3xl font-semibold leading-tight">How Motif Helps</h2>
+              <div className="space-y-5 pt-1">
+                <div className="flex gap-4">
+                  <CheckCircle2 className="text-primary h-5 w-5 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium">AI-Powered Analysis</p>
-                    <p className="text-muted-foreground">
+                    <p className="font-medium mb-1">AI-Powered Analysis</p>
+                    <p className="text-muted-foreground text-sm">
                       Get instant insights on market fit, competition, and viability.
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <CheckCircle2 className="text-primary mt-1 h-6 w-6 flex-shrink-0" />
+                <div className="flex gap-4">
+                  <CheckCircle2 className="text-primary h-5 w-5 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium">Community Support</p>
-                    <p className="text-muted-foreground">
+                    <p className="font-medium mb-1">Community Support</p>
+                    <p className="text-muted-foreground text-sm">
                       Tap into a network of experienced founders for feedback.
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <CheckCircle2 className="text-primary mt-1 h-6 w-6 flex-shrink-0" />
+                <div className="flex gap-4">
+                  <CheckCircle2 className="text-primary h-5 w-5 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium">Rapid Prototyping</p>
-                    <p className="text-muted-foreground">
+                    <p className="font-medium mb-1">Rapid Prototyping</p>
+                    <p className="text-muted-foreground text-sm">
                       Generate visual prototypes and pitch decks in minutes.
                     </p>
                   </div>

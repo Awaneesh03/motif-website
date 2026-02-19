@@ -32,16 +32,16 @@ export function IdeaCard({
   const canUpvote = !!onUpvote;
 
   return (
-    <Card className="border-border/50 transition-all hover:shadow-md hover:border-border">
-      <CardContent className="p-4">
-        <div className="flex gap-3">
-          <div className="flex flex-col items-center gap-0.5 pt-0.5">
+    <Card className="border-border/50">
+      <CardContent className="p-5">
+        <div className="flex gap-4">
+          <div className="flex flex-col items-center gap-1 pt-0.5">
             <button
               onClick={onUpvote}
               disabled={!canUpvote}
-              title={canUpvote ? (hasUpvoted ? 'Remove upvote' : 'Upvote this idea') : 'Login and refresh to upvote'}
-              className={`rounded-md p-1.5 transition-all ${
-                hasUpvoted ? 'bg-primary/20 hover:bg-primary/30' : 'hover:bg-primary/10'
+              title={canUpvote ? (hasUpvoted ? 'Remove upvote' : 'Upvote this idea') : 'Login to upvote'}
+              className={`rounded-md p-1.5 transition-colors ${
+                hasUpvoted ? 'bg-primary/20' : 'hover:bg-primary/10'
               } ${!canUpvote ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
             >
               <ArrowUp
@@ -51,21 +51,21 @@ export function IdeaCard({
             <span className="text-xs font-medium">{upvotes}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="hover:text-primary text-sm font-semibold mb-1.5 cursor-pointer transition-colors line-clamp-2">{title}</h4>
-            <div className="mb-2 flex flex-wrap gap-1.5">
+            <h4 className="text-sm font-semibold mb-2 line-clamp-2">{title}</h4>
+            <div className="mb-3 flex flex-wrap gap-2">
               {tags.slice(0, 3).map(tag => (
-                <Badge key={tag} variant="secondary" className="rounded-full text-xs px-2 py-0 h-5">
+                <Badge key={tag} variant="secondary" className="rounded-full text-xs px-2.5 py-0.5">
                   {tag}
                 </Badge>
               ))}
             </div>
             {description && (
-              <p className="mb-2.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+              <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                 {description}
               </p>
             )}
-            <div className="text-muted-foreground flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5">
+            <div className="text-muted-foreground flex items-center justify-between text-xs pt-1">
+              <div className="flex items-center gap-2">
                 <Avatar className="h-5 w-5">
                   <AvatarImage src={authorAvatar} alt={author} />
                   <AvatarFallback className="text-[10px]">{author[0]}</AvatarFallback>
@@ -74,10 +74,10 @@ export function IdeaCard({
               </div>
               <button
                 onClick={onCommentClick}
-                className="hover:text-primary group flex items-center gap-1 transition-colors"
+                className="hover:text-primary flex items-center gap-1.5 transition-colors"
                 title="View Comments"
               >
-                <MessageCircle className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                <MessageCircle className="h-3.5 w-3.5" />
                 <span>{comments}</span>
               </button>
             </div>

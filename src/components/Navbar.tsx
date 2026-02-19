@@ -42,10 +42,10 @@ export function Navbar({
   const avatarValue = profile?.avatar || '';
   const isAvatarUrl = avatarValue.startsWith('http://') || avatarValue.startsWith('https://') || avatarValue.startsWith('data:');
 
-  // Navigation links change based on login state
+  // Navigation links change based on login state (Home removed since logo redirects to homepage)
   const navLinks = isLoggedIn
-    ? ['Home', 'About', 'Case Studies', 'Community']
-    : ['Home', 'Case Studies', 'Community', 'About'];
+    ? ['About', 'Case Studies', 'Community']
+    : ['Case Studies', 'Community', 'About'];
 
   return (
     <nav className="bg-background/80 border-border sticky top-0 z-50 border-b backdrop-blur-lg">
