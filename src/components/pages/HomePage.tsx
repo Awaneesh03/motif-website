@@ -427,22 +427,22 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
       </section>
 
       {/* Community Preview Section */}
-      <section className="bg-background py-16">
+      <section className="bg-muted/20 py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mb-10 text-center"
+            className="mb-8 text-center"
           >
-            <h2 className="mb-3">Trending Ideas in the Community</h2>
-            <p className="text-muted-foreground">See what other founders are building</p>
+            <h2 className="mb-2">Trending Ideas in the Community</h2>
+            <p className="text-muted-foreground text-sm">See what other founders are building</p>
           </motion.div>
-          <div className="mx-auto mb-10 max-w-3xl space-y-4">
+          <div className="mx-auto mb-8 max-w-2xl space-y-3">
             {communityIdeas.map((idea, index) => (
               <motion.div
                 key={idea.title}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
