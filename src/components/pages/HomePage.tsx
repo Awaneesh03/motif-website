@@ -427,25 +427,25 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
       </section>
 
       {/* Community Preview Section */}
-      <section className="bg-background py-12">
+      <section className="bg-background py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mb-8 text-center"
+            className="mb-10 text-center"
           >
-            <h2 className="mb-4">Trending Ideas in the Community</h2>
+            <h2 className="mb-3">Trending Ideas in the Community</h2>
             <p className="text-muted-foreground">See what other founders are building</p>
           </motion.div>
-          <div className="mx-auto mb-8 max-w-4xl space-y-4">
+          <div className="mx-auto mb-10 max-w-3xl space-y-4">
             {communityIdeas.map((idea, index) => (
               <motion.div
                 key={idea.title}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.05 }}
               >
                 <IdeaCard {...idea} onCommentClick={() => handleCommentClick(idea)} />
               </motion.div>

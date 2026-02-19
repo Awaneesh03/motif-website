@@ -32,55 +32,79 @@ export function IdeaCard({
   const canUpvote = !!onUpvote;
 
   return (
-    <Card className="border-border/50">
-      <CardContent className="p-5">
-        <div className="flex gap-4">
-          <div className="flex flex-col items-center gap-1 pt-0.5">
+    <Card className="bg-white dark:bg-card border border-border/60 shadow-sm">
+      <CardContent className="p-5 md:p-6">
+        <div className="flex items-start gap-4 md:gap-5">
+          {/* Left Zone: Vote */}
+          <div className="flex flex-col items-center gap-1 min-w-[44px]">
             <button
               onClick={onUpvote}
               disabled={!canUpvote}
               title={canUpvote ? (hasUpvoted ? 'Remove upvote' : 'Upvote this idea') : 'Login to upvote'}
-              className={`rounded-md p-1.5 transition-colors ${
-                hasUpvoted ? 'bg-primary/20' : 'hover:bg-primary/10'
+              className={`flex flex-col items-center gap-0.5 rounded-lg px-2.5 py-2 transition-colors ${
+                hasUpvoted 
+                  ? 'bg-primary/10 text-primary' 
+                  : 'bg-muted/50 hover:bg-muted'
               } ${!canUpvote ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
             >
               <ArrowUp
-                className={`h-4 w-4 ${hasUpvoted ? 'text-primary fill-primary' : 'text-primary'}`}
+                className={`h-4 w-4 ${hasUpvoted ? 'text-primary fill-primary' : 'text-muted-foreground'}`}
               />
+              <span className={`text-xs font-semibold ${hasUpvoted ? 'text-primary' : 'text-foreground'}`}>
+                {upvotes}
+              </span>
             </button>
-            <span className="text-xs font-medium">{upvotes}</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-semibold mb-2 line-clamp-2">{title}</h4>
-            <div className="mb-3 flex flex-wrap gap-2">
+
+          {/* Center Zone: Content */}
+          <div className="flex-1 min-w-0 space-y-3">
+            {/* Title */}
+            <h4 className="text-base font-medium leading-snug line-clamp-2 text-foreground">
+              {title}
+            </h4>
+
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2">
               {tags.slice(0, 3).map(tag => (
-                <Badge key={tag} variant="secondary" className="rounded-full text-xs px-2.5 py-0.5">
+                <Badge 
+                  key={tag} 
+                  variant="secondary" 
+                  className="rounded-md text-xs font-normal px-2.5 py-1 bg-muted/60 text-muted-foreground border-0"
+                >
                   {tag}
                 </Badge>
               ))}
             </div>
+
+            {/* Description (if present) */}
             {description && (
-              <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+              <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
                 {description}
               </p>
             )}
-            <div className="text-muted-foreground flex items-center justify-between text-xs pt-1">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-5 w-5">
-                  <AvatarImage src={authorAvatar} alt={author} />
-                  <AvatarFallback className="text-[10px]">{author[0]}</AvatarFallback>
-                </Avatar>
-                <span className="truncate max-w-[120px]">{author}</span>
-              </div>
-              <button
-                onClick={onCommentClick}
-                className="hover:text-primary flex items-center gap-1.5 transition-colors"
-                title="View Comments"
-              >
-                <MessageCircle className="h-3.5 w-3.5" />
-                <span>{comments}</span>
-              </button>
+
+            {/* Author */}
+            <div className="flex items-center gap-2 pt-1">
+              <Avatar className="h-5 w-5">
+                <AvatarImage src={authorAvatar} alt={author} />
+                <AvatarFallback className="text-[10px] bg-muted">{author[0]}</AvatarFallback>
+              </Avatar>
+              <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                {author}
+              </span>
             </div>
+          </div>
+
+          {/* Right Zone: Comments */}
+          <div className="flex flex-col items-center min-w-[44px]">
+            <button
+              onClick={onCommentClick}
+              className="flex flex-col items-center gap-0.5 rounded-lg px-2.5 py-2 bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+              title="View Comments"
+            >
+              <MessageCircle className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-semibold text-foreground">{comments}</span>
+            </button>
           </div>
         </div>
       </CardContent>
