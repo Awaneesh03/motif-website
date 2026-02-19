@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { TrendingUp, Clock, MessageCircle, Award, Send, Lightbulb, Loader2, Sparkles, MessageSquare } from 'lucide-react';
+import { TrendingUp, Clock, MessageCircle, Award, Send, Lightbulb, Loader2, Sparkles, MessageSquare, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '../ui/button';
@@ -1072,8 +1072,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
             {/* Sidebar */}
             <div className="space-y-4">
-              <div className="rounded-lg border border-border/40 bg-card/50 p-4">
-                <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">Popular Tags</h3>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Filter</h3>
+                </div>
                   <div className="flex flex-wrap gap-2">
                     {[
                       'AI',
@@ -1112,7 +1115,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                   )}
               </div>
 
-              <div className="rounded-lg border border-border/40 bg-card/50 p-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <div className="mb-4 flex items-center gap-2">
                   <Award className="text-primary h-4 w-4" />
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Top Contributors</h3>
