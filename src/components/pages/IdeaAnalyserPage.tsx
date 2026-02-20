@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useUser } from '../../contexts/UserContext';
@@ -65,11 +65,28 @@ interface IdeaAnalyserPageProps {
 
 export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const { user, profile, displayName } = useUser();
-  const [ideaTitle, setIdeaTitle] = useState('');
-  const [ideaDescription, setIdeaDescription] = useState('');
-  const [selectedMarkets, setSelectedMarkets] = useState<string[]>([]);
+  
+  // Storage key for persisting form data
+  const FORM_STORAGE_KEY = 'motif-idea-analyser-form';
+  
+  // Load saved form data from localStorage
+  const getSavedFormData = () => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const saved = localStorage.getItem(FORM_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  };
+  
+  const savedData = getSavedFormData();
+  
+  const [ideaTitle, setIdeaTitle] = useState(savedData?.ideaTitle || '');
+  const [ideaDescription, setIdeaDescription] = useState(savedData?.ideaDescription || '');
+  const [selectedMarkets, setSelectedMarkets] = useState<string[]>(savedData?.selectedMarkets || []);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(savedData?.analysisResult || null);
   const [showDemoReportModal, setShowDemoReportModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isImprovingDescription, setIsImprovingDescription] = useState(false);
@@ -79,6 +96,17 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Persist form data to localStorage whenever it changes
+  useEffect(() => {
+    const formData = {
+      ideaTitle,
+      ideaDescription,
+      selectedMarkets,
+      analysisResult,
+    };
+    localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+  }, [ideaTitle, ideaDescription, selectedMarkets, analysisResult]);
 
   // Predefined target market options
   const MARKET_OPTIONS = [
@@ -217,6 +245,19 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const clearForm = () => {
+    setIdeaTitle('');
+    setIdeaDescription('');
+    setSelectedMarkets([]);
+    setAnalysisResult(null);
+    setUploadedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    localStorage.removeItem(FORM_STORAGE_KEY);
+    toast.success('Form cleared');
   };
 
   const saveCommunityIdea = (idea: CommunityIdea) => {
@@ -590,15 +631,28 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                       <Sparkles className="text-primary h-4 w-4" />
                       Tell Us About Your Idea
                     </CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onNavigate?.('saved-ideas')}
-                      className="rounded-lg text-muted-foreground hover:text-foreground w-fit h-8 px-3"
-                    >
-                      <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
-                      Saved Ideas
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {(ideaTitle || ideaDescription || analysisResult) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearForm}
+                          className="rounded-lg text-muted-foreground hover:text-destructive w-fit h-8 px-3"
+                        >
+                          <X className="mr-1.5 h-3.5 w-3.5" />
+                          Clear
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onNavigate?.('saved-ideas')}
+                        className="rounded-lg text-muted-foreground hover:text-foreground w-fit h-8 px-3"
+                      >
+                        <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
+                        Saved Ideas
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-5 pt-2">
