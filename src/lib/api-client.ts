@@ -173,8 +173,10 @@ class ApiClient {
 
         for (const line of lines) {
           if (line.startsWith('data:')) {
-            const data = line.slice(5).trim();
-            if (data) onChunk(data);
+            // Spring SseEmitter sends "data:<content>" without space after colon
+            // Keep ALL content including leading spaces (tokens like " How" need them)
+            const data = line.slice(5);
+            if (data && data !== '[DONE]') onChunk(data);
           }
         }
       }
