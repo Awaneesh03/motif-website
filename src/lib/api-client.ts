@@ -26,7 +26,8 @@ class ApiClient {
    */
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    timeoutMs: number = 30000  // Default 30s timeout
   ): Promise<T> {
     const token = await this.getAuthToken();
     console.log('[ApiClient] Token available:', !!token);
@@ -36,7 +37,7 @@ class ApiClient {
     }
 
     const url = `${BACKEND_URL}${endpoint}`;
-    console.log('[ApiClient] Making request to:', url);
+    console.log('[ApiClient] Making request to:', url, 'timeout:', timeoutMs);
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
@@ -45,11 +46,18 @@ class ApiClient {
       ...options.headers,
     };
 
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
       const response = await fetch(url, {
         ...options,
         headers,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       // Handle non-OK responses
       if (!response.ok) {
@@ -65,11 +73,15 @@ class ApiClient {
       return data as T;
 
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error(`API request failed: ${endpoint}`, error);
       if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. The AI analysis is taking longer than expected. Please try again.');
+        }
         // Re-throw with more context if it's a generic error
         if (error.message === 'Failed to fetch') {
-          throw new Error('Failed to fetch - backend server may be unavailable');
+          throw new Error('Failed to fetch - backend server may be unavailable. Please try again in a few seconds.');
         }
         throw error;
       }
@@ -80,11 +92,21 @@ class ApiClient {
   /**
    * POST request
    */
-  async post<T>(endpoint: string, body: any): Promise<T> {
+  async post<T>(endpoint: string, body: any, timeoutMs?: number): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
-    });
+    }, timeoutMs);
+  }
+
+  /**
+   * POST request for long-running operations (2 minute timeout)
+   */
+  async postLong<T>(endpoint: string, body: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }, 120000);  // 2 minutes
   }
 
   /**

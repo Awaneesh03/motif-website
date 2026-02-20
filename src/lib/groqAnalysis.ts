@@ -133,8 +133,9 @@ export async function analyzeIdeaWithGroq(
 ): Promise<IdeaAnalysisResult> {
   console.log('[IdeaAnalysis] Starting analysis for:', request.title);
   try {
-    console.log('[IdeaAnalysis] Calling backend API...');
-    const response = await apiClient.post<AnalysisResponse>('/api/ai/analyze-idea', {
+    console.log('[IdeaAnalysis] Calling backend API (long timeout)...');
+    // Use postLong for 2-minute timeout since AI analysis takes time
+    const response = await apiClient.postLong<AnalysisResponse>('/api/ai/analyze-idea', {
       title: request.title,
       description: request.description,
       targetMarket: request.targetMarket || null,
