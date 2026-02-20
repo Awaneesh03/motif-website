@@ -20,6 +20,7 @@ import {
   Upload,
   X,
   File,
+  RefreshCw,
 } from 'lucide-react';
 
 // Set up PDF.js worker
@@ -290,8 +291,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const isDescriptionValid = ideaDescription.trim().length >= 20;
   const isFormValid = isTitleValid && isDescriptionValid;
 
-  const handleAnalyze = async () => {
-    console.log('[IdeaAnalyser] handleAnalyze called');
+  const handleAnalyze = async (forceReanalyze: boolean = false) => {
+    console.log('[IdeaAnalyser] handleAnalyze called, forceReanalyze:', forceReanalyze);
     console.log('[IdeaAnalyser] Form valid:', isFormValid, 'User:', !!user);
     
     if (!isFormValid) {
@@ -312,36 +313,41 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       const normalizedDescription = normalizeIdeaValue(ideaDescription);
       const normalizedMarket = selectedMarkets.join(', ').trim().replace(/\s+/g, ' ').toLowerCase();
 
-      console.log('[IdeaAnalyser] Checking for existing analyses...');
-      const { data: existingAnalyses, error: existingError } = await supabase
-        .from('idea_analyses')
-        .select(
-          'id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability'
-        )
-        .eq('user_id', user.id);
+      // Skip cache check if force re-analyze is requested
+      if (!forceReanalyze) {
+        console.log('[IdeaAnalyser] Checking for existing analyses...');
+        const { data: existingAnalyses, error: existingError } = await supabase
+          .from('idea_analyses')
+          .select(
+            'id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability'
+          )
+          .eq('user_id', user.id);
 
-      console.log('[IdeaAnalyser] Existing analyses:', existingAnalyses?.length, 'Error:', existingError);
+        console.log('[IdeaAnalyser] Existing analyses:', existingAnalyses?.length, 'Error:', existingError);
 
-      if (!existingError && existingAnalyses && existingAnalyses.length > 0) {
-        const match = existingAnalyses.find(analysis =>
-          normalizeIdeaValue(analysis.idea_title) === normalizedTitle &&
-          normalizeIdeaValue(analysis.idea_description) === normalizedDescription &&
-          normalizeIdeaValue(analysis.target_market || '') === normalizedMarket
-        );
+        if (!existingError && existingAnalyses && existingAnalyses.length > 0) {
+          const match = existingAnalyses.find(analysis =>
+            normalizeIdeaValue(analysis.idea_title) === normalizedTitle &&
+            normalizeIdeaValue(analysis.idea_description) === normalizedDescription &&
+            normalizeIdeaValue(analysis.target_market || '') === normalizedMarket
+          );
 
-        if (match) {
-          setAnalysisResult({
-            score: match.score ?? 0,
-            strengths: Array.isArray(match.strengths) ? match.strengths : [],
-            weaknesses: Array.isArray(match.weaknesses) ? match.weaknesses : [],
-            recommendations: Array.isArray(match.recommendations) ? match.recommendations : [],
-            marketSize: match.market_size || '',
-            competition: match.competition || '',
-            viability: match.viability || '',
-          });
-          toast.success('Loaded your saved analysis from the vault.');
-          return;
+          if (match) {
+            setAnalysisResult({
+              score: match.score ?? 0,
+              strengths: Array.isArray(match.strengths) ? match.strengths : [],
+              weaknesses: Array.isArray(match.weaknesses) ? match.weaknesses : [],
+              recommendations: Array.isArray(match.recommendations) ? match.recommendations : [],
+              marketSize: match.market_size || '',
+              competition: match.competition || '',
+              viability: match.viability || '',
+            });
+            toast.success('Loaded your saved analysis from the vault.');
+            return;
+          }
         }
+      } else {
+        console.log('[IdeaAnalyser] Force re-analyze requested, skipping cache');
       }
 
       // Call backend API for analysis (backend also persists the result)
@@ -871,23 +877,36 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                   </div>
 
                   {/* Analyze Button */}
-                  <Button
-                    onClick={handleAnalyze}
-                    disabled={!isFormValid || isAnalyzing}
-                    className="gradient-lavender shadow-lavender h-11 w-full rounded-lg hover:opacity-90 mt-2"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <Zap className="mr-2 h-4 w-4 animate-pulse" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Analyze My Idea
-                      </>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      onClick={() => handleAnalyze(false)}
+                      disabled={!isFormValid || isAnalyzing}
+                      className="gradient-lavender shadow-lavender h-11 flex-1 rounded-lg hover:opacity-90"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <Zap className="mr-2 h-4 w-4 animate-pulse" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Analyze My Idea
+                        </>
+                      )}
+                    </Button>
+                    {analysisResult && (
+                      <Button
+                        onClick={() => handleAnalyze(true)}
+                        disabled={!isFormValid || isAnalyzing}
+                        variant="outline"
+                        className="h-11 rounded-lg border-primary/30 hover:bg-primary/10"
+                        title="Get a fresh analysis with updated AI"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
