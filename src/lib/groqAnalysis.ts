@@ -137,7 +137,7 @@ export async function analyzeIdeaWithGroq(
     
     // Truncate to match backend validation limits
     const truncatedTitle = request.title?.substring(0, 100) || 'Untitled';
-    const truncatedDescription = request.description?.substring(0, 1000) || '';
+    const truncatedDescription = request.description?.substring(0, 10000) || '';
     const truncatedMarket = request.targetMarket?.substring(0, 200) || null;
     
     console.log('[IdeaAnalysis] Title length:', truncatedTitle.length, 'Desc length:', truncatedDescription.length);
