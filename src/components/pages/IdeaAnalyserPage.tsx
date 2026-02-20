@@ -355,6 +355,23 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         }
       } else {
         console.log('[IdeaAnalyser] Force re-analyze requested, skipping cache');
+        // Delete old cached results for this idea to ensure fresh analysis
+        const normalizedTitle = normalizeIdeaValue(ideaTitle);
+        const { data: existingAnalyses } = await supabase
+          .from('idea_analyses')
+          .select('id, idea_title')
+          .eq('user_id', user.id);
+        
+        if (existingAnalyses) {
+          const matchingIds = existingAnalyses
+            .filter(a => normalizeIdeaValue(a.idea_title) === normalizedTitle)
+            .map(a => a.id);
+          
+          if (matchingIds.length > 0) {
+            console.log('[IdeaAnalyser] Deleting old cached analyses:', matchingIds);
+            await supabase.from('idea_analyses').delete().in('id', matchingIds);
+          }
+        }
       }
 
       // Call backend API for analysis (backend also persists the result)

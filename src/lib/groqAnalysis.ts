@@ -152,11 +152,11 @@ export async function analyzeIdeaWithGroq(
     };
   } catch (error) {
     console.error('[IdeaAnalysis] Error occurred:', error);
-    // Always fallback to mock when any error occurs from backend
-    console.warn('[IdeaAnalysis] Falling back to mock analysis');
-    const mockResult = generateMockAnalysis(request);
-    console.log('[IdeaAnalysis] Mock result generated:', mockResult);
-    return mockResult;
+    // Throw error instead of silently falling back to mock data
+    // This ensures user sees real analysis or a clear error
+    const errorMessage = error instanceof Error ? error.message : 'Backend analysis failed';
+    console.error('[IdeaAnalysis] Throwing error to user:', errorMessage);
+    throw new Error(errorMessage);
   }
 }
 
