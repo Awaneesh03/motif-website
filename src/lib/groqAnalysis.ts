@@ -134,11 +134,19 @@ export async function analyzeIdeaWithGroq(
   console.log('[IdeaAnalysis] Starting analysis for:', request.title);
   try {
     console.log('[IdeaAnalysis] Calling backend API (long timeout)...');
+    
+    // Truncate to match backend validation limits
+    const truncatedTitle = request.title?.substring(0, 100) || 'Untitled';
+    const truncatedDescription = request.description?.substring(0, 1000) || '';
+    const truncatedMarket = request.targetMarket?.substring(0, 200) || null;
+    
+    console.log('[IdeaAnalysis] Title length:', truncatedTitle.length, 'Desc length:', truncatedDescription.length);
+    
     // Use postLong for 2-minute timeout since AI analysis takes time
     const response = await apiClient.postLong<AnalysisResponse>('/api/ai/analyze-idea', {
-      title: request.title,
-      description: request.description,
-      targetMarket: request.targetMarket || null,
+      title: truncatedTitle,
+      description: truncatedDescription,
+      targetMarket: truncatedMarket,
     });
     console.log('[IdeaAnalysis] Backend response received:', response);
 
