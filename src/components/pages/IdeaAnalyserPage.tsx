@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
+import * as pdfjsLib from 'pdfjs-dist';
 import {
   Sparkles,
   Target,
@@ -16,7 +17,13 @@ import {
   FileText,
   Download,
   FolderOpen,
+  Upload,
+  X,
+  File,
 } from 'lucide-react';
+
+// Set up PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -63,6 +70,12 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [showDemoReportModal, setShowDemoReportModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isImprovingDescription, setIsImprovingDescription] = useState(false);
+  
+  // File upload state
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Predefined target market options
   const MARKET_OPTIONS = [
@@ -93,6 +106,114 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         ? prev.filter(m => m !== market)
         : prev.length < 3 ? [...prev, market] : prev
     );
+  };
+
+  // File upload handlers
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = '';
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n';
+    }
+    
+    return fullText.trim();
+  };
+
+  const handleFileSelect = async (file: File) => {
+    const allowedTypes = ['application/pdf', 'text/plain'];
+    const maxSize = 10 * 1024 * 1024; // 10MB
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload a PDF or text file');
+      return;
+    }
+
+    if (file.size > maxSize) {
+      toast.error('File size must be less than 10MB');
+      return;
+    }
+
+    setUploadedFile(file);
+    setIsExtracting(true);
+
+    try {
+      let extractedText = '';
+      
+      if (file.type === 'application/pdf') {
+        extractedText = await extractTextFromPDF(file);
+      } else {
+        extractedText = await file.text();
+      }
+
+      if (!extractedText || extractedText.length < 50) {
+        toast.error('Could not extract enough text from the file. Please try a different file or enter details manually.');
+        setUploadedFile(null);
+        return;
+      }
+
+      // Truncate if too long (keep first 5000 chars for analysis)
+      const truncatedText = extractedText.length > 5000 
+        ? extractedText.substring(0, 5000) + '...' 
+        : extractedText;
+
+      // Try to extract a title from the first line or use filename
+      const lines = extractedText.split('\n').filter(l => l.trim());
+      const potentialTitle = lines[0]?.substring(0, 100) || file.name.replace(/\.[^/.]+$/, '');
+      
+      setIdeaTitle(potentialTitle.length > 5 ? potentialTitle : file.name.replace(/\.[^/.]+$/, ''));
+      setIdeaDescription(truncatedText);
+      
+      toast.success('Document content extracted! Review and click "Analyze" to get insights.');
+    } catch (error) {
+      console.error('Error extracting text:', error);
+      toast.error('Failed to extract text from file. Please try again.');
+      setUploadedFile(null);
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const removeUploadedFile = () => {
+    setUploadedFile(null);
+    setIdeaTitle('');
+    setIdeaDescription('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const saveCommunityIdea = (idea: CommunityIdea) => {
@@ -509,6 +630,99 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                           </>
                         )}
                       </Button>
+                    </div>
+                  </div>
+
+                  {/* File Upload Zone */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      Upload Pitch Deck or Document (Optional)
+                    </Label>
+                    <div
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onClick={() => !uploadedFile && fileInputRef.current?.click()}
+                      className={`
+                        relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
+                        transition-all duration-200
+                        ${isDragging 
+                          ? 'border-primary bg-primary/5' 
+                          : uploadedFile 
+                            ? 'border-green-500/50 bg-green-500/5' 
+                            : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                        }
+                        ${isExtracting ? 'pointer-events-none opacity-70' : ''}
+                      `}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.txt"
+                        onChange={handleFileInputChange}
+                        className="hidden"
+                      />
+                      
+                      {isExtracting ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                          <p className="text-sm text-muted-foreground">Extracting content...</p>
+                        </div>
+                      ) : uploadedFile ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
+                              <File className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div className="text-left">
+                              <p className="font-medium text-sm">{uploadedFile.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(uploadedFile.size / 1024).toFixed(1)} KB - Content extracted
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeUploadedFile();
+                            }}
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                            <Upload className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Drop your file here or click to browse</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Supports PDF and TXT files (max 10MB)
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {uploadedFile && (
+                      <p className="text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        Content extracted! Review below and click "Analyze My Idea" to get insights.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-border/50" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or enter manually</span>
                     </div>
                   </div>
 
