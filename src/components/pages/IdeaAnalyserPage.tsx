@@ -67,14 +67,21 @@ interface IdeaAnalyserPageProps {
 export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const { user, profile, displayName } = useUser();
   
-  // Storage key for persisting form data
+  // Storage key for persisting form data (sessionStorage = cleared on new tab)
   const FORM_STORAGE_KEY = 'motif-idea-analyser-form';
   
-  // Load saved form data from localStorage
+  // Clear old localStorage data (migration to sessionStorage)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(FORM_STORAGE_KEY);
+    }
+  }, []);
+  
+  // Load saved form data from sessionStorage (only persists within same tab)
   const getSavedFormData = () => {
     if (typeof window === 'undefined') return null;
     try {
-      const saved = localStorage.getItem(FORM_STORAGE_KEY);
+      const saved = sessionStorage.getItem(FORM_STORAGE_KEY);
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -98,7 +105,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Persist form data to localStorage whenever it changes
+  // Persist form data to sessionStorage whenever it changes (cleared on new tab)
   useEffect(() => {
     const formData = {
       ideaTitle,
@@ -106,7 +113,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       selectedMarkets,
       analysisResult,
     };
-    localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+    sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
   }, [ideaTitle, ideaDescription, selectedMarkets, analysisResult]);
 
   // Predefined target market options
@@ -257,7 +264,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    localStorage.removeItem(FORM_STORAGE_KEY);
+    sessionStorage.removeItem(FORM_STORAGE_KEY);
     toast.success('Form cleared');
   };
 
