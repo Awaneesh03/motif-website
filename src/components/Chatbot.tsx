@@ -7,7 +7,7 @@ import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
 import { useUser } from '../contexts/UserContext';
-import { apiClient, ChatResponse } from '../lib/api-client';
+import { apiClient } from '../lib/api-client';
 
 interface ChatMessage {
   id: string;
@@ -20,25 +20,6 @@ interface ChatbotProps {
   isDark: boolean;
 }
 
-/**
- * Send chat message via backend API
- */
-async function chatWithBackend(
-  message: string,
-  history: { role: string; content: string }[]
-): Promise<string> {
-  try {
-    const response = await apiClient.post<ChatResponse>('/api/ai/chat', {
-      message,
-      history: history.map(h => ({ role: h.role, content: h.content })),
-    });
-
-    return response.message || 'Sorry, I could not generate a response.';
-  } catch (error) {
-    console.error('Chat API error:', error);
-    throw error;
-  }
-}
 
 export function Chatbot({ isDark }: ChatbotProps) {
   const { user } = useUser();
@@ -107,42 +88,54 @@ export function Chatbot({ isDark }: ChatbotProps) {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const assistantId = (Date.now() + 1).toString();
+    const assistantPlaceholder: ChatMessage = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date()
+    };
+
+    const history = messages.slice(1).map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+    const currentInput = inputValue;
+
+    setMessages(prev => [...prev, userMessage, assistantPlaceholder]);
     setInputValue('');
     setIsLoading(true);
 
-    try {
-      const history = messages.slice(1).map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
-
-      const responseText = await chatWithBackend(inputValue, history);
-
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: responseText,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
-
-      if (errorMessage.includes('Rate limit') || errorMessage.includes('rate_limit')) {
-        toast.error('Rate limit exceeded. Please try again in a moment.');
-      } else if (errorMessage.includes('Not authenticated')) {
-        toast.error('Please login to use the chat feature.');
-      } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network')) {
-        toast.error('Cannot connect to AI service. Please ensure the backend is running.');
-      } else {
-        toast.error(errorMessage);
+    await apiClient.streamPost(
+      '/api/ai/chat/stream',
+      { message: currentInput, history },
+      (chunk) => {
+        setMessages(prev => prev.map(msg =>
+          msg.id === assistantId
+            ? { ...msg, content: msg.content + chunk }
+            : msg
+        ));
+      },
+      () => {
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error('Stream error:', error);
+        const errorMessage = error.message;
+        if (errorMessage.includes('Rate limit') || errorMessage.includes('rate_limit')) {
+          toast.error('Rate limit exceeded. Please try again in a moment.');
+        } else if (errorMessage.includes('Not authenticated') || errorMessage.includes('Authentication')) {
+          toast.error('Please login to use the chat feature.');
+        } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network')) {
+          toast.error('Cannot connect to AI service. Please ensure the backend is running.');
+        } else {
+          toast.error(errorMessage);
+        }
+        // Remove empty assistant placeholder on error
+        setMessages(prev => prev.filter(msg => !(msg.id === assistantId && msg.content === '')));
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
+    );
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -418,7 +411,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                 </div>
               </div>
             ))}
-            {isLoading && (
+            {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
               <div style={{
                 display: 'flex',
                 gap: '12px',

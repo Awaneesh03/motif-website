@@ -112,6 +112,77 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  /**
+   * POST request with SSE streaming response.
+   * onChunk is called for each text token received.
+   * onDone is called when the stream ends.
+   * onError is called on failure.
+   */
+  async streamPost(
+    endpoint: string,
+    body: any,
+    onChunk: (chunk: string) => void,
+    onDone: () => void,
+    onError: (error: Error) => void
+  ): Promise<void> {
+    const token = await this.getAuthToken();
+    if (!token) {
+      onError(new Error('Authentication required. Please login first.'));
+      return;
+    }
+
+    const url = `${BACKEND_URL}${endpoint}`;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          message: `HTTP ${response.status}: ${response.statusText}`
+        }));
+        onError(new Error(errorData.message || 'Stream request failed'));
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        onError(new Error('No response body available for streaming'));
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          onDone();
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            const data = line.slice(5).trim();
+            if (data) onChunk(data);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Stream request failed: ${endpoint}`, error);
+      onError(error instanceof Error ? error : new Error('Stream failed'));
+    }
+  }
 }
 
 // Export singleton instance
