@@ -1129,18 +1129,18 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                       </div>
                     </div>
 
-                    {/* Progress bar with travelling sheen */}
+                    {/* Progress bar */}
                     <div className="relative mb-6 h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <motion.div
-                        className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary via-purple-500 to-[#06b6d4]"
-                        animate={{ width: `${analysisProgress}%` }}
-                        transition={{ duration: 0.2, ease: 'linear' }}
+                      {/* Fill — plain div + CSS transition so width always tracks state */}
+                      <div
+                        className="absolute inset-y-0 left-0 h-full rounded-full bg-gradient-to-r from-primary via-purple-500 to-[#06b6d4]"
+                        style={{ width: `${analysisProgress}%`, transition: 'width 120ms linear' }}
                       />
-                      {/* Sheen that sweeps across the filled area */}
+                      {/* Sheen — fixed [-10%→110%] loop, never restarted by state changes */}
                       <motion.div
-                        className="absolute inset-y-0 w-10 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                        animate={{ left: ['-5%', `${analysisProgress + 4}%`] }}
-                        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                        className="absolute inset-y-0 w-8 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+                        animate={{ left: ['-10%', '110%'] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'linear', repeatDelay: 0.4 }}
                       />
                     </div>
 
