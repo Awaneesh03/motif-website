@@ -122,33 +122,70 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
   }, [ideaTitle, ideaDescription, selectedMarkets, analysisResult]);
 
-  // Drive animated progress while the API call is in-flight
+  // Drive staged progress while the API call is in-flight.
+  // Stages:  0–20% | 20–40% | 40–60% | 60–80% | 80–95%
+  // Each stage fills with quadratic ease-out over its allotted duration.
+  // Stage 4 fills slowly (30 s budget) and waits for the API.
+  // Progress jumps to 100% only when the API responds (see handleAnalyze).
   useEffect(() => {
     if (!isAnalyzing) {
+      // Clear timer but keep progress value — the exit animation (300 ms)
+      // should still show whatever progress was reached, not snap to 0.
       if (analysisTimerRef.current) {
         clearInterval(analysisTimerRef.current);
         analysisTimerRef.current = null;
       }
-      setAnalysisProgress(0);
-      setAnalysisStep(0);
       return;
     }
 
+    // New analysis starting — reset to zero
     setAnalysisStep(0);
     setAnalysisProgress(0);
     analysisStartRef.current = Date.now();
 
+    // Duration each stage is allowed before advancing (ms)
+    const STAGE_DURATIONS = [3000, 5000, 6000, 6000]; // stages 0–3
+    // Percentage ceiling for each stage (index 4 = open-ended last stage)
+    const STAGE_CAPS = [20, 40, 60, 80, 95];
+    const TOTAL_STAGED_MS = STAGE_DURATIONS.reduce((a, b) => a + b, 0); // 20 000 ms
+
     analysisTimerRef.current = setInterval(() => {
-      const elapsed = (Date.now() - analysisStartRef.current) / 1000;
-      // Organic easing — fast start, decelerates, plateaus at 88% (never hits 100 until done)
-      const p = Math.min(88, 88 * (1 - Math.exp(-elapsed / 22)));
-      setAnalysisProgress(p);
-      // Stage gates tied to progress %
-      setAnalysisStep(p < 15 ? 0 : p < 35 ? 1 : p < 55 ? 2 : p < 74 ? 3 : 4);
-    }, 150);
+      const totalElapsed = Date.now() - analysisStartRef.current;
+
+      // Determine which stage we're in and how far through it
+      let stage = STAGE_DURATIONS.length; // 4 = last open-ended stage
+      let stageElapsed = totalElapsed - TOTAL_STAGED_MS; // default for stage 4
+      let cumulative = 0;
+
+      for (let i = 0; i < STAGE_DURATIONS.length; i++) {
+        if (totalElapsed < cumulative + STAGE_DURATIONS[i]) {
+          stage = i;
+          stageElapsed = totalElapsed - cumulative;
+          break;
+        }
+        cumulative += STAGE_DURATIONS[i];
+      }
+
+      setAnalysisStep(stage);
+
+      const stageMin = stage === 0 ? 0 : (STAGE_CAPS[stage - 1] ?? 80);
+      const stageMax = STAGE_CAPS[Math.min(stage, STAGE_CAPS.length - 1)] ?? 95;
+      // Last stage fills very slowly (30 s budget) so it never actually reaches 95%
+      const stageDuration = stage < STAGE_DURATIONS.length ? STAGE_DURATIONS[stage] : 30000;
+
+      // Quadratic ease-out: fast start → natural deceleration at the cap
+      const t = Math.min(1, stageElapsed / stageDuration);
+      const eased = 1 - (1 - t) * (1 - t);
+      const p = stageMin + (stageMax - stageMin) * eased;
+
+      setAnalysisProgress(Math.round(p * 10) / 10);
+    }, 100); // 100 ms tick — smooth at 60 fps
 
     return () => {
-      if (analysisTimerRef.current) clearInterval(analysisTimerRef.current);
+      if (analysisTimerRef.current) {
+        clearInterval(analysisTimerRef.current);
+        analysisTimerRef.current = null;
+      }
     };
   }, [isAnalyzing]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -368,6 +405,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     }
 
     setIsAnalyzing(true);
+    let apiCallSucceeded = false; // tracks whether the full AI call completed (not a cache hit)
     console.log('[IdeaAnalyser] Starting analysis...');
 
     try {
@@ -439,6 +477,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
       console.log('[IdeaAnalyser] Analysis result received:', analysisData);
       setAnalysisResult(analysisData);
+      apiCallSucceeded = true;
       toast.success('Analysis complete!');
     } catch (error) {
       console.error('[IdeaAnalyser] Analysis error caught in component:', error);
@@ -453,6 +492,10 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
       return;
     } finally {
+      // Jump to 100% only when the full AI call succeeded (not on cache hits or errors).
+      // setAnalysisProgress and setIsAnalyzing are batched by React 18, so the loading
+      // card shows 100% for exactly its 300 ms exit animation before unmounting.
+      if (apiCallSucceeded) setAnalysisProgress(100);
       setIsAnalyzing(false);
     }
   };
