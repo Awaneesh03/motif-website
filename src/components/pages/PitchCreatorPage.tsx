@@ -118,7 +118,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
       let pitchData;
 
       try {
-        const response = await apiClient.post<PitchResponse>('/api/ai/generate-pitch', {
+        const response = await apiClient.postLong<PitchResponse>('/api/ai/generate-pitch', {
           ideaName: formData.ideaName,
           problem: formData.problem,
           solution: formData.solution,
