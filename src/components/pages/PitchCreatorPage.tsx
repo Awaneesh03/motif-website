@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import {
@@ -10,7 +10,11 @@ import {
   Lightbulb,
   Target,
   TrendingUp,
+  FolderOpen,
+  Loader2,
+  FileText,
 } from 'lucide-react';
+import jsPDF from 'jspdf';
 
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -19,9 +23,19 @@ import { Textarea } from '../ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
 import { apiClient, PitchResponse, PitchSlideContent } from '../../lib/api-client';
+
+interface SavedIdea {
+  id: string;
+  idea_title: string;
+  idea_description: string;
+  target_market: string | null;
+  market_size: string | null;
+  recommendations: string[] | null;
+}
 
 interface PitchCreatorPageProps {
   onNavigate?: (page: string) => void;
@@ -40,6 +54,51 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPitchModal, setShowPitchModal] = useState(false);
   const [generatedSlides, setGeneratedSlides] = useState<any>(null);
+
+  // Saved ideas state
+  const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>([]);
+  const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
+
+  // Fetch the user's saved analyses to pre-fill the form
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchSavedIdeas = async () => {
+      setIsLoadingIdeas(true);
+      try {
+        const { data } = await supabase
+          .from('idea_analyses')
+          .select('id, idea_title, idea_description, target_market, market_size, recommendations')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        setSavedIdeas(data ?? []);
+      } catch {
+        // Silent fail — selector just stays empty
+      } finally {
+        setIsLoadingIdeas(false);
+      }
+    };
+    fetchSavedIdeas();
+  }, [user?.id]);
+
+  // Pre-fill form when user selects a saved idea
+  const handleSelectIdea = (ideaId: string) => {
+    const idea = savedIdeas.find(i => i.id === ideaId);
+    if (!idea) return;
+
+    // Use the first two recommendations as a starting point for the solution field
+    const recs = Array.isArray(idea.recommendations) ? idea.recommendations : [];
+    const solutionHint = recs.slice(0, 2).join('. ').substring(0, 500);
+
+    setFormData({
+      ideaName: (idea.idea_title || '').substring(0, 100),
+      problem: (idea.idea_description || '').substring(0, 500),
+      solution: solutionHint,
+      audience: (idea.target_market || '').substring(0, 100),
+      market: (idea.market_size || '').substring(0, 100),
+      usp: '',
+    });
+    toast.success(`Loaded "${idea.idea_title}" — fill in the solution field and generate your pitch.`);
+  };
 
   const inferIconFromTitle = (title: string): string => {
     const lower = title.toLowerCase();
@@ -68,8 +127,6 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
           usp: formData.usp || null,
         });
 
-        // Adapt backend response: backend returns {title, content, bulletPoints}
-        // Frontend rendering uses {title, content, icon, bulletPoints}
         pitchData = {
           slides: response.slides.map((slide: PitchSlideContent) => ({
             title: slide.title,
@@ -80,32 +137,17 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
           speakerNotes: response.speakerNotes,
         };
       } catch (error) {
-        // Fallback to mock pitch data when backend is unreachable
-        if (error instanceof Error &&
-            (error.message.toLowerCase().includes('failed to fetch') ||
-             error.message.toLowerCase().includes('network'))) {
+        if (
+          error instanceof Error &&
+          (error.message.toLowerCase().includes('failed to fetch') ||
+            error.message.toLowerCase().includes('network'))
+        ) {
           pitchData = {
             slides: [
-              {
-                title: 'The Problem',
-                content: formData.problem || 'Market gap that needs addressing',
-                icon: 'problem',
-              },
-              {
-                title: 'Our Solution',
-                content: formData.solution || 'Innovative approach to solving the problem',
-                icon: 'solution',
-              },
-              {
-                title: 'Market Opportunity',
-                content: formData.market || 'Large and growing addressable market',
-                icon: 'market',
-              },
-              {
-                title: 'The Product',
-                content: `${formData.ideaName}: ${formData.usp || 'Unique product offering'}`,
-                icon: 'product',
-              },
+              { title: 'The Problem', content: formData.problem, icon: 'problem' },
+              { title: 'Our Solution', content: formData.solution, icon: 'solution' },
+              { title: 'Market Opportunity', content: formData.market || 'Large and growing addressable market', icon: 'market' },
+              { title: 'The Product', content: `${formData.ideaName}: ${formData.usp || 'Unique product offering'}`, icon: 'product' },
             ],
           };
         } else {
@@ -115,12 +157,11 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
 
       setGeneratedSlides(pitchData);
       setShowPitchModal(true);
-      toast.success('Pitch deck generated successfully!');
+      toast.success('Pitch deck generated!');
 
-      // Save idea and pitch to Supabase
+      // Save pitch to Supabase
       if (user?.id) {
         try {
-          // First, create the idea record
           const { data: ideaData, error: ideaError } = await supabase
             .from('idea_analyses')
             .insert({
@@ -139,10 +180,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
             .select()
             .single();
 
-          if (ideaError) throw ideaError;
-
-          // Then, create the pitch record linked to the idea
-          if (ideaData) {
+          if (!ideaError && ideaData) {
             await supabase.from('pitches').insert({
               user_id: user.id,
               idea_id: ideaData.id,
@@ -151,14 +189,11 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
           }
         } catch (saveError) {
           console.error('Failed to save pitch to database:', saveError);
-          // Don't show error to user - pitch was still generated successfully in UI
         }
       }
     } catch (error) {
       console.error('Pitch generation error:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to generate pitch. Please try again.'
-      );
+      toast.error(error instanceof Error ? error.message : 'Failed to generate pitch. Please try again.');
       setIsGenerating(false);
       return;
     }
@@ -166,7 +201,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     setIsGenerating(false);
   };
 
-  // Validation checks
+  // Validation
   const isIdeaNameValid = formData.ideaName.trim().length >= 3;
   const isProblemValid = formData.problem.trim().length >= 20;
   const isSolutionValid = formData.solution.trim().length >= 20;
@@ -181,72 +216,127 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     ask: Target,
   };
 
-  // Download pitch deck slides
-  const handleDownloadSlides = () => {
+  // --- PDF Download ---
+  const handleDownloadPDF = () => {
     if (!generatedSlides) {
       toast.error('No pitch deck to download');
       return;
     }
 
-    // Create text content for download
-    const slidesContent = `
-STARTUP PITCH DECK
-${formData.ideaName}
-Generated by IdeaForge AI
-========================================
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();   // 297 mm
+    const pageH = doc.internal.pageSize.getHeight();  // 210 mm
+    const margin = 22;
 
-${generatedSlides.slides.map((slide: any, index: number) => `
-========================================
-SLIDE ${index + 1}: ${slide.title}
-========================================
+    // ── Cover page ──────────────────────────────────────────────────
+    doc.setFillColor(201, 167, 235);         // lavender #C9A7EB
+    doc.rect(0, 0, pageW, pageH, 'F');
 
-${slide.content}
-${slide.bulletPoints && slide.bulletPoints.length > 0 ? '\n' + slide.bulletPoints.map((p: string) => `- ${p}`).join('\n') : ''}
-`).join('\n')}
+    doc.setFillColor(150, 90, 210);          // darker accent strip at bottom
+    doc.rect(0, pageH - 18, pageW, 18, 'F');
 
-========================================
-Pitch deck generated on: ${new Date().toLocaleDateString()}
+    // Idea name
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(34);
+    const titleLines = doc.splitTextToSize(formData.ideaName, pageW - margin * 2);
+    doc.text(titleLines, pageW / 2, pageH / 2 - 14, { align: 'center' });
 
-Powered by IdeaForge - Your AI-Powered Startup Companion
+    // Subtitle
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'normal');
+    doc.text('AI-Generated Pitch Deck', pageW / 2, pageH / 2 + (titleLines.length - 1) * 12 + 6, { align: 'center' });
 
-NEXT STEPS:
-1. Review and customize each slide based on your specific data
-2. Add visual elements and charts to support your story
-3. Practice your pitch delivery
-4. Get feedback from mentors and peers
-5. Iterate based on investor questions
+    // Footer
+    doc.setFontSize(9);
+    doc.text(
+      `Generated by IdeaForge  ·  ${new Date().toLocaleDateString()}`,
+      pageW / 2,
+      pageH - 7,
+      { align: 'center' }
+    );
 
-Good luck with your pitch!
-    `.trim();
+    // ── Slide pages ─────────────────────────────────────────────────
+    generatedSlides.slides.forEach((slide: any, index: number) => {
+      doc.addPage();
 
-    // Create and download the file
-    const blob = new Blob([slidesContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${formData.ideaName.replace(/[^a-z0-9]/gi, '_')}_Pitch_Deck.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      // Header bar
+      doc.setFillColor(201, 167, 235);
+      doc.rect(0, 0, pageW, 16, 'F');
 
-    toast.success('Pitch deck downloaded successfully!');
+      // Slide counter (top-right)
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(
+        `${index + 1} / ${generatedSlides.slides.length}`,
+        pageW - margin,
+        10,
+        { align: 'right' }
+      );
+
+      // Slide title
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40, 20, 60);
+      doc.text(slide.title, margin, 34);
+
+      // Divider
+      doc.setDrawColor(201, 167, 235);
+      doc.setLineWidth(0.6);
+      doc.line(margin, 39, pageW - margin, 39);
+
+      // Content text
+      let y = 52;
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(70, 50, 100);
+      if (slide.content) {
+        const contentLines = doc.splitTextToSize(slide.content, pageW - margin * 2);
+        doc.text(contentLines, margin, y);
+        y += contentLines.length * 6 + 8;
+      }
+
+      // Bullet points
+      if (slide.bulletPoints?.length) {
+        slide.bulletPoints.forEach((point: string) => {
+          if (y > pageH - 22) return;
+          // Bullet dot
+          doc.setFillColor(150, 90, 210);
+          doc.circle(margin + 2.5, y - 2, 1.5, 'F');
+          // Bullet text
+          doc.setTextColor(60, 40, 90);
+          doc.setFontSize(10);
+          const bLines = doc.splitTextToSize(point, pageW - margin * 2 - 10);
+          doc.text(bLines, margin + 8, y);
+          y += bLines.length * 5.5 + 4;
+        });
+      }
+
+      // Footer strip
+      doc.setFillColor(240, 230, 250);
+      doc.rect(0, pageH - 10, pageW, 10, 'F');
+      doc.setFontSize(7);
+      doc.setTextColor(130, 100, 180);
+      doc.text('IdeaForge — Your AI-Powered Startup Companion', pageW / 2, pageH - 3.5, { align: 'center' });
+    });
+
+    const filename = `${formData.ideaName.replace(/[^a-z0-9]/gi, '_').substring(0, 50)}_Pitch_Deck.pdf`;
+    doc.save(filename);
+    toast.success('PDF downloaded!');
   };
 
-  // Regenerate pitch deck
   const handleRegeneratePitch = async () => {
     if (!isFormValid) {
       toast.error('Please fill in all required fields');
       return;
     }
-
-    // Don't close modal, just regenerate with loading state
     await handleGeneratePitch();
   };
 
   return (
     <div className="bg-background">
-      {/* Hero Section - Compact intro */}
+      {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#C9A7EB]/15 via-background to-background py-6 sm:py-8">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -271,7 +361,7 @@ Good luck with your pitch!
       <section className="py-6 sm:py-8">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {/* Input Form - Left Column */}
+            {/* Input Form */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -285,6 +375,48 @@ Good luck with your pitch!
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
+
+                  {/* ── Load from Saved Idea ── */}
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <FolderOpen className="h-4 w-4 text-primary flex-shrink-0" />
+                      <Label className="text-sm font-medium">Load from a Saved Analysis (Optional)</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Select one of your previously analyzed ideas to auto-fill the form below.
+                    </p>
+                    {isLoadingIdeas ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading your ideas...
+                      </div>
+                    ) : savedIdeas.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-1">
+                        No saved analyses found.{' '}
+                        <button
+                          type="button"
+                          onClick={() => onNavigate?.('IdeaAnalyser')}
+                          className="text-primary underline underline-offset-2"
+                        >
+                          Analyze an idea first
+                        </button>
+                      </p>
+                    ) : (
+                      <Select onValueChange={handleSelectIdea}>
+                        <SelectTrigger className="rounded-lg bg-background">
+                          <SelectValue placeholder="Select a saved idea…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {savedIdeas.map(idea => (
+                            <SelectItem key={idea.id} value={idea.id}>
+                              {idea.idea_title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
                   {/* Idea Name */}
                   <div className="space-y-2">
                     <Label htmlFor="ideaName">Idea Name *</Label>
@@ -381,36 +513,33 @@ Good luck with your pitch!
                     />
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="space-y-3">
-                    {/* Generate Button */}
-                    <Button
-                      onClick={handleGeneratePitch}
-                      disabled={!isFormValid || isGenerating}
-                      className="gradient-lavender shadow-lavender h-12 w-full rounded-xl hover:opacity-90"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                            className="mr-2 h-4 w-4 rounded-full border-2 border-white border-t-transparent"
-                          />
-                          Generating Pitch...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          Generate Pitch
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  {/* Generate Button */}
+                  <Button
+                    onClick={handleGeneratePitch}
+                    disabled={!isFormValid || isGenerating}
+                    className="gradient-lavender shadow-lavender h-12 w-full rounded-xl hover:opacity-90"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          className="mr-2 h-4 w-4 rounded-full border-2 border-white border-t-transparent"
+                        />
+                        Generating Pitch...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Generate Pitch
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Tips & Info - Right Column */}
+            {/* Tips & Info */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -438,10 +567,10 @@ Good luck with your pitch!
 
               <Card className="glass-surface border-border/50 bg-gradient-to-br from-[#C9A7EB]/10 to-[#B084E8]/10">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-3 text-center">
-                    <Sparkles className="text-primary h-6 w-6 flex-shrink-0" />
+                  <div className="flex items-start gap-3">
+                    <FileText className="text-primary h-5 w-5 flex-shrink-0 mt-0.5" />
                     <p className="text-muted-foreground text-sm text-left">
-                      AI will generate a professional pitch deck based on your inputs
+                      AI generates a 10-slide deck. Download as a styled PDF ready to share with investors.
                     </p>
                   </div>
                 </CardContent>
@@ -497,11 +626,7 @@ Good luck with your pitch!
                   </div>
                 </div>
                 <div className="pt-4 text-center">
-                  <Button
-                    variant="outline"
-                    className="rounded-xl"
-                    onClick={() => onNavigate?.('Resources')}
-                  >
+                  <Button variant="outline" className="rounded-xl" onClick={() => onNavigate?.('Resources')}>
                     View Full Pitch Guide
                   </Button>
                 </div>
@@ -517,38 +642,38 @@ Good luck with your pitch!
           <DialogHeader>
             <DialogTitle>Your AI-Generated Pitch</DialogTitle>
             <DialogDescription>
-              Review your pitch deck slides. You can download or regenerate as needed.
+              Review your pitch deck slides. Download as PDF or regenerate as needed.
             </DialogDescription>
           </DialogHeader>
           {generatedSlides && (
             <div className="space-y-4 py-4">
               {/* Slides Preview */}
               {generatedSlides.slides.map((slide: any, index: number) => {
-                const IconComponent = slideIcons[slide.icon];
+                const IconComponent = slideIcons[slide.icon] ?? Sparkles;
                 return (
                   <motion.div
                     key={index}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
+                    transition={{ delay: index * 0.08 }}
                   >
                     <Card className="glass-surface border-border/50">
-                      <CardContent className="p-6">
+                      <CardContent className="p-5">
                         <div className="flex items-start gap-4">
-                          <div className="gradient-lavender flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl">
-                            {IconComponent && <IconComponent className="h-6 w-6 text-white" />}
+                          <div className="gradient-lavender flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl">
+                            <IconComponent className="h-5 w-5 text-white" />
                           </div>
                           <div className="flex-1">
-                            <Badge variant="outline" className="mb-2">
+                            <Badge variant="outline" className="mb-2 text-xs">
                               Slide {index + 1}
                             </Badge>
-                            <h4 className="mb-2">{slide.title}</h4>
+                            <h4 className="mb-1.5 text-sm font-semibold">{slide.title}</h4>
                             <p className="text-muted-foreground text-sm">{slide.content}</p>
-                            {slide.bulletPoints && slide.bulletPoints.length > 0 && (
+                            {slide.bulletPoints?.length > 0 && (
                               <ul className="mt-2 space-y-1">
                                 {slide.bulletPoints.map((point: string, i: number) => (
                                   <li key={i} className="text-muted-foreground text-sm flex gap-2">
-                                    <span className="text-primary">-</span>
+                                    <span className="text-primary flex-shrink-0">–</span>
                                     <span>{point}</span>
                                   </li>
                                 ))}
@@ -564,11 +689,7 @@ Good luck with your pitch!
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  className="flex-1 rounded-xl"
-                  onClick={() => setShowPitchModal(false)}
-                >
+                <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowPitchModal(false)}>
                   Close
                 </Button>
                 <Button
@@ -595,10 +716,10 @@ Good luck with your pitch!
                 </Button>
                 <Button
                   className="gradient-lavender shadow-lavender flex-1 rounded-xl hover:opacity-90"
-                  onClick={handleDownloadSlides}
+                  onClick={handleDownloadPDF}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Download Slides
+                  Download PDF
                 </Button>
               </div>
             </div>

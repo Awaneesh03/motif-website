@@ -147,6 +147,14 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     );
   };
 
+  // Sanitize extracted text to remove characters that cause PostgreSQL errors
+  const sanitizeExtractedText = (text: string): string => {
+    return text
+      .replace(/\0/g, '') // Remove null bytes — PostgreSQL rejects these in TEXT columns
+      .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars (keep \t \n \r)
+      .trim();
+  };
+
   // File upload handlers
   const extractTextFromPDF = async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
@@ -197,13 +205,16 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         return;
       }
 
-      // Truncate if too long (keep first 5000 chars for analysis)
-      const truncatedText = extractedText.length > 5000 
-        ? extractedText.substring(0, 5000) + '...' 
-        : extractedText;
+      // Sanitize to remove null bytes and control chars that cause PostgreSQL save failures
+      const sanitized = sanitizeExtractedText(extractedText);
+
+      // Truncate if too long (backend accepts up to 10000 chars)
+      const truncatedText = sanitized.length > 10000
+        ? sanitized.substring(0, 10000)
+        : sanitized;
 
       // Try to extract a title from the first line or use filename
-      const lines = extractedText.split('\n').filter(l => l.trim());
+      const lines = sanitized.split('\n').filter(l => l.trim());
       const potentialTitle = lines[0]?.substring(0, 100) || file.name.replace(/\.[^/.]+$/, '');
       
       setIdeaTitle(potentialTitle.length > 5 ? potentialTitle : file.name.replace(/\.[^/.]+$/, ''));
@@ -842,14 +853,14 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                       value={ideaDescription}
                       onChange={e => setIdeaDescription(e.target.value)}
                       className="min-h-[140px] resize-none rounded-lg"
-                      maxLength={1000}
+                      maxLength={10000}
                     />
                     <div className="flex items-center justify-between">
                       <p className="text-muted-foreground text-xs">
                         {ideaDescription.length >= 20 ? (
-                          <span className="text-green-600">✓ {ideaDescription.length}/1000 characters</span>
+                          <span className="text-green-600">✓ {ideaDescription.length}/10000 characters</span>
                         ) : (
-                          <span>Minimum 20 characters ({ideaDescription.length}/1000)</span>
+                          <span>Minimum 20 characters ({ideaDescription.length}/10000)</span>
                         )}
                       </p>
                       <Button
