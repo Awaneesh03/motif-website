@@ -72,7 +72,9 @@ export function Footer({ onNavigate }: FooterProps) {
                 <Linkedin className="h-5 w-5" />
               </a>
               <a
-                href="#"
+                href="https://www.instagram.com/official_motif/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-muted-foreground transition-all duration-300 hover:scale-110 hover:text-[#E4405F]"
                 aria-label="Instagram"
               >

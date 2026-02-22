@@ -1131,10 +1131,14 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
 
                     {/* Progress bar */}
                     <div className="relative mb-6 h-2 w-full overflow-hidden rounded-full bg-muted">
-                      {/* Fill — plain div + CSS transition so width always tracks state */}
+                      {/* translateX fill — same technique as shadcn/ui Progress; GPU-accelerated,
+                          immune to layout-width calculation issues that affect absolute+width% */}
                       <div
-                        className="absolute inset-y-0 left-0 h-full rounded-full bg-gradient-to-r from-primary via-purple-500 to-[#06b6d4]"
-                        style={{ width: `${analysisProgress}%`, transition: 'width 120ms linear' }}
+                        className="h-full w-full rounded-full bg-gradient-to-r from-primary via-purple-500 to-[#06b6d4]"
+                        style={{
+                          transform: `translateX(-${100 - analysisProgress}%)`,
+                          transition: 'transform 120ms linear',
+                        }}
                       />
                       {/* Sheen — fixed [-10%→110%] loop, never restarted by state changes */}
                       <motion.div

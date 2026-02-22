@@ -23,40 +23,6 @@ export interface GeneratedIdea {
   targetMarket: string;
 }
 
-/**
- * Generate a mock analysis for demo/fallback when backend is unreachable
- */
-function generateMockAnalysis(request: IdeaAnalysisRequest): IdeaAnalysisResult {
-  const titleLength = request.title.length;
-  const descLength = request.description.length;
-
-  // Generate a semi-random but consistent score based on input
-  const baseScore = 60 + (titleLength % 20) + (descLength % 15);
-  const score = Math.min(95, Math.max(55, baseScore));
-
-  return {
-    score,
-    strengths: [
-      'Clear value proposition that addresses a real market need',
-      'Potential for strong product-market fit with the right execution',
-      'Scalable business model with multiple revenue opportunities'
-    ],
-    weaknesses: [
-      'Market validation needed to confirm demand assumptions',
-      'Competition analysis required to identify differentiation strategy',
-      'Initial customer acquisition strategy needs refinement'
-    ],
-    recommendations: [
-      'Conduct customer interviews to validate the core problem hypothesis',
-      'Build an MVP to test key assumptions before scaling',
-      'Identify 2-3 key metrics to track for early product-market fit signals',
-      'Research competitor pricing and positioning to find your unique angle'
-    ],
-    marketSize: '$5B - $15B (estimated TAM)',
-    competition: 'Moderate - established players exist but room for innovation',
-    viability: score >= 75 ? 'High Viability' : score >= 60 ? 'Medium Viability' : 'Needs Validation'
-  };
-}
 
 const mockIdeas: GeneratedIdea[] = [
   {
@@ -86,44 +52,6 @@ const mockIdeas: GeneratedIdea[] = [
   }
 ];
 
-function shouldFallbackToMock(error: unknown): boolean {
-  if (!(error instanceof Error)) return true; // Unknown error type, fall back
-  const msg = error.message.toLowerCase();
-  
-  // Network/connectivity errors
-  if (msg.includes('failed to fetch') ||
-      msg.includes('network') ||
-      msg.includes('cors') ||
-      msg.includes('econnrefused') ||
-      msg.includes('connection refused') ||
-      msg.includes('timeout') ||
-      msg.includes('aborted')) {
-    return true;
-  }
-  
-  // Server errors (5xx) or backend unavailable
-  if (msg.includes('unexpected') ||
-      msg.includes('500') ||
-      msg.includes('502') ||
-      msg.includes('503') ||
-      msg.includes('504') ||
-      msg.includes('internal server') ||
-      msg.includes('service unavailable') ||
-      msg.includes('bad gateway')) {
-    return true;
-  }
-
-  // Auth errors that indicate backend misconfiguration (not user error)
-  // These suggest the backend can't validate the token properly
-  if (msg.includes('access denied') ||
-      msg.includes('forbidden') ||
-      msg.includes('401') ||
-      msg.includes('403')) {
-    return true;
-  }
-  
-  return false;
-}
 
 /**
  * Analyze a startup idea via backend API
