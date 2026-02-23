@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, Send, X, Settings, Bot, User, Sparkles } from 'lucide-react';
+import { MessageCircle, Send, X, Settings, Bot, User, Sparkles, BrainCircuit } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from './ui/button';
@@ -24,13 +24,13 @@ interface ChatbotProps {
 export function Chatbot({ isDark }: ChatbotProps) {
   const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
+  const [isMentorMode, setIsMentorMode] = useState(false);
+
+  const GENERAL_WELCOME = 'Welcome to Motif! I\'m your AI assistant here to help with startup ideas, business planning, and entrepreneurship questions. What would you like to explore today?';
+  const MENTOR_WELCOME  = 'Mentor mode activated! I\'m using your analyzed startup idea as context. Ask me anything about validation, MVP planning, monetization, risks, or next steps — I\'ll give you specific, actionable guidance based on your idea.';
+
   const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: 'Welcome to Motif! I\'m your AI assistant here to help with startup ideas, business planning, and entrepreneurship questions. What would you like to explore today?',
-      timestamp: new Date()
-    }
+    { id: '1', role: 'assistant', content: GENERAL_WELCOME, timestamp: new Date() }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -106,9 +106,14 @@ export function Chatbot({ isDark }: ChatbotProps) {
     setInputValue('');
     setIsLoading(true);
 
+    const endpoint = isMentorMode ? '/api/ai/mentor-chat/stream' : '/api/ai/chat/stream';
+    const payload  = isMentorMode
+      ? { message: currentInput, history }   // MentorChatRequest
+      : { message: currentInput, history };  // ChatMessageRequest (same shape)
+
     await apiClient.streamPost(
-      '/api/ai/chat/stream',
-      { message: currentInput, history },
+      endpoint,
+      payload,
       (chunk) => {
         setMessages(prev => prev.map(msg =>
           msg.id === assistantId
@@ -146,15 +151,24 @@ export function Chatbot({ isDark }: ChatbotProps) {
   };
 
   const clearChat = () => {
-    setMessages([
-      {
-        id: '1',
-        role: 'assistant',
-        content: 'Welcome to Motif! I\'m your AI assistant here to help with startup ideas, business planning, and entrepreneurship questions. What would you like to explore today?',
-        timestamp: new Date()
-      }
-    ]);
+    setMessages([{
+      id: '1',
+      role: 'assistant',
+      content: isMentorMode ? MENTOR_WELCOME : GENERAL_WELCOME,
+      timestamp: new Date()
+    }]);
     toast.success('Chat cleared!');
+  };
+
+  const toggleMentorMode = () => {
+    const next = !isMentorMode;
+    setIsMentorMode(next);
+    setMessages([{
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: next ? MENTOR_WELCOME : GENERAL_WELCOME,
+      timestamp: new Date()
+    }]);
   };
 
   return (
@@ -280,6 +294,41 @@ export function Chatbot({ isDark }: ChatbotProps) {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Mentor mode toggle */}
+              <button
+                onClick={toggleMentorMode}
+                title={isMentorMode ? 'Switch to General mode' : 'Switch to Mentor mode (uses your analyzed idea)'}
+                style={{
+                  background: isMentorMode
+                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    : 'none',
+                  border: isMentorMode ? 'none' : `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  color: isMentorMode ? '#ffffff' : (isDark ? '#9ca3af' : '#6b7280'),
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isMentorMode) {
+                    e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isMentorMode) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
+              >
+                <BrainCircuit size={14} />
+                {isMentorMode ? 'Mentor' : 'General'}
+              </button>
+
               <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <DialogTrigger asChild>
                   <button style={{
