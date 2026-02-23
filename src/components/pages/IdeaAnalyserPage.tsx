@@ -104,6 +104,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const analysisTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const analysisStartRef = useRef<number>(0);
+  const loadingCardRef = useRef<HTMLDivElement>(null);
 
   // File upload state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -188,6 +189,15 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
     };
   }, [isAnalyzing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Scroll loading card into view as soon as analysis starts so users can see the progress bar
+  useEffect(() => {
+    if (isAnalyzing && loadingCardRef.current) {
+      setTimeout(() => {
+        loadingCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 350); // wait for the entry animation (300ms) to begin before scrolling
+    }
+  }, [isAnalyzing]);
 
   // Predefined target market options
   const MARKET_OPTIONS = [
@@ -487,6 +497,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         toast.error('Rate limit exceeded. Please try again in a few moments.');
       } else if (errorMessage.includes('API key')) {
         toast.error('AI service is not configured. Please contact support.');
+      } else if (errorMessage.toLowerCase().includes('parse') || errorMessage.toLowerCase().includes('format')) {
+        toast.error('AI returned an unexpected response. Please try again — this is usually a one-time glitch.');
       } else {
         toast.error(errorMessage);
       }
@@ -1057,6 +1069,7 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
             {isAnalyzing && (
               <motion.div
                 key="analyzing-state"
+                ref={loadingCardRef}
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
