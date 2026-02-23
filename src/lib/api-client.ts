@@ -98,13 +98,30 @@ class ApiClient {
   }
 
   /**
-   * POST request for long-running operations (2 minute timeout)
+   * POST request for long-running operations (3 minute timeout, 1 auto-retry)
+   * Used for AI analysis/generation that can take 60-120s on cold starts
    */
   async postLong<T>(endpoint: string, body: any): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }, 120000);  // 2 minutes
+    const timeoutMs = 180000; // 3 minutes
+    try {
+      return await this.request<T>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }, timeoutMs);
+    } catch (error) {
+      // On timeout or network failure, automatically retry once
+      if (error instanceof Error &&
+        (error.name === 'AbortError' ||
+          error.message.includes('timed out') ||
+          error.message.includes('Failed to fetch'))) {
+        console.warn('[ApiClient] First attempt failed, retrying once...', error.message);
+        return this.request<T>(endpoint, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }, timeoutMs);
+      }
+      throw error;
+    }
   }
 
   /**

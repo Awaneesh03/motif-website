@@ -1,4 +1,4 @@
-// AI services - routes all calls through the backend API
+// AI services - routes all calls through the backend API (OpenAI / ChatGPT)
 import { apiClient, AnalysisResponse, ChatResponse, IdeaResponse } from './api-client';
 
 export interface IdeaAnalysisRequest {
@@ -54,23 +54,22 @@ const mockIdeas: GeneratedIdea[] = [
 
 
 /**
- * Analyze a startup idea via backend API
+ * Analyze a startup idea via backend API (powered by OpenAI / ChatGPT)
  */
-export async function analyzeIdeaWithGroq(
+export async function analyzeIdea(
   request: IdeaAnalysisRequest
 ): Promise<IdeaAnalysisResult> {
   console.log('[IdeaAnalysis] Starting analysis for:', request.title);
   try {
-    console.log('[IdeaAnalysis] Calling backend API (long timeout)...');
-    
+    console.log('[IdeaAnalysis] Calling backend API (OpenAI, long timeout)...');
+
     // Truncate to match backend validation limits
     const truncatedTitle = request.title?.substring(0, 100) || 'Untitled';
     const truncatedDescription = request.description?.substring(0, 10000) || '';
     const truncatedMarket = request.targetMarket?.substring(0, 200) || null;
-    
+
     console.log('[IdeaAnalysis] Title length:', truncatedTitle.length, 'Desc length:', truncatedDescription.length);
-    
-    // Use postLong for 2-minute timeout since AI analysis takes time
+
     const response = await apiClient.postLong<AnalysisResponse>('/api/ai/analyze-idea', {
       title: truncatedTitle,
       description: truncatedDescription,
@@ -89,18 +88,22 @@ export async function analyzeIdeaWithGroq(
     };
   } catch (error) {
     console.error('[IdeaAnalysis] Error occurred:', error);
-    // Throw error instead of silently falling back to mock data
-    // This ensures user sees real analysis or a clear error
-    const errorMessage = error instanceof Error ? error.message : 'Backend analysis failed';
+    const raw = error instanceof Error ? error.message : 'Backend analysis failed';
+    // Give a friendlier message for cold-start / network failures
+    let errorMessage = raw;
+    if (raw.includes('timed out') || raw.includes('Failed to fetch')) {
+      errorMessage =
+        'The server is waking up after inactivity (this can take 1–2 minutes). Please wait a moment and try again.';
+    }
     console.error('[IdeaAnalysis] Throwing error to user:', errorMessage);
     throw new Error(errorMessage);
   }
 }
 
 /**
- * Generate a startup idea via backend API
+ * Generate a startup idea via backend API (powered by OpenAI / ChatGPT)
  */
-export async function generateIdeaWithGroq(): Promise<GeneratedIdea> {
+export async function generateIdea(): Promise<GeneratedIdea> {
   try {
     const response = await apiClient.post<IdeaResponse>('/api/ai/generate-idea', {});
 
@@ -117,9 +120,9 @@ export async function generateIdeaWithGroq(): Promise<GeneratedIdea> {
 }
 
 /**
- * Improve a startup description via backend API
+ * Improve a startup description via backend API (powered by OpenAI / ChatGPT)
  */
-export async function improveDescriptionWithGroq(description: string): Promise<string> {
+export async function improveDescription(description: string): Promise<string> {
   try {
     const response = await apiClient.post<ChatResponse>('/api/ai/improve-description', {
       description,

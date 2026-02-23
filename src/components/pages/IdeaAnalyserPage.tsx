@@ -37,7 +37,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Progress } from '../ui/progress';
-import { analyzeIdeaWithGroq, generateIdeaWithGroq, improveDescriptionWithGroq } from '../../lib/groqAnalysis';
+import { analyzeIdea, generateIdea, improveDescription } from '../../lib/aiAnalysis';
 
 interface AnalysisResult {
   score: number;
@@ -468,8 +468,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
 
       // Call backend API for analysis (backend also persists the result)
-      console.log('[IdeaAnalyser] Calling analyzeIdeaWithGroq...');
-      const analysisData = await analyzeIdeaWithGroq({
+      console.log('[IdeaAnalyser] Calling analyzeIdea (OpenAI)...');
+      const analysisData = await analyzeIdea({
         title: ideaTitle,
         description: ideaDescription,
         targetMarket: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
@@ -508,7 +508,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
     setIsImprovingDescription(true);
     try {
-      const improvedDescription = await improveDescriptionWithGroq(ideaDescription);
+      const improvedDescription = await improveDescription(ideaDescription);
       setIdeaDescription(improvedDescription);
       toast.success('Description improved with AI!');
     } catch (error) {
@@ -530,7 +530,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const handleGenerateIdea = async () => {
     setIsGenerating(true);
     try {
-      const generatedIdea = await generateIdeaWithGroq();
+      const generatedIdea = await generateIdea();
 
       setIdeaTitle(generatedIdea.title);
       setIdeaDescription(generatedIdea.description);
@@ -1039,26 +1039,6 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
               animate={{ opacity: 1, x: 0 }}
               className="lg:col-span-4 space-y-4"
             >
-              <Card className="border-border/50 shadow-sm">
-                <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Platform Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 pb-4">
-                  <div className="flex items-center justify-between py-2 border-b border-border/50">
-                    <span className="text-muted-foreground text-sm">Ideas Analyzed</span>
-                    <span className="font-semibold">12,450</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border/50">
-                    <span className="text-muted-foreground text-sm">Success Rate</span>
-                    <span className="font-semibold text-green-600">67%</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-muted-foreground text-sm">Avg. Score</span>
-                    <span className="font-semibold">72/100</span>
-                  </div>
-                </CardContent>
-              </Card>
-
               <div className="rounded-lg bg-gradient-to-br from-[#C9A7EB]/8 to-[#B084E8]/8 p-4 border border-primary/10">
                 <div className="flex items-start gap-3">
                   <div className="gradient-lavender flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0">

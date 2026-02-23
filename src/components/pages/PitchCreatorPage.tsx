@@ -140,7 +140,9 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
         if (
           error instanceof Error &&
           (error.message.toLowerCase().includes('failed to fetch') ||
-            error.message.toLowerCase().includes('network'))
+            error.message.toLowerCase().includes('network') ||
+            error.message.toLowerCase().includes('timed out') ||
+            error.message.toLowerCase().includes('waking up'))
         ) {
           pitchData = {
             slides: [
@@ -395,7 +397,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
                         No saved analyses found.{' '}
                         <button
                           type="button"
-                          onClick={() => onNavigate?.('IdeaAnalyser')}
+                          onClick={() => onNavigate?.('Idea Analyser')}
                           className="text-primary underline underline-offset-2"
                         >
                           Analyze an idea first

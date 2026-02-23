@@ -1,4 +1,4 @@
-import { Linkedin, Instagram, Twitter, Mail } from 'lucide-react';
+import { Linkedin, Instagram, Mail } from 'lucide-react';
 
 interface FooterProps {
   onNavigate: (page: string) => void;
@@ -65,7 +65,9 @@ export function Footer({ onNavigate }: FooterProps) {
             <h4 className="mb-4">Connect</h4>
             <div className="flex gap-4">
               <a
-                href="#"
+                href="https://www.linkedin.com/in/agrimagupta06/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-muted-foreground transition-all duration-300 hover:scale-110 hover:text-[#0A66C2]"
                 aria-label="LinkedIn"
               >
@@ -79,13 +81,6 @@ export function Footer({ onNavigate }: FooterProps) {
                 aria-label="Instagram"
               >
                 <Instagram className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                className="text-muted-foreground transition-all duration-300 hover:scale-110 hover:text-[#1DA1F2]"
-                aria-label="Twitter"
-              >
-                <Twitter className="h-5 w-5" />
               </a>
             </div>
           </div>
