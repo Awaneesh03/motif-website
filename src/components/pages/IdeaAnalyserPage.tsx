@@ -1044,27 +1044,21 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                         <div className="mt-4 rounded-lg border border-primary/15 bg-primary/5 p-4 space-y-3">
                           {/* Stage label + percentage */}
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="relative flex h-2 w-2">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-                              </span>
-                              <p className="text-xs font-medium text-foreground">
-                                {ANALYSIS_STAGES[Math.min(analysisStep, ANALYSIS_STAGES.length - 1)].label}
-                              </p>
-                            </div>
+                            <p className="text-xs font-medium text-foreground">
+                              {ANALYSIS_STAGES[Math.min(analysisStep, ANALYSIS_STAGES.length - 1)].label}
+                            </p>
                             <p className="text-xs font-mono font-semibold text-primary tabular-nums">
                               {Math.round(analysisProgress)}%
                             </p>
                           </div>
 
-                          {/* Progress bar */}
-                          <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
+                          {/* Progress bar — width approach with 5% min so it's always visible */}
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                             <div
-                              className="h-full w-full rounded-full bg-gradient-to-r from-primary via-purple-500 to-[#06b6d4]"
+                              className="h-full rounded-full bg-gradient-to-r from-primary via-purple-500 to-[#06b6d4]"
                               style={{
-                                transform: `translateX(-${100 - analysisProgress}%)`,
-                                transition: 'transform 120ms linear',
+                                width: `${Math.max(5, analysisProgress)}%`,
+                                transition: 'width 150ms linear',
                               }}
                             />
                           </div>
