@@ -25,9 +25,17 @@ interface SavedIdea {
   title: string;
   description: string;
   tags: string[];
+  targetMarket: string;
   createdDate: string;
   score?: number;
   shared: boolean;
+  // Full analysis data for "View Analysis"
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+  marketSize: string;
+  competition: string;
+  viability: string;
 }
 
 interface SavedIdeasPageProps {
@@ -73,10 +81,20 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
           id: analysis.id,
           title: analysis.idea_title,
           description: analysis.idea_description,
-          tags: [], // Tags can be added later if needed
+          // Derive tags from target_market (comma-separated string)
+          tags: analysis.target_market
+            ? analysis.target_market.split(',').map((t: string) => t.trim()).filter(Boolean)
+            : [],
+          targetMarket: analysis.target_market || '',
           createdDate: analysis.created_at,
           score: analysis.score,
           shared: false, // Default to private
+          strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
+          weaknesses: Array.isArray(analysis.weaknesses) ? analysis.weaknesses : [],
+          recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations : [],
+          marketSize: analysis.market_size || '',
+          competition: analysis.competition || '',
+          viability: analysis.viability || '',
         }));
         setIdeas(transformedIdeas);
       }
@@ -113,8 +131,25 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
     }
   };
 
-  const handleAnalyzeAgain = () => {
-    toast.success('Redirecting to Idea Analyser...');
+  const handleViewAnalysis = (idea: SavedIdea) => {
+    // Pre-load the saved idea data into sessionStorage so IdeaAnalyserPage picks it up
+    const FORM_STORAGE_KEY = 'motif-idea-analyser-form';
+    const markets = idea.tags.length > 0 ? idea.tags : [];
+    const formData = {
+      ideaTitle: idea.title,
+      ideaDescription: idea.description,
+      selectedMarkets: markets,
+      analysisResult: idea.strengths.length > 0 ? {
+        score: idea.score || 0,
+        strengths: idea.strengths,
+        weaknesses: idea.weaknesses,
+        recommendations: idea.recommendations,
+        marketSize: idea.marketSize,
+        competition: idea.competition,
+        viability: idea.viability,
+      } : null,
+    };
+    sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
     onNavigate?.('Idea Analyser');
   };
 
@@ -354,7 +389,7 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
                         </div>
 
                         <Button
-                          onClick={() => handleAnalyzeAgain()}
+                          onClick={() => handleViewAnalysis(idea)}
                           className="w-full rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-medium transition-all duration-300"
                         >
                           <BarChart3 className="mr-2 h-4 w-4" />

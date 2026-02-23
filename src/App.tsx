@@ -348,7 +348,7 @@ function AppContent() {
                       path="/resources"
                       element={
                         <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <ResourcesPage />
+                          <ResourcesPage onNavigate={handleNavigate} />
                         </ProtectedRoute>
                       }
                     />

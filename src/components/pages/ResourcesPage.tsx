@@ -1,10 +1,15 @@
 import { motion } from 'motion/react';
 import { BookOpen, FileText, Download, TrendingUp } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+
+interface ResourcesPageProps {
+  onNavigate?: (page: string) => void;
+}
 
 const blogPosts = [
   {
@@ -95,7 +100,11 @@ const downloadables = [
   },
 ];
 
-export function ResourcesPage() {
+export function ResourcesPage({ onNavigate }: ResourcesPageProps) {
+  const handleComingSoon = () => {
+    toast.info('This content is coming soon! Stay tuned.');
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -155,7 +164,7 @@ export function ResourcesPage() {
                     <p className="text-muted-foreground mb-4">{post.excerpt}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground text-sm">{post.readTime}</span>
-                      <Button variant="ghost" className="group-hover:text-primary">
+                      <Button variant="ghost" className="group-hover:text-primary" onClick={handleComingSoon}>
                         Read More →
                       </Button>
                     </div>
@@ -202,7 +211,7 @@ export function ResourcesPage() {
                         {study.result}
                       </p>
                     </div>
-                    <Button variant="outline" className="w-full rounded-full">
+                    <Button variant="outline" className="w-full rounded-full" onClick={handleComingSoon}>
                       Read Case Study
                     </Button>
                   </CardContent>
@@ -243,7 +252,7 @@ export function ResourcesPage() {
                       <div className="flex-1">
                         <h3 className="mb-2">{item.title}</h3>
                         <p className="text-muted-foreground mb-4">{item.description}</p>
-                        <Button variant="outline" className="rounded-full">
+                        <Button variant="outline" className="rounded-full" onClick={handleComingSoon}>
                           <Download className="mr-2 h-4 w-4" />
                           Download
                         </Button>
@@ -264,7 +273,7 @@ export function ResourcesPage() {
           <p className="mb-8 text-white/90">
             Join our community to access exclusive content and webinars
           </p>
-          <Button size="lg" className="text-primary rounded-full bg-white px-8 hover:bg-white/90">
+          <Button size="lg" className="text-primary rounded-full bg-white px-8 hover:bg-white/90" onClick={() => onNavigate?.('Community')}>
             Join Community
           </Button>
         </div>

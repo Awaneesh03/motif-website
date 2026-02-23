@@ -464,6 +464,46 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
       console.log('[IdeaAnalyser] Analysis result received:', analysisData);
       setAnalysisResult(analysisData);
+
+      // Frontend fallback save: ensures the analysis is always persisted.
+      // We first check if the backend already saved it to avoid duplicates.
+      try {
+        const truncatedTitle = ideaTitle.substring(0, 100);
+        const { data: existing } = await supabase
+          .from('idea_analyses')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('idea_title', truncatedTitle)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!existing || existing.length === 0) {
+          // Backend did not save it — do frontend save
+          const { error: saveError } = await supabase.from('idea_analyses').insert({
+            user_id: user.id,
+            idea_title: truncatedTitle,
+            idea_description: ideaDescription.substring(0, 10000),
+            target_market: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
+            score: analysisData.score,
+            strengths: analysisData.strengths,
+            weaknesses: analysisData.weaknesses,
+            recommendations: analysisData.recommendations,
+            market_size: analysisData.marketSize,
+            competition: analysisData.competition,
+            viability: analysisData.viability,
+          });
+          if (saveError) {
+            console.warn('[IdeaAnalyser] Frontend save warning:', saveError.message);
+          } else {
+            console.log('[IdeaAnalyser] Frontend save succeeded');
+          }
+        } else {
+          console.log('[IdeaAnalyser] Backend already saved — skipping frontend save');
+        }
+      } catch (saveErr) {
+        console.warn('[IdeaAnalyser] Frontend save failed:', saveErr);
+      }
+
       toast.success('Analysis complete!');
     } catch (error) {
       console.error('[IdeaAnalyser] Analysis error caught in component:', error);
