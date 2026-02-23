@@ -99,9 +99,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isImprovingDescription, setIsImprovingDescription] = useState(false);
 
-  // Animated analysis progress state
+  // Animated analysis step state (drives the stages checklist)
   const [analysisStep, setAnalysisStep] = useState(0);
-  const [analysisProgress, setAnalysisProgress] = useState(0);
   const analysisTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const analysisStartRef = useRef<number>(0);
   // File upload state
@@ -137,48 +136,29 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       return;
     }
 
-    // New analysis starting — reset to zero
+    // New analysis starting — reset to first stage
     setAnalysisStep(0);
-    setAnalysisProgress(0);
     analysisStartRef.current = Date.now();
 
-    // Duration each stage is allowed before advancing (ms)
+    // How long each stage label is shown before advancing (ms)
     const STAGE_DURATIONS = [3000, 5000, 6000, 6000]; // stages 0–3
-    // Percentage ceiling for each stage (index 4 = open-ended last stage)
-    const STAGE_CAPS = [20, 40, 60, 80, 95];
-    const TOTAL_STAGED_MS = STAGE_DURATIONS.reduce((a, b) => a + b, 0); // 20 000 ms
 
     analysisTimerRef.current = setInterval(() => {
       const totalElapsed = Date.now() - analysisStartRef.current;
 
-      // Determine which stage we're in and how far through it
       let stage = STAGE_DURATIONS.length; // 4 = last open-ended stage
-      let stageElapsed = totalElapsed - TOTAL_STAGED_MS; // default for stage 4
       let cumulative = 0;
 
       for (let i = 0; i < STAGE_DURATIONS.length; i++) {
         if (totalElapsed < cumulative + STAGE_DURATIONS[i]) {
           stage = i;
-          stageElapsed = totalElapsed - cumulative;
           break;
         }
         cumulative += STAGE_DURATIONS[i];
       }
 
       setAnalysisStep(stage);
-
-      const stageMin = stage === 0 ? 0 : (STAGE_CAPS[stage - 1] ?? 80);
-      const stageMax = STAGE_CAPS[Math.min(stage, STAGE_CAPS.length - 1)] ?? 95;
-      // Last stage fills very slowly (30 s budget) so it never actually reaches 95%
-      const stageDuration = stage < STAGE_DURATIONS.length ? STAGE_DURATIONS[stage] : 30000;
-
-      // Quadratic ease-out: fast start → natural deceleration at the cap
-      const t = Math.min(1, stageElapsed / stageDuration);
-      const eased = 1 - (1 - t) * (1 - t);
-      const p = stageMin + (stageMax - stageMin) * eased;
-
-      setAnalysisProgress(Math.round(p * 10) / 10);
-    }, 100); // 100 ms tick — smooth at 60 fps
+    }, 1000); // 1 s tick — only need to update the stage label
 
     return () => {
       if (analysisTimerRef.current) {
@@ -187,6 +167,15 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
     };
   }, [isAnalyzing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Scroll the loading card into view once it mounts
+  useEffect(() => {
+    if (!isAnalyzing) return;
+    const timer = setTimeout(() => {
+      document.getElementById('analysis-loading-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [isAnalyzing]);
 
   // Predefined target market options
   const MARKET_OPTIONS = [
@@ -404,7 +393,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     }
 
     setIsAnalyzing(true);
-    let apiCallSucceeded = false; // tracks whether the full AI call completed (not a cache hit)
     console.log('[IdeaAnalyser] Starting analysis...');
 
     try {
@@ -476,7 +464,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
       console.log('[IdeaAnalyser] Analysis result received:', analysisData);
       setAnalysisResult(analysisData);
-      apiCallSucceeded = true;
       toast.success('Analysis complete!');
     } catch (error) {
       console.error('[IdeaAnalyser] Analysis error caught in component:', error);
@@ -493,10 +480,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
       return;
     } finally {
-      // Jump to 100% only when the full AI call succeeded (not on cache hits or errors).
-      // setAnalysisProgress and setIsAnalyzing are batched by React 18, so the loading
-      // card shows 100% for exactly its 300 ms exit animation before unmounting.
-      if (apiCallSucceeded) setAnalysisProgress(100);
       setIsAnalyzing(false);
     }
   };
@@ -1031,45 +1014,6 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
                     )}
                   </div>
 
-                  {/* Inline progress — always visible right below the button */}
-                  <AnimatePresence>
-                    {isAnalyzing && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="mt-4 rounded-lg border border-primary/15 bg-primary/5 p-4 space-y-3">
-                          {/* Stage label + percentage */}
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs font-medium text-foreground">
-                              {ANALYSIS_STAGES[Math.min(analysisStep, ANALYSIS_STAGES.length - 1)].label}
-                            </p>
-                            <p className="text-xs font-mono font-semibold text-primary tabular-nums">
-                              {Math.round(analysisProgress)}%
-                            </p>
-                          </div>
-
-                          {/* Progress bar — width approach with 5% min so it's always visible */}
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-primary via-purple-500 to-[#06b6d4]"
-                              style={{
-                                width: `${Math.max(5, analysisProgress)}%`,
-                                transition: 'width 150ms linear',
-                              }}
-                            />
-                          </div>
-
-                          <p className="text-xs text-muted-foreground">
-                            This usually takes 20–45 seconds. Hang tight!
-                          </p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </CardContent>
               </Card>
             </motion.div>
@@ -1093,7 +1037,142 @@ Powered by IdeaForge - Your AI-Powered Startup Companion
             </motion.div>
           </div>
 
+          {/* ── Animated Analysis Loading State ─────────────────────── */}
+          <AnimatePresence mode="wait">
+            {isAnalyzing && (
+              <motion.div
+                id="analysis-loading-card"
+                key="analyzing-state"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="mt-8"
+              >
+                <Card className="glass-card border-primary/20 overflow-hidden">
+                  {/* Sliding shimmer bar at the top */}
+                  <div className="relative h-0.5 w-full overflow-hidden bg-primary/10">
+                    <motion.div
+                      className="absolute inset-y-0 left-0 w-2/5 bg-gradient-to-r from-transparent via-primary/70 to-transparent"
+                      animate={{ x: ['-100%', '350%'] }}
+                      transition={{ duration: 1.6, repeat: Infinity, ease: 'linear' }}
+                    />
+                  </div>
 
+                  <CardContent className="p-6 sm:p-8">
+                    {/* Header row */}
+                    <div className="mb-6 flex items-center gap-3">
+                      <div className="relative flex-shrink-0">
+                        <div className="gradient-lavender flex h-11 w-11 items-center justify-center rounded-xl shadow-lavender">
+                          <motion.div
+                            animate={{ rotate: [0, 14, -14, 0] }}
+                            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                          >
+                            <Sparkles className="h-5 w-5 text-white" />
+                          </motion.div>
+                        </div>
+                        <span className="absolute -right-1 -top-1 flex h-3 w-3">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                          <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500" />
+                        </span>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm">AI is analysing your idea</p>
+                        <p className="text-muted-foreground text-xs truncate">"{ideaTitle}"</p>
+                      </div>
+
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xs text-muted-foreground">
+                          Step {Math.min(analysisStep + 1, ANALYSIS_STAGES.length)} / {ANALYSIS_STAGES.length}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Stages checklist */}
+                    <div className="space-y-1">
+                      {ANALYSIS_STAGES.map((stage, i) => {
+                        const isActive = i === analysisStep;
+                        const isDone = i < analysisStep;
+                        const StageIcon = stage.Icon;
+
+                        return (
+                          <motion.div
+                            key={i}
+                            animate={{ opacity: isDone ? 0.45 : isActive ? 1 : 0.28 }}
+                            transition={{ duration: 0.4 }}
+                            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors duration-300 ${
+                              isActive ? 'bg-primary/5 border border-primary/15' : ''
+                            }`}
+                          >
+                            <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full ${
+                              isDone
+                                ? 'bg-green-500/10 text-green-600'
+                                : isActive
+                                ? 'bg-primary/10 text-primary'
+                                : 'bg-muted text-muted-foreground/50'
+                            }`}>
+                              {isDone ? (
+                                <CheckCircle className="h-3.5 w-3.5" />
+                              ) : isActive ? (
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
+                                >
+                                  <StageIcon className="h-3.5 w-3.5" />
+                                </motion.div>
+                              ) : (
+                                <StageIcon className="h-3.5 w-3.5" />
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm leading-snug ${
+                                isActive ? 'font-medium text-foreground' : 'text-muted-foreground'
+                              }`}>
+                                {stage.label}
+                              </p>
+                              <AnimatePresence>
+                                {isActive && (
+                                  <motion.p
+                                    key={`detail-${i}`}
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.22 }}
+                                    className="overflow-hidden text-xs text-muted-foreground"
+                                  >
+                                    {stage.detail}
+                                  </motion.p>
+                                )}
+                              </AnimatePresence>
+                            </div>
+
+                            {isActive && (
+                              <div className="flex flex-shrink-0 items-center gap-0.5">
+                                {[0, 1, 2].map(n => (
+                                  <motion.span
+                                    key={n}
+                                    className="block h-1.5 w-1.5 rounded-full bg-primary"
+                                    animate={{ opacity: [0.2, 1, 0.2] }}
+                                    transition={{ duration: 1, repeat: Infinity, delay: n * 0.25 }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+
+                    <p className="mt-5 text-center text-xs text-muted-foreground">
+                      Our VC scoring model evaluates 6 dimensions · typically 20–45 s
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Analysis Results */}
           {analysisResult && !isAnalyzing && (
