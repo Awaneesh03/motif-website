@@ -1,5 +1,14 @@
 // AI services - routes all calls through the backend API (OpenAI / ChatGPT)
 import { apiClient, AnalysisResponse, ChatResponse, IdeaResponse } from './api-client';
+import {
+  SafeAnalysisResult,
+  LegacyAnalysisResult,
+  validateAndSanitise,
+  fromLegacyResult,
+} from './analysisValidator';
+
+export type { SafeAnalysisResult } from './analysisValidator';
+export { fromLegacyResult } from './analysisValidator';
 
 export interface IdeaAnalysisRequest {
   title: string;
@@ -7,6 +16,7 @@ export interface IdeaAnalysisRequest {
   targetMarket?: string | null;
 }
 
+/** @deprecated Use SafeAnalysisResult for new code. Kept for Supabase cache compat. */
 export interface IdeaAnalysisResult {
   score: number;
   strengths: string[];
@@ -23,34 +33,6 @@ export interface GeneratedIdea {
   targetMarket: string;
 }
 
-
-const mockIdeas: GeneratedIdea[] = [
-  {
-    title: "EcoTrack: Carbon Footprint Gamification",
-    description: "A mobile app that tracks daily activities and calculates carbon footprint in real-time. Users earn points and rewards for eco-friendly choices, competing with friends and communities to lower their environmental impact. Features include smart home integration, sustainable product recommendations, and carbon offset marketplace.",
-    targetMarket: "B2C, Students, Sustainability"
-  },
-  {
-    title: "SkillSwap: Peer Learning Marketplace",
-    description: "A hyper-local platform connecting people who want to teach skills (cooking, coding, music, languages) with those who want to learn. Uses a time-banking system where 1 hour of teaching earns 1 hour of learning any skill. AI matches learners with teachers based on location, schedule, and learning style.",
-    targetMarket: "B2C, Students, Creators"
-  },
-  {
-    title: "MediMind: AI Health Companion for Seniors",
-    description: "Voice-activated AI companion for elderly users that manages medication reminders, tracks health vitals, facilitates telehealth appointments, and alerts family members of anomalies. Designed with extreme simplicity and large, accessible interfaces. Integrates with wearables and smart home devices.",
-    targetMarket: "B2C, Healthcare"
-  },
-  {
-    title: "FreelanceFlow: AI Project Manager",
-    description: "An intelligent project management tool specifically for freelancers and small agencies. Uses AI to estimate project timelines, automate client communication, generate invoices, and predict cash flow. Integrates with popular tools like Slack, Notion, and banking apps.",
-    targetMarket: "B2B, Freelancers, SMBs"
-  },
-  {
-    title: "LocalBite: Farm-to-Table Discovery",
-    description: "A platform connecting local farmers, food artisans, and restaurants with consumers. Features include seasonal produce subscriptions, virtual farm tours, recipe suggestions based on available local ingredients, and a marketplace for farm-fresh products with same-day delivery.",
-    targetMarket: "B2C, E-commerce, Sustainability"
-  }
-];
 
 
 // ── Job-based async analysis ──────────────────────────────────────────────────
@@ -97,17 +79,61 @@ export async function pollAnalysisStatus(jobId: string): Promise<JobStatusResult
   const raw = await apiClient.get<any>(`/api/analysis/status/${jobId}`);
   // Normalise backend snake_case fields inside result to camelCase
   if (raw.result) {
+    const rawScore = raw.result.score;
     raw.result = {
-      score: raw.result.score ?? 70,
+      // Clamp score to [0, 100]; if null/undefined treat as 0 (not a fake 70)
+      score: rawScore != null ? Math.min(100, Math.max(0, rawScore)) : 0,
       strengths: raw.result.strengths || [],
       weaknesses: raw.result.weaknesses || [],
       recommendations: raw.result.recommendations || [],
       marketSize: raw.result.marketSize || raw.result.market_size || 'Unknown',
       competition: raw.result.competition || 'Unknown',
-      viability: raw.result.viability || 'Medium Viability',
+      viability: raw.result.viability || 'Unknown',
     };
   }
   return raw as JobStatusResult;
+}
+
+/**
+ * Poll that returns the new SafeAnalysisResult with hallucination validation.
+ * Wraps pollAnalysisStatus and runs the validator on completion.
+ */
+export interface SafeJobStatusResult {
+  jobId: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  /** Validated & sanitised result — only present when status = COMPLETED */
+  safeResult?: SafeAnalysisResult;
+  /** Legacy result preserved for Supabase cache writes */
+  legacyResult?: IdeaAnalysisResult;
+  errorMessage?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export async function pollAnalysisStatusSafe(jobId: string): Promise<SafeJobStatusResult> {
+  const raw = await pollAnalysisStatus(jobId);
+
+  const base: SafeJobStatusResult = {
+    jobId: raw.jobId,
+    status: raw.status,
+    errorMessage: raw.errorMessage,
+    createdAt: raw.createdAt,
+    completedAt: raw.completedAt,
+  };
+
+  if (raw.status === 'COMPLETED' && raw.result) {
+    base.legacyResult = raw.result;
+
+    // Try to parse as new structured format first, fall back to legacy bridge
+    const hasNewFormat = (raw.result as any).idea_summary || (raw.result as any).market_analysis;
+    if (hasNewFormat) {
+      base.safeResult = validateAndSanitise(raw.result);
+    } else {
+      base.safeResult = fromLegacyResult(raw.result);
+    }
+  }
+
+  return base;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,38 +189,20 @@ export async function analyzeIdea(
  * Generate a startup idea via backend API (powered by OpenAI / ChatGPT)
  */
 export async function generateIdea(): Promise<GeneratedIdea> {
-  try {
-    const response = await apiClient.post<IdeaResponse>('/api/ai/generate-idea', {});
-
-    return {
-      title: response.title || '',
-      description: response.description || '',
-      targetMarket: response.targetMarket || '',
-    };
-  } catch (error) {
-    console.error('Idea generation error:', error);
-    console.warn('Backend unreachable, using mock idea');
-    return mockIdeas[Math.floor(Math.random() * mockIdeas.length)];
-  }
+  const response = await apiClient.post<IdeaResponse>('/api/ai/generate-idea', {});
+  return {
+    title: response.title || '',
+    description: response.description || '',
+    targetMarket: response.targetMarket || '',
+  };
 }
 
 /**
  * Improve a startup description via backend API (powered by OpenAI / ChatGPT)
  */
 export async function improveDescription(description: string): Promise<string> {
-  try {
-    const response = await apiClient.post<ChatResponse>('/api/ai/improve-description', {
-      description,
-    });
-
-    return response.message?.trim() || description;
-  } catch (error) {
-    console.error('Description improvement error:', error);
-    console.warn('Backend unreachable, using simple fallback');
-    const enhanced = description.trim();
-    if (enhanced.length < 100) {
-      return `${enhanced} This solution addresses a clear market need by providing innovative technology that simplifies the user experience while delivering measurable value. Our approach focuses on scalability and user-centric design.`;
-    }
-    return enhanced;
-  }
+  const response = await apiClient.post<ChatResponse>('/api/ai/improve-description', {
+    description,
+  });
+  return response.message?.trim() || description;
 }
