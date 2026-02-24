@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Mail, MessageSquare, Twitter, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../../lib/supabase';
 
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -101,7 +102,7 @@ export function ContactPage() {
     setErrors(newErrors);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setTouched({
@@ -115,11 +116,23 @@ export function ContactPage() {
       return;
     }
 
-    setSubmitted(true);
-    setFormData({ name: '', email: '', message: '' });
-    setErrors({});
-    setTouched({});
-    toast.success('Message sent successfully!');
+    try {
+      const { error } = await supabase.from('contact_submissions').insert({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        message: formData.message.trim(),
+      });
+      if (error) throw error;
+
+      setSubmitted(true);
+      setFormData({ name: '', email: '', message: '' });
+      setErrors({});
+      setTouched({});
+      toast.success('Message sent successfully!');
+    } catch (error) {
+      console.error('Failed to submit contact form:', error);
+      toast.error('Failed to send message. Please try again.');
+    }
   };
 
   return (
@@ -280,10 +293,10 @@ export function ContactPage() {
                           For general inquiries and support
                         </p>
                         <a
-                          href="mailto:hello@ideaforge.com"
+                          href="mailto:hello@motif.com"
                           className="text-primary hover:underline"
                         >
-                          hello@ideaforge.com
+                          hello@motif.com
                         </a>
                       </div>
                     </div>
@@ -302,7 +315,7 @@ export function ContactPage() {
                           Join our active founder community
                         </p>
                         <a href="#" className="text-primary hover:underline">
-                          discord.gg/ideaforge
+                          discord.gg/motif
                         </a>
                       </div>
                     </div>
@@ -319,7 +332,7 @@ export function ContactPage() {
                         <h4 className="mb-1">Twitter</h4>
                         <p className="text-muted-foreground mb-2">Follow us for updates and tips</p>
                         <a href="#" className="text-primary hover:underline">
-                          @ideaforge
+                          @motif
                         </a>
                       </div>
                     </div>

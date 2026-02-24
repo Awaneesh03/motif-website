@@ -49,9 +49,6 @@ interface VCConnectionPageProps {
   onNavigate?: (page: string) => void;
 }
 
-const QUALIFICATION_STORAGE_KEY = 'motif-qualification-requests';
-const FUNDING_STORAGE_KEY = 'motif-funding-requests';
-
 // Minimum score required for funding eligibility
 const FUNDING_ELIGIBILITY_SCORE = 85;
 
@@ -162,7 +159,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   // All ideas with score > 70 for general view
   const validatedIdeas = userIdeas.filter(idea => idea.score > 70);
 
-  const handleQualificationSubmit = () => {
+  const handleQualificationSubmit = async () => {
     const isNameValid = qualificationForm.name.trim().length > 0;
     const isEmailValid = qualificationForm.email.trim().length > 0 && qualificationForm.email.includes('@');
     const isStageValid = qualificationForm.stage.trim().length > 0;
@@ -181,13 +178,13 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
     }
 
     try {
-      const stored = localStorage.getItem(QUALIFICATION_STORAGE_KEY);
-      const existing = stored ? JSON.parse(stored) : [];
-      const newEntry = {
-        ...qualificationForm,
-        createdAt: new Date().toISOString(),
-      };
-      localStorage.setItem(QUALIFICATION_STORAGE_KEY, JSON.stringify([newEntry, ...existing]));
+      const { error } = await supabase.from('vc_form_submissions').insert({
+        user_id: user?.id || null,
+        form_type: 'qualification',
+        payload: { ...qualificationForm, createdAt: new Date().toISOString() },
+      });
+      if (error) throw error;
+
       toast.success('Qualification request submitted. We will follow up by email.');
       setQualificationForm({
         name: '',
@@ -903,7 +900,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
               Cancel
             </Button>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (fundingStep === 1 && selectedIdea) {
                   setFundingStep(2);
                 } else if (fundingStep === 2 && pitchFile) {
@@ -935,18 +932,20 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                   }
 
                   try {
-                    const stored = localStorage.getItem(FUNDING_STORAGE_KEY);
-                    const existing = stored ? JSON.parse(stored) : [];
-                    const newEntry = {
-                      ideaId: selectedIdea?.id,
-                      ideaTitle: selectedIdea?.idea_title,
-                      ideaScore: selectedIdea?.score,
-                      pitchFileName: pitchFile?.name,
-                      pitchFileSize: pitchFile?.size,
-                      founderQualification: founderQualificationForm,
-                      createdAt: new Date().toISOString(),
-                    };
-                    localStorage.setItem(FUNDING_STORAGE_KEY, JSON.stringify([newEntry, ...existing]));
+                    const { error } = await supabase.from('vc_form_submissions').insert({
+                      user_id: user?.id || null,
+                      form_type: 'funding',
+                      payload: {
+                        ideaId: selectedIdea?.id,
+                        ideaTitle: selectedIdea?.idea_title,
+                        ideaScore: selectedIdea?.score,
+                        pitchFileName: pitchFile?.name,
+                        pitchFileSize: pitchFile?.size,
+                        founderQualification: founderQualificationForm,
+                        createdAt: new Date().toISOString(),
+                      },
+                    });
+                    if (error) throw error;
                     toast.success('Funding request submitted successfully! We will review and connect you with relevant VCs.');
                     setFundingModalOpen(false);
                     setFundingStep(1);

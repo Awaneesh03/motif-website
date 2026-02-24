@@ -300,6 +300,33 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     persistCommunityComments(commentStore);
   }, [commentStore]);
 
+  // Load comments from Supabase when the panel opens for a DB-backed idea
+  useEffect(() => {
+    if (!commentPanelOpen || !selectedIdea?.id) return;
+
+    const fetchComments = async () => {
+      const { data, error } = await supabase
+        .from('community_comments')
+        .select('*')
+        .eq('idea_id', selectedIdea.id)
+        .order('created_at', { ascending: true });
+
+      if (error || !data) return;
+
+      const key = getIdeaKey(selectedIdea);
+      const mapped: CommunityComment[] = data.map((c: any) => ({
+        id: c.id,
+        author: c.author_name,
+        avatar: undefined,
+        message: c.content,
+        timestamp: new Date(c.created_at).toLocaleString(),
+      }));
+      setCommentStore(prev => ({ ...prev, [key]: mapped }));
+    };
+
+    fetchComments();
+  }, [commentPanelOpen, selectedIdea?.id]);
+
   // Fetch analyzed ideas when post dialog opens
   useEffect(() => {
     if (postFormOpen && user) {
@@ -726,32 +753,42 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     setCommentPanelOpen(true);
   };
 
-  const handleSendComment = () => {
+  const handleSendComment = async () => {
     if (!newComment.trim() || !selectedIdea) return;
 
     const key = getIdeaKey(selectedIdea);
     const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
+    const commentText = newComment.trim();
     const newEntry: CommunityComment = {
       id: `${Date.now()}`,
       author: authorName,
       avatar: profile?.avatar || undefined,
-      message: newComment.trim(),
+      message: commentText,
       timestamp: new Date().toLocaleString(),
     };
 
+    // Optimistic UI update
     setCommentStore(prev => {
       const existing = prev[key] || [];
-      return {
-        ...prev,
-        [key]: [...existing, newEntry],
-      };
+      return { ...prev, [key]: [...existing, newEntry] };
     });
-
-    setSelectedIdea({
-      ...selectedIdea,
-      comments: (selectedIdea.comments || 0) + 1,
-    });
+    setSelectedIdea({ ...selectedIdea, comments: (selectedIdea.comments || 0) + 1 });
     setNewComment('');
+
+    // Persist to Supabase for real community ideas (those with a DB id)
+    if (selectedIdea.id) {
+      try {
+        await supabase.from('community_comments').insert({
+          idea_id: selectedIdea.id,
+          user_id: user?.id || null,
+          author_name: authorName,
+          content: commentText,
+        });
+      } catch (error) {
+        console.error('Failed to save comment to database:', error);
+      }
+    }
+
     toast.success('Comment posted.');
   };
 
