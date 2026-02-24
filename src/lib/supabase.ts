@@ -16,8 +16,8 @@ if (!hasValidCredentials) {
 }
 
 // "Remember Me" preference key
-const REMEMBER_ME_KEY = 'idea-forge-remember-me';
-const AUTH_STORAGE_KEY = 'idea-forge-auth';
+const REMEMBER_ME_KEY = 'motif-remember-me';
+const AUTH_STORAGE_KEY = 'motif-auth';
 
 /** Set the remember-me preference (call before sign-in) */
 export function setRememberMe(value: boolean) {
