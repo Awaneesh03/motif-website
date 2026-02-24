@@ -57,6 +57,95 @@ interface IdeaAnalyserPageProps {
   onNavigate?: (page: string) => void;
 }
 
+// ── Competition parser ────────────────────────────────────────────────────────
+
+interface ParsedCompetitor {
+  name: string;
+  threat?: string;
+  opportunity?: string;
+}
+
+/**
+ * Parses an AI competition string that may contain bracket-style annotations:
+ *   "CompA [THREAT: their edge] [EDGE: gap to exploit]. CompB [THREAT: ...] [EDGE: ...]"
+ *
+ * Returns an empty array when the string has no [THREAT:] tags (caller falls
+ * back to rendering the raw string).
+ */
+function parseCompetitors(text: string): ParsedCompetitor[] {
+  if (!text || !text.includes('[THREAT:')) return [];
+
+  const results: ParsedCompetitor[] = [];
+  const parts = text.split(/\[THREAT:/i);
+
+  for (let i = 1; i < parts.length; i++) {
+    // Name is the trailing segment of the previous chunk (after '. ' or at start)
+    const prevChunk = parts[i - 1];
+    const nameMatch = prevChunk.match(/(?:^|\.\s+)([^.[]+?)\s*$/);
+    const name = nameMatch ? nameMatch[1].trim() : '';
+    if (!name) continue;
+
+    const current = parts[i];
+    const edgeSplit = current.split(/\[EDGE:/i);
+
+    const threat = edgeSplit[0].replace(/\]\s*$/, '').trim() || undefined;
+    const opportunity =
+      edgeSplit.length > 1
+        ? edgeSplit[1].replace(/\].*/, '').trim() || undefined
+        : undefined;
+
+    results.push({ name, threat, opportunity });
+  }
+
+  return results;
+}
+
+// ── Competition UI components ─────────────────────────────────────────────────
+
+function CompetitorCard({ competitor }: { competitor: ParsedCompetitor }) {
+  return (
+    <div className="flex h-full flex-col gap-3 rounded-xl border border-border/50 bg-card p-4">
+      <p className="text-sm font-semibold leading-snug text-foreground">{competitor.name}</p>
+      {competitor.threat && (
+        <div className="flex items-start gap-2">
+          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500" />
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-600">
+              Threat
+            </span>
+            <p className="text-xs leading-relaxed text-muted-foreground">{competitor.threat}</p>
+          </div>
+        </div>
+      )}
+      {competitor.opportunity && (
+        <div className="flex items-start gap-2">
+          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-500" />
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-green-600">
+              Opportunity
+            </span>
+            <p className="text-xs leading-relaxed text-muted-foreground">{competitor.opportunity}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CompetitorList({ text }: { text: string }) {
+  const competitors = parseCompetitors(text);
+  if (competitors.length === 0) {
+    return <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>;
+  }
+  return (
+    <div className="flex flex-1 flex-col gap-3">
+      {competitors.map((c, i) => (
+        <CompetitorCard key={i} competitor={c} />
+      ))}
+    </div>
+  );
+}
+
 /** Maximum characters shown in the description textarea before truncation. */
 const PREVIEW_CHAR_LIMIT = 400;
 
@@ -1339,8 +1428,21 @@ Powered by Motif - Your AI-Powered Startup Companion
                         {analysisResult.confidence_reasoning}
                       </p>
                     </div>
-                    <div className="text-center flex-shrink-0">
-                      <Badge className={`text-base px-4 py-2 ${
+                    <div className="text-center flex-shrink-0 flex flex-col items-center gap-2">
+                      <div className="flex items-baseline gap-1 leading-none">
+                        <span className={`text-5xl font-bold ${
+                          analysisResult.score >= 70
+                            ? 'text-green-600'
+                            : analysisResult.score >= 50
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
+                        }`}>
+                          {analysisResult.score}
+                        </span>
+                        <span className="text-muted-foreground text-lg font-medium">/100</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Viability Score</p>
+                      <Badge className={`text-sm px-3 py-1 ${
                         analysisResult.confidence_level === 'High'
                           ? 'bg-green-500/15 text-green-700 border-green-500/30'
                           : analysisResult.confidence_level === 'Medium'
@@ -1350,9 +1452,9 @@ Powered by Motif - Your AI-Powered Startup Companion
                         {analysisResult.confidence_level} Confidence
                       </Badge>
                       {analysisResult._flags.length > 0 && (
-                        <p className="text-xs text-amber-600 mt-2 flex items-center justify-center gap-1">
+                        <p className="text-xs text-amber-600 mt-1 flex items-center justify-center gap-1">
                           <AlertCircle className="h-3 w-3" />
-                          Some figures were flagged for verification
+                          Some figures flagged for verification
                         </p>
                       )}
                     </div>
@@ -1440,26 +1542,38 @@ Powered by Motif - Your AI-Powered Startup Companion
                     Competition Analysis
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium mb-1 flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-red-500" />
+                <CardContent className="space-y-5">
+                  {/* Direct + Indirect side-by-side on md+ — stretch both columns to equal height */}
+                  <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+                    {/* Direct Competition */}
+                    <div className="flex flex-col gap-3 rounded-lg bg-muted/10 p-3">
+                      <h4 className="flex items-center gap-1.5 text-sm font-medium">
+                        <span className="h-2 w-2 flex-shrink-0 rounded-full bg-red-500" />
                         Direct Competition
                       </h4>
-                      <p className="text-sm text-muted-foreground">{analysisResult.competition_analysis.direct_competition_type}</p>
+                      <CompetitorList
+                        text={analysisResult.competition_analysis.direct_competition_type}
+                      />
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-1 flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-amber-500" />
+
+                    {/* Indirect Competition */}
+                    <div className="flex flex-col gap-3 rounded-lg bg-muted/10 p-3">
+                      <h4 className="flex items-center gap-1.5 text-sm font-medium">
+                        <span className="h-2 w-2 flex-shrink-0 rounded-full bg-amber-500" />
                         Indirect Competition
                       </h4>
-                      <p className="text-sm text-muted-foreground">{analysisResult.competition_analysis.indirect_competition_type}</p>
+                      <CompetitorList
+                        text={analysisResult.competition_analysis.indirect_competition_type}
+                      />
                     </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">Competitive Advantage Needed</h4>
-                    <p className="text-sm text-muted-foreground">{analysisResult.competition_analysis.competitive_advantage_needed}</p>
+
+                  {/* Competitive Advantage Needed */}
+                  <div className="border-t border-border/40 pt-5">
+                    <h4 className="mb-2 text-sm font-medium">Competitive Advantage Needed</h4>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {analysisResult.competition_analysis.competitive_advantage_needed}
+                    </p>
                   </div>
                 </CardContent>
               </Card>

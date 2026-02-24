@@ -34,6 +34,8 @@ export type ConfidenceLevel = 'Low' | 'Medium' | 'High';
 
 /** The structured analysis the UI renders. */
 export interface SafeAnalysisResult {
+  /** Numeric viability score 0–100 from the backend scoring engine. */
+  score: number;
   idea_summary: string;
   market_analysis: MarketAnalysis;
   competition_analysis: CompetitionAnalysis;
@@ -233,6 +235,10 @@ export function validateAndSanitise(raw: unknown): SafeAnalysisResult {
   const { text: cleanedOverall, flagged: oaFlagged } = disclaimSuspiciousText(overallAssessment, 'overall_assessment');
   if (oaFlagged) flags.push('overall_assessment');
 
+  // ── Score ─────────────────────────────────────────────────────────────
+  const rawScore = typeof obj.score === 'number' ? obj.score : 0;
+  const score = Math.max(0, Math.min(100, rawScore));
+
   // ── Confidence & recommendations ──────────────────────────────────────
   const confidenceReasoning =
     typeof obj.confidence_reasoning === 'string'
@@ -247,6 +253,7 @@ export function validateAndSanitise(raw: unknown): SafeAnalysisResult {
   );
 
   return {
+    score,
     idea_summary: ideaSummary,
     market_analysis: {
       market_size_category: normaliseMarketSize(ma.market_size_category),
@@ -276,6 +283,7 @@ export function validateAndSanitise(raw: unknown): SafeAnalysisResult {
  */
 function insufficientResult(reason: string): SafeAnalysisResult {
   return {
+    score: 0,
     idea_summary: reason,
     market_analysis: {
       market_size_category: 'Medium',
@@ -307,8 +315,12 @@ function insufficientResult(reason: string): SafeAnalysisResult {
  */
 export function fromLegacyResult(legacy: LegacyAnalysisResult): SafeAnalysisResult {
   const flags: string[] = ['legacy_format'];
+  const score = typeof legacy.score === 'number'
+    ? Math.max(0, Math.min(100, legacy.score))
+    : 0;
 
   return {
+    score,
     idea_summary: 'Analysis imported from previous format.',
     market_analysis: {
       market_size_category: guessMarketCategory(legacy.marketSize),

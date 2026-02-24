@@ -184,7 +184,16 @@ export function FounderDashboard() {
       toast.success('Startup submitted for review!');
     } catch (err) {
       console.error('Submit for review failed:', err);
-      toast.error('Failed to submit startup for review. Please try again.');
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('already submitted')) {
+        toast.error('Already submitted — awaiting review.');
+      } else if (msg.includes('approved')) {
+        toast.error('This idea is already approved for VC funding.');
+      } else if (msg.includes('rejected')) {
+        toast.error('This idea was rejected. Contact support to appeal.');
+      } else {
+        toast.error('Failed to submit for review. Please try again.');
+      }
     } finally {
       setSubmittingId(null);
     }
