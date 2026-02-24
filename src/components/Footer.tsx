@@ -1,10 +1,29 @@
+import { useState } from 'react';
 import { Linkedin, Instagram, Mail } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from './ui/dialog';
+import { Button } from './ui/button';
 
 interface FooterProps {
   onNavigate: (page: string) => void;
 }
 
 export function Footer({ onNavigate }: FooterProps) {
+  const [showComingSoon, setShowComingSoon] = useState(false);
+
+  const handleQuickLink = (link: string) => {
+    if (link === 'Resources') {
+      setShowComingSoon(true);
+      return;
+    }
+    onNavigate(link);
+  };
+
   return (
     <footer className="bg-muted/30 border-border mt-20 border-t">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -34,7 +53,7 @@ export function Footer({ onNavigate }: FooterProps) {
                 link => (
                   <button
                     key={link}
-                    onClick={() => onNavigate(link)}
+                    onClick={() => handleQuickLink(link)}
                     className="text-muted-foreground hover:text-primary text-left text-sm transition-colors"
                   >
                     {link}
@@ -48,7 +67,7 @@ export function Footer({ onNavigate }: FooterProps) {
           <div>
             <h4 className="mb-4">Features</h4>
             <div className="flex flex-col gap-2">
-              {['Pitch Creator', 'Contact', 'Resources'].map(link => (
+              {['Pitch Creator', 'Contact'].map(link => (
                 <button
                   key={link}
                   onClick={() => onNavigate(link)}
@@ -90,6 +109,21 @@ export function Footer({ onNavigate }: FooterProps) {
           © {new Date().getFullYear()} Motif. All rights reserved.
         </div>
       </div>
+
+      {/* Coming Soon modal — shown when "Resources" is clicked */}
+      <Dialog open={showComingSoon} onOpenChange={setShowComingSoon}>
+        <DialogContent className="max-w-sm text-center">
+          <DialogHeader>
+            <DialogTitle className="text-center">Coming Soon</DialogTitle>
+            <DialogDescription className="text-center">
+              We're working on this feature. Stay tuned.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 flex justify-center">
+            <Button onClick={() => setShowComingSoon(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </footer>
   );
 }
