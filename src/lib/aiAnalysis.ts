@@ -2,8 +2,6 @@
 import { apiClient, AnalysisResponse, ChatResponse, IdeaResponse } from './api-client';
 import {
   SafeAnalysisResult,
-  LegacyAnalysisResult,
-  validateAndSanitise,
   fromLegacyResult,
 } from './analysisValidator';
 
@@ -77,18 +75,24 @@ export async function startAnalysis(
  */
 export async function pollAnalysisStatus(jobId: string): Promise<JobStatusResult> {
   const raw = await apiClient.get<any>(`/api/analysis/status/${jobId}`);
-  // Normalise backend snake_case fields inside result to camelCase
   if (raw.result) {
-    const rawScore = raw.result.score;
+    const r = raw.result;
+    const rawScore = r.score;
+    // Preserve all fields (legacy + new structured) — fromLegacyResult will detect the format
     raw.result = {
-      // Clamp score to [0, 100]; if null/undefined treat as 0 (not a fake 70)
       score: rawScore != null ? Math.min(100, Math.max(0, rawScore)) : 0,
-      strengths: raw.result.strengths || [],
-      weaknesses: raw.result.weaknesses || [],
-      recommendations: raw.result.recommendations || [],
-      marketSize: raw.result.marketSize || raw.result.market_size || 'Unknown',
-      competition: raw.result.competition || 'Unknown',
-      viability: raw.result.viability || 'Unknown',
+      strengths: r.strengths || [],
+      weaknesses: r.weaknesses || [],
+      recommendations: r.recommendations || [],
+      // Legacy string fields (null for fresh results)
+      marketSize: r.marketSize || r.market_size || undefined,
+      competition: r.competition || undefined,
+      viability: r.viability || 'Unknown',
+      // New structured fields (present for fresh AI results)
+      competitors: r.competitors || undefined,
+      competitiveAdvantage: r.competitiveAdvantage || r.competitive_advantage || undefined,
+      market: r.market || undefined,
+      confidenceScore: r.confidenceScore || r.confidence_score || undefined,
     };
   }
   return raw as JobStatusResult;
@@ -124,13 +128,10 @@ export async function pollAnalysisStatusSafe(jobId: string): Promise<SafeJobStat
   if (raw.status === 'COMPLETED' && raw.result) {
     base.legacyResult = raw.result;
 
-    // Try to parse as new structured format first, fall back to legacy bridge
-    const hasNewFormat = (raw.result as any).idea_summary || (raw.result as any).market_analysis;
-    if (hasNewFormat) {
-      base.safeResult = validateAndSanitise(raw.result);
-    } else {
-      base.safeResult = fromLegacyResult(raw.result);
-    }
+    // fromLegacyResult auto-detects new vs legacy format:
+    // - New: has `competitors` array or `market` object → calls validateAndSanitise internally
+    // - Old: has flat string fields (marketSize, competition) → uses legacy bridge
+    base.safeResult = fromLegacyResult(raw.result);
   }
 
   return base;

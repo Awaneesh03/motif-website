@@ -36,10 +36,10 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Progress } from '../ui/progress';
 import { startAnalysis, pollAnalysisStatusSafe, generateIdea, improveDescription } from '../../lib/aiAnalysis';
 import type { SafeAnalysisResult } from '../../lib/aiAnalysis';
 import { fromLegacyResult } from '../../lib/analysisValidator';
+import type { Competitor } from '../../lib/analysisValidator';
 import { Shield, BarChart3 } from 'lucide-react';
 
 interface CommunityIdea {
@@ -57,62 +57,17 @@ interface IdeaAnalyserPageProps {
   onNavigate?: (page: string) => void;
 }
 
-// ── Competition parser ────────────────────────────────────────────────────────
+// ── Competition UI component ──────────────────────────────────────────────────
 
-interface ParsedCompetitor {
-  name: string;
-  threat?: string;
-  opportunity?: string;
-}
-
-/**
- * Parses an AI competition string that may contain bracket-style annotations:
- *   "CompA [THREAT: their edge] [EDGE: gap to exploit]. CompB [THREAT: ...] [EDGE: ...]"
- *
- * Returns an empty array when the string has no [THREAT:] tags (caller falls
- * back to rendering the raw string).
- */
-function parseCompetitors(text: string): ParsedCompetitor[] {
-  if (!text || !text.includes('[THREAT:')) return [];
-
-  const results: ParsedCompetitor[] = [];
-  const parts = text.split(/\[THREAT:/i);
-
-  for (let i = 1; i < parts.length; i++) {
-    // Name is the trailing segment of the previous chunk (after '. ' or at start)
-    const prevChunk = parts[i - 1];
-    const nameMatch = prevChunk.match(/(?:^|\.\s+)([^.[]+?)\s*$/);
-    const name = nameMatch ? nameMatch[1].trim() : '';
-    if (!name) continue;
-
-    const current = parts[i];
-    const edgeSplit = current.split(/\[EDGE:/i);
-
-    const threat = edgeSplit[0].replace(/\]\s*$/, '').trim() || undefined;
-    const opportunity =
-      edgeSplit.length > 1
-        ? edgeSplit[1].replace(/\].*/, '').trim() || undefined
-        : undefined;
-
-    results.push({ name, threat, opportunity });
-  }
-
-  return results;
-}
-
-// ── Competition UI components ─────────────────────────────────────────────────
-
-function CompetitorCard({ competitor }: { competitor: ParsedCompetitor }) {
+function CompetitorCard({ competitor }: { competitor: Competitor }) {
   return (
-    <div className="flex h-full flex-col gap-3 rounded-xl border border-border/50 bg-card p-4">
+    <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-card p-4">
       <p className="text-sm font-semibold leading-snug text-foreground">{competitor.name}</p>
       {competitor.threat && (
         <div className="flex items-start gap-2">
           <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500" />
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-600">
-              Threat
-            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-600">Threat</span>
             <p className="text-xs leading-relaxed text-muted-foreground">{competitor.threat}</p>
           </div>
         </div>
@@ -121,27 +76,11 @@ function CompetitorCard({ competitor }: { competitor: ParsedCompetitor }) {
         <div className="flex items-start gap-2">
           <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-500" />
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-green-600">
-              Opportunity
-            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-green-600">Opportunity</span>
             <p className="text-xs leading-relaxed text-muted-foreground">{competitor.opportunity}</p>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function CompetitorList({ text }: { text: string }) {
-  const competitors = parseCompetitors(text);
-  if (competitors.length === 0) {
-    return <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>;
-  }
-  return (
-    <div className="flex flex-1 flex-col gap-3">
-      {competitors.map((c, i) => (
-        <CompetitorCard key={i} competitor={c} />
-      ))}
     </div>
   );
 }
@@ -730,10 +669,15 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       title: 'AI-Powered Personal Finance Assistant',
       idea_summary: 'An AI-powered mobile app targeting millennials and Gen Z users who want to improve their financial literacy and achieve savings goals.',
       market_size_category: 'Large' as const,
-      market_reasoning: 'The personal finance and budgeting app market is well-established with proven consumer demand. Multiple publicly-known players validate the market.',
+      market_reasoning: 'The personal finance and budgeting app market is well-established with proven consumer demand.',
       growth_potential: 'Strong tailwinds from increased financial awareness among younger demographics and smartphone penetration.',
-      direct_competition: 'Established SaaS budgeting platforms (e.g. Mint, YNAB)',
-      indirect_competition: 'Spreadsheet-based budgeting, banking app built-in tools',
+      tam: '~$15B',
+      sam: '~$3B',
+      som: '~$150M',
+      competitors: [
+        { name: 'Mint', threat: 'Brand recognition and Intuit ecosystem lock-in', opportunity: 'Mint lacks AI-driven behavioural nudges' },
+        { name: 'YNAB', threat: 'Loyal subscriber base with zero-based budgeting methodology', opportunity: 'YNAB requires manual entry — no automation' },
+      ],
       competitive_advantage: 'AI personalization and behavioral finance insights differentiate from rule-based incumbents.',
       strengths: [
         'Strong market demand with proven business model',
@@ -745,26 +689,28 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         'User acquisition costs may be high in fintech space',
         'Requires bank API integrations which can be complex'
       ],
-      overall_assessment: 'High viability based on validated market demand, proven business models in the space, and a clear differentiator through AI personalization. Key execution risk is user acquisition cost.',
+      overall_assessment: 'High viability based on validated market demand, proven business models in the space, and a clear differentiator through AI personalization.',
       recommendations: [
         'Focus on one specific user persona initially (e.g., freelancers with irregular income)',
         'Partner with banks for secure API access to simplify onboarding'
       ],
-      confidence_level: 'High',
+      confidence_score: 72,
     } : {
       title: ideaTitle,
       idea_summary: analysisResult?.idea_summary || '',
       market_size_category: analysisResult?.market_analysis.market_size_category || 'Medium',
       market_reasoning: analysisResult?.market_analysis.market_reasoning || '',
       growth_potential: analysisResult?.market_analysis.growth_potential || '',
-      direct_competition: analysisResult?.competition_analysis.direct_competition_type || '',
-      indirect_competition: analysisResult?.competition_analysis.indirect_competition_type || '',
-      competitive_advantage: analysisResult?.competition_analysis.competitive_advantage_needed || '',
+      tam: analysisResult?.market_analysis.tam || '',
+      sam: analysisResult?.market_analysis.sam || '',
+      som: analysisResult?.market_analysis.som || '',
+      competitors: analysisResult?.competition_analysis.competitors || [],
+      competitive_advantage: analysisResult?.competition_analysis.competitive_advantage || '',
       strengths: analysisResult?.viability_analysis.strengths || [],
       risks: analysisResult?.viability_analysis.risks || [],
       overall_assessment: analysisResult?.viability_analysis.overall_assessment || '',
       recommendations: analysisResult?.recommendations || [],
-      confidence_level: analysisResult?.confidence_level || 'Medium',
+      confidence_score: analysisResult?.confidence_score ?? 50,
     };
 
     // Create text content for download
@@ -778,13 +724,13 @@ IDEA: ${reportData.title}
 SUMMARY
 ${reportData.idea_summary}
 
-CONFIDENCE LEVEL: ${reportData.confidence_level}
+CONFIDENCE: ${(reportData as any).confidence_score ?? 50}/100
 
 ========================================
 MARKET ANALYSIS
 ========================================
 Market Size Category: ${reportData.market_size_category}
-${reportData.market_reasoning}
+${reportData.market_reasoning}${reportData.tam ? `\n\nTAM: ${reportData.tam}` : ''}${reportData.sam ? `\nSAM: ${reportData.sam}` : ''}${reportData.som ? `\nSOM: ${reportData.som}` : ''}
 
 Growth Potential:
 ${reportData.growth_potential}
@@ -792,9 +738,12 @@ ${reportData.growth_potential}
 ========================================
 COMPETITION ANALYSIS
 ========================================
-Direct Competition: ${reportData.direct_competition}
-Indirect Competition: ${reportData.indirect_competition}
-Competitive Advantage Needed: ${reportData.competitive_advantage}
+${((reportData as any).competitors || []).length > 0
+  ? ((reportData as any).competitors as any[]).map((c) => `${c.name}:\n  Threat: ${c.threat || 'N/A'}\n  Opportunity: ${c.opportunity || 'N/A'}`).join('\n\n')
+  : 'No competitors identified.'}
+
+Competitive Advantage:
+${reportData.competitive_advantage}
 
 ========================================
 STRENGTHS
@@ -889,16 +838,22 @@ Powered by Motif - Your AI-Powered Startup Companion
   };
 
 
-  const getConfidenceColor = (level: string) => {
-    if (level === 'High') return 'text-green-600';
-    if (level === 'Medium') return 'text-yellow-600';
+  const getConfidenceColor = (score: number) => {
+    if (score >= 70) return 'text-green-600';
+    if (score >= 40) return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const getConfidenceBg = (level: string) => {
-    if (level === 'High') return 'from-green-500/20 to-emerald-500/20';
-    if (level === 'Medium') return 'from-yellow-500/20 to-amber-500/20';
+  const getConfidenceBg = (score: number) => {
+    if (score >= 70) return 'from-green-500/20 to-emerald-500/20';
+    if (score >= 40) return 'from-yellow-500/20 to-amber-500/20';
     return 'from-red-500/20 to-orange-500/20';
+  };
+
+  const getConfidenceLabel = (score: number) => {
+    if (score >= 70) return 'High Confidence';
+    if (score >= 40) return 'Medium Confidence';
+    return 'Low Confidence';
   };
 
   const getMarketSizeBadge = (category: string) => {
@@ -1412,7 +1367,7 @@ Powered by Motif - Your AI-Powered Startup Companion
             >
               {/* Confidence & Summary Card */}
               <Card
-                className={`glass-card border-border/50 bg-gradient-to-br ${getConfidenceBg(analysisResult.confidence_level)}`}
+                className={`glass-card border-border/50 bg-gradient-to-br ${getConfidenceBg(analysisResult.confidence_score)}`}
               >
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
@@ -1428,29 +1383,33 @@ Powered by Motif - Your AI-Powered Startup Companion
                         {analysisResult.confidence_reasoning}
                       </p>
                     </div>
-                    <div className="text-center flex-shrink-0 flex flex-col items-center gap-2">
-                      <div className="flex items-baseline gap-1 leading-none">
-                        <span className={`text-5xl font-bold ${
-                          analysisResult.score >= 70
-                            ? 'text-green-600'
-                            : analysisResult.score >= 50
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                        }`}>
-                          {analysisResult.score}
-                        </span>
-                        <span className="text-muted-foreground text-lg font-medium">/100</span>
+                    <div className="text-center flex-shrink-0 flex flex-col items-center gap-3">
+                      {/* Viability score */}
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="flex items-baseline gap-1 leading-none">
+                          <span className={`text-5xl font-bold ${
+                            analysisResult.score >= 70
+                              ? 'text-green-600'
+                              : analysisResult.score >= 50
+                              ? 'text-yellow-600'
+                              : 'text-red-600'
+                          }`}>
+                            {analysisResult.score}
+                          </span>
+                          <span className="text-muted-foreground text-lg font-medium">/100</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Viability Score</p>
                       </div>
-                      <p className="text-xs text-muted-foreground">Viability Score</p>
-                      <Badge className={`text-sm px-3 py-1 ${
-                        analysisResult.confidence_level === 'High'
-                          ? 'bg-green-500/15 text-green-700 border-green-500/30'
-                          : analysisResult.confidence_level === 'Medium'
-                          ? 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30'
-                          : 'bg-red-500/15 text-red-700 border-red-500/30'
-                      }`}>
-                        {analysisResult.confidence_level} Confidence
-                      </Badge>
+                      {/* Confidence score */}
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="flex items-baseline gap-1 leading-none">
+                          <span className={`text-2xl font-semibold ${getConfidenceColor(analysisResult.confidence_score)}`}>
+                            {analysisResult.confidence_score}
+                          </span>
+                          <span className="text-muted-foreground text-sm font-medium">/100</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{getConfidenceLabel(analysisResult.confidence_score)}</p>
+                      </div>
                       {analysisResult._flags.length > 0 && (
                         <p className="text-xs text-amber-600 mt-1 flex items-center justify-center gap-1">
                           <AlertCircle className="h-3 w-3" />
@@ -1462,51 +1421,53 @@ Powered by Motif - Your AI-Powered Startup Companion
                 </CardContent>
               </Card>
 
-              {/* Key Metrics — Market, Competition, Viability */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-                {/* Market Size */}
+              {/* Key Metrics — Market, Competitors, Score */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Card className="glass-card border-border/50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-3">
-                      <div className="gradient-lavender flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
-                        <Target className="h-5 w-5 text-white" />
+                  <CardContent className="pt-5 pb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
+                        <Target className="h-4 w-4 text-white" />
                       </div>
-                      <div className="flex-1">
-                        <div className="text-muted-foreground mb-1 text-sm">Market Size</div>
-                        <Badge variant="outline" className={`${getMarketSizeBadge(analysisResult.market_analysis.market_size_category).color} mb-2`}>
+                      <div>
+                        <div className="text-muted-foreground text-xs mb-0.5">Market Size</div>
+                        <Badge variant="outline" className={`text-xs ${getMarketSizeBadge(analysisResult.market_analysis.market_size_category).color}`}>
                           {getMarketSizeBadge(analysisResult.market_analysis.market_size_category).label}
                         </Badge>
+                        {analysisResult.market_analysis.tam && (
+                          <div className="mt-1 text-xs text-muted-foreground">TAM {analysisResult.market_analysis.tam.split(' ')[0]}</div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Competition Type */}
                 <Card className="glass-card border-border/50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-3">
-                      <div className="gradient-lavender flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
-                        <Users className="h-5 w-5 text-white" />
+                  <CardContent className="pt-5 pb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
+                        <Users className="h-4 w-4 text-white" />
                       </div>
-                      <div className="flex-1">
-                        <div className="text-muted-foreground mb-1 text-sm">Direct Competition</div>
-                        <div className="font-medium text-sm">{analysisResult.competition_analysis.direct_competition_type}</div>
+                      <div>
+                        <div className="text-muted-foreground text-xs mb-0.5">Competitors Identified</div>
+                        <div className="font-semibold text-sm">
+                          {analysisResult.competition_analysis.competitors.length} companies
+                        </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Viability */}
                 <Card className="glass-card border-border/50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-3">
-                      <div className="gradient-lavender flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
-                        <CheckCircle className="h-5 w-5 text-white" />
+                  <CardContent className="pt-5 pb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
+                        <CheckCircle className="h-4 w-4 text-white" />
                       </div>
-                      <div className="flex-1">
-                        <div className="text-muted-foreground mb-1 text-sm">Confidence</div>
-                        <div className={`font-medium ${getConfidenceColor(analysisResult.confidence_level)}`}>
-                          {analysisResult.confidence_level} Confidence
+                      <div>
+                        <div className="text-muted-foreground text-xs mb-0.5">Analysis Confidence</div>
+                        <div className={`font-semibold text-sm ${getConfidenceColor(analysisResult.confidence_score)}`}>
+                          {getConfidenceLabel(analysisResult.confidence_score)}
                         </div>
                       </div>
                     </div>
@@ -1523,6 +1484,32 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* TAM / SAM / SOM row — shown only when structured data is available */}
+                  {(analysisResult.market_analysis.tam || analysisResult.market_analysis.sam || analysisResult.market_analysis.som) && (
+                    <div className="grid grid-cols-3 gap-3 rounded-lg bg-muted/20 p-3">
+                      {analysisResult.market_analysis.tam && (
+                        <div className="text-center">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">TAM</div>
+                          <div className="text-sm font-semibold">{analysisResult.market_analysis.tam.split(' ')[0]}</div>
+                          <div className="text-[10px] text-muted-foreground">Total Market</div>
+                        </div>
+                      )}
+                      {analysisResult.market_analysis.sam && (
+                        <div className="text-center">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">SAM</div>
+                          <div className="text-sm font-semibold">{analysisResult.market_analysis.sam.split(' ')[0]}</div>
+                          <div className="text-[10px] text-muted-foreground">Serviceable</div>
+                        </div>
+                      )}
+                      {analysisResult.market_analysis.som && (
+                        <div className="text-center">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">SOM</div>
+                          <div className="text-sm font-semibold">{analysisResult.market_analysis.som.split(' ')[0]}</div>
+                          <div className="text-[10px] text-muted-foreground">Obtainable</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <h4 className="text-sm font-medium mb-1">Market Reasoning</h4>
                     <p className="text-sm text-muted-foreground">{analysisResult.market_analysis.market_reasoning}</p>
@@ -1531,6 +1518,11 @@ Powered by Motif - Your AI-Powered Startup Companion
                     <h4 className="text-sm font-medium mb-1">Growth Potential</h4>
                     <p className="text-sm text-muted-foreground">{analysisResult.market_analysis.growth_potential}</p>
                   </div>
+                  {analysisResult.market_analysis.source_summary && (
+                    <p className="text-xs text-muted-foreground/70 italic border-t border-border/30 pt-3">
+                      Estimates basis: {analysisResult.market_analysis.source_summary}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -1543,36 +1535,22 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  {/* Direct + Indirect side-by-side on md+ — stretch both columns to equal height */}
-                  <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-                    {/* Direct Competition */}
-                    <div className="flex flex-col gap-3 rounded-lg bg-muted/10 p-3">
-                      <h4 className="flex items-center gap-1.5 text-sm font-medium">
-                        <span className="h-2 w-2 flex-shrink-0 rounded-full bg-red-500" />
-                        Direct Competition
-                      </h4>
-                      <CompetitorList
-                        text={analysisResult.competition_analysis.direct_competition_type}
-                      />
+                  {/* Key Competitors grid */}
+                  {analysisResult.competition_analysis.competitors.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {analysisResult.competition_analysis.competitors.map((competitor, i) => (
+                        <CompetitorCard key={i} competitor={competitor} />
+                      ))}
                     </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No specific competitors identified. Re-run analysis for a more detailed description.</p>
+                  )}
 
-                    {/* Indirect Competition */}
-                    <div className="flex flex-col gap-3 rounded-lg bg-muted/10 p-3">
-                      <h4 className="flex items-center gap-1.5 text-sm font-medium">
-                        <span className="h-2 w-2 flex-shrink-0 rounded-full bg-amber-500" />
-                        Indirect Competition
-                      </h4>
-                      <CompetitorList
-                        text={analysisResult.competition_analysis.indirect_competition_type}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Competitive Advantage Needed */}
-                  <div className="border-t border-border/40 pt-5">
-                    <h4 className="mb-2 text-sm font-medium">Competitive Advantage Needed</h4>
+                  {/* Competitive Advantage */}
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="mb-2 text-sm font-medium">Your Competitive Advantage</h4>
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                      {analysisResult.competition_analysis.competitive_advantage_needed}
+                      {analysisResult.competition_analysis.competitive_advantage}
                     </p>
                   </div>
                 </CardContent>
