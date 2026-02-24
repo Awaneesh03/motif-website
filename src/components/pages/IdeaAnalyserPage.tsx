@@ -64,6 +64,22 @@ interface IdeaAnalyserPageProps {
   onNavigate?: (page: string) => void;
 }
 
+/** Maximum characters shown in the description textarea before truncation. */
+const PREVIEW_CHAR_LIMIT = 400;
+
+/**
+ * Truncates text to at most `limit` characters, breaking at the last word
+ * boundary to avoid cutting mid-word. Appends "…" when truncation occurs.
+ * The full original text is never modified — this is display-only.
+ */
+function truncateText(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  const slice = text.slice(0, limit);
+  const lastSpace = slice.lastIndexOf(' ');
+  const cut = lastSpace > limit * 0.8 ? lastSpace : limit;
+  return text.slice(0, cut) + '…';
+}
+
 export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const { user, profile, displayName } = useUser();
   
@@ -106,6 +122,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   // Polling refs for job-based async analysis
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentJobIdRef = useRef<string | null>(null);
+  // Controls whether extracted PDF text is shown in full or as a preview
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   // File upload state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -343,6 +361,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     setUploadedFile(null);
     setIdeaTitle('');
     setIdeaDescription('');
+    setIsDescriptionExpanded(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -354,6 +373,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     setSelectedMarkets([]);
     setAnalysisResult(null);
     setUploadedFile(null);
+    setIsDescriptionExpanded(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -984,14 +1004,44 @@ Powered by Motif - Your AI-Powered Startup Companion
                   {/* Idea Description */}
                   <div className="space-y-1.5">
                     <Label htmlFor="ideaDescription" className="text-sm font-medium">Detailed Description *</Label>
-                    <Textarea
-                      id="ideaDescription"
-                      placeholder="Example: A platform that helps students manage study schedules with AI reminders."
-                      value={ideaDescription}
-                      onChange={e => setIdeaDescription(e.target.value)}
-                      className="min-h-[140px] resize-none rounded-lg"
-                      maxLength={10000}
-                    />
+                    {(() => {
+                      // shouldTruncate is true only when: a file was uploaded,
+                      // the extracted text exceeds the preview limit, and the
+                      // user has not yet clicked "Show More".
+                      // The full text is ALWAYS stored in `ideaDescription` and
+                      // sent to the backend unchanged.
+                      const shouldTruncate =
+                        !!uploadedFile &&
+                        !isDescriptionExpanded &&
+                        ideaDescription.length > PREVIEW_CHAR_LIMIT;
+
+                      return (
+                        <>
+                          <Textarea
+                            id="ideaDescription"
+                            placeholder="Example: A platform that helps students manage study schedules with AI reminders."
+                            value={shouldTruncate ? truncateText(ideaDescription, PREVIEW_CHAR_LIMIT) : ideaDescription}
+                            onChange={e => { if (!shouldTruncate) setIdeaDescription(e.target.value); }}
+                            readOnly={shouldTruncate}
+                            className={`min-h-[140px] resize-none rounded-lg ${shouldTruncate ? 'cursor-default select-text text-muted-foreground' : ''}`}
+                            maxLength={10000}
+                          />
+
+                          {/* Show More / Show Less — only when a file is uploaded and text is long */}
+                          {uploadedFile && ideaDescription.length > PREVIEW_CHAR_LIMIT && (
+                            <button
+                              type="button"
+                              onClick={() => setIsDescriptionExpanded(prev => !prev)}
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              {isDescriptionExpanded
+                                ? 'Show Less'
+                                : `Show More (${ideaDescription.length.toLocaleString()} characters total)`}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div className="flex items-center justify-between">
                       <p className="text-muted-foreground text-xs">
                         {ideaDescription.length >= 20 ? (
