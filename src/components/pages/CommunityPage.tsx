@@ -942,13 +942,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                   )}
                 </DialogContent>
               </Dialog>
-              <Button
-                size="lg"
-                className="gradient-lavender shadow-lavender rounded-[16px] px-8 hover:opacity-90"
-                onClick={() => setPostFormOpen(true)}
-              >
-                Join the Community
-              </Button>
             </div>
           </motion.div>
         </div>
