@@ -2,6 +2,7 @@
 // Uses idea_analyses table which stores analyzed startup ideas
 
 import { supabase } from './supabase';
+import { apiClient } from './api-client';
 
 export interface Idea {
   id: string;
@@ -44,7 +45,7 @@ export const getUserIdeas = async (userId: string): Promise<Idea[]> => {
       title: idea.idea_title || 'Untitled',
       name: idea.idea_title || 'Untitled',
       stage: 'idea',
-      status: 'draft',
+      status: idea.status || 'draft',
       user_id: idea.user_id || userId,
       created_at: idea.created_at || new Date().toISOString(),
       updated_at: idea.created_at,
@@ -82,7 +83,7 @@ export const getIdeaById = async (id: string): Promise<Idea | null> => {
       title: data.idea_title || 'Untitled',
       name: data.idea_title || 'Untitled',
       stage: 'idea',
-      status: 'draft',
+      status: data.status || 'draft',
       user_id: data.user_id,
       created_at: data.created_at || new Date().toISOString(),
       updated_at: data.created_at,
@@ -101,16 +102,20 @@ export const getIdeaById = async (id: string): Promise<Idea | null> => {
   }
 };
 
-// Update idea status in idea_analyses table
-// NOTE: idea_analyses does not have a 'status' column.
-// This function fetches the idea and returns it with the requested status
-// for UI compatibility. Actual status management should be handled by the backend.
+// Submit an idea for review — calls the backend PATCH endpoint which persists
+// status = "pending_review" in the DB, then re-fetches the row from Supabase.
 export const updateIdeaStatus = async (
   id: string,
   status: string,
   _options?: { skipValidation?: boolean }
 ): Promise<Idea | null> => {
   try {
+    // Persist the status change via the backend (only 'pending_review' is supported for now)
+    if (status === 'pending_review') {
+      await apiClient.patch(`/api/analysis/${id}/submit`);
+    }
+
+    // Re-fetch the row so the returned Idea reflects the DB state
     const { data, error } = await supabase
       .from('idea_analyses')
       .select('*')
@@ -124,7 +129,7 @@ export const updateIdeaStatus = async (
       title: data.idea_title || 'Untitled',
       name: data.idea_title || 'Untitled',
       stage: 'idea',
-      status: status,
+      status: data.status || status,
       user_id: data.user_id,
       created_at: data.created_at || new Date().toISOString(),
       score: data.score,

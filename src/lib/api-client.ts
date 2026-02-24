@@ -144,6 +144,16 @@ class ApiClient {
   }
 
   /**
+   * PATCH request (partial update)
+   */
+  async patch<T>(endpoint: string, body: any = {}): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
+  /**
    * DELETE request
    */
   async delete<T>(endpoint: string): Promise<T> {

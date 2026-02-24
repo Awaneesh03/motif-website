@@ -28,7 +28,8 @@ import { ActivityTimeline } from '@/components/ActivityTimeline';
 import { getFounderMetrics, type FounderMetrics } from '@/lib/metricsService';
 import { useFounderDemoMode } from '@/hooks/useDemoMode';
 import { demoFounderStartups } from '@/lib/demoData';
-import { useAsyncAction } from '@/hooks/useAsyncAction';
+import { apiClient } from '@/lib/api-client';
+import { toast } from 'sonner';
 
 export function FounderDashboard() {
   const { user, profile } = useUser();
@@ -39,6 +40,8 @@ export function FounderDashboard() {
   const [metrics, setMetrics] = useState<FounderMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Tracks which single startup is being submitted — null means none in flight
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
 
   const stats = [
     {
@@ -167,19 +170,25 @@ export function FounderDashboard() {
     }
   }, [user]);
 
-  // Async action for submitting idea for review
-  // NOTE: idea_analyses has no 'status' column — this just refreshes the list
-  const { loading: submitLoading, execute: handleSubmitForReview } = useAsyncAction(
-    async (_ideaId: string) => {
-      // Refresh startups
-      const ideas = await getUserIdeas(user!.id);
-      setMyStartups(ideas);
-    },
-    {
-      successMessage: 'Startup Submitted for Review',
-      errorMessage: 'Failed to Submit for Review',
+  // Submit a single startup for admin review.
+  // Only the clicked card's button is disabled — all other cards are unaffected.
+  const handleSubmitForReview = async (ideaId: string) => {
+    if (submittingId) return; // prevent double-click while one is in-flight
+    setSubmittingId(ideaId);
+    try {
+      await apiClient.patch(`/api/analysis/${ideaId}/submit`);
+      // Update ONLY this startup in state — no full re-fetch, no other cards affected
+      setMyStartups(prev =>
+        prev.map(s => (s.id === ideaId ? { ...s, status: 'pending_review' } : s))
+      );
+      toast.success('Startup submitted for review!');
+    } catch (err) {
+      console.error('Submit for review failed:', err);
+      toast.error('Failed to submit startup for review. Please try again.');
+    } finally {
+      setSubmittingId(null);
     }
-  );
+  };
 
   return (
     <div className="bg-background">
@@ -489,7 +498,7 @@ export function FounderDashboard() {
                                 Created {new Date(startup.created_at).toLocaleDateString()}
                               </p>
 
-                              {/* Submit for Review Button */}
+                              {/* Submit for Review Button — scoped to THIS card only */}
                               {startup.status === 'draft' && (
                                 <Button
                                   size="sm"
@@ -497,11 +506,11 @@ export function FounderDashboard() {
                                     e.stopPropagation();
                                     handleSubmitForReview(startup.id);
                                   }}
-                                  disabled={submitLoading}
+                                  disabled={submittingId === startup.id}
                                   className="w-full gradient-lavender rounded-lg hover:opacity-90"
                                 >
                                   <Send className="mr-2 h-3 w-3" />
-                                  {submitLoading ? 'Submitting...' : 'Submit for Review'}
+                                  {submittingId === startup.id ? 'Submitting...' : 'Submit for Review'}
                                 </Button>
                               )}
 
