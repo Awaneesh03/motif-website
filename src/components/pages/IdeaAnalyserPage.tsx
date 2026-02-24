@@ -37,7 +37,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Progress } from '../ui/progress';
-import { analyzeIdea, generateIdea, improveDescription } from '../../lib/aiAnalysis';
+import { startAnalysis, pollAnalysisStatus, generateIdea, improveDescription } from '../../lib/aiAnalysis';
 
 interface AnalysisResult {
   score: number;
@@ -103,6 +103,9 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [analysisStep, setAnalysisStep] = useState(0);
   const analysisTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const analysisStartRef = useRef<number>(0);
+  // Polling refs for job-based async analysis
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentJobIdRef = useRef<string | null>(null);
   // File upload state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -167,6 +170,16 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
     };
   }, [isAnalyzing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cancel any in-flight poll when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   // Scroll the loading card into view once it mounts
   useEffect(() => {
@@ -380,45 +393,42 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
   const handleAnalyze = async (forceReanalyze: boolean = false) => {
     console.log('[IdeaAnalyser] handleAnalyze called, forceReanalyze:', forceReanalyze);
-    console.log('[IdeaAnalyser] Form valid:', isFormValid, 'User:', !!user);
-    
+
     if (!isFormValid) {
       toast.error('Please fill in all required fields with minimum lengths');
       return;
     }
-
     if (!user) {
       toast.error('Please login to analyze your idea');
       return;
     }
 
+    // Cancel any previous poll that is still running
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
     setIsAnalyzing(true);
-    console.log('[IdeaAnalyser] Starting analysis...');
 
     try {
       const normalizedTitle = normalizeIdeaValue(ideaTitle);
       const normalizedDescription = normalizeIdeaValue(ideaDescription);
       const normalizedMarket = selectedMarkets.join(', ').trim().replace(/\s+/g, ' ').toLowerCase();
 
-      // Skip cache check if force re-analyze is requested
       if (!forceReanalyze) {
-        console.log('[IdeaAnalyser] Checking for existing analyses...');
+        // ── Supabase cache check ──────────────────────────────────────────────
         const { data: existingAnalyses, error: existingError } = await supabase
           .from('idea_analyses')
-          .select(
-            'id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability'
-          )
+          .select('id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability')
           .eq('user_id', user.id);
 
-        console.log('[IdeaAnalyser] Existing analyses:', existingAnalyses?.length, 'Error:', existingError);
-
         if (!existingError && existingAnalyses && existingAnalyses.length > 0) {
-          const match = existingAnalyses.find(analysis =>
-            normalizeIdeaValue(analysis.idea_title) === normalizedTitle &&
-            normalizeIdeaValue(analysis.idea_description) === normalizedDescription &&
-            normalizeIdeaValue(analysis.target_market || '') === normalizedMarket
+          const match = existingAnalyses.find(a =>
+            normalizeIdeaValue(a.idea_title) === normalizedTitle &&
+            normalizeIdeaValue(a.idea_description) === normalizedDescription &&
+            normalizeIdeaValue(a.target_market || '') === normalizedMarket
           );
-
           if (match) {
             setAnalysisResult({
               score: match.score ?? 0,
@@ -429,98 +439,114 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               competition: match.competition || '',
               viability: match.viability || '',
             });
+            setIsAnalyzing(false);
             toast.success('Loaded your saved analysis from the vault.');
             return;
           }
         }
       } else {
-        console.log('[IdeaAnalyser] Force re-analyze requested, skipping cache');
-        // Delete old cached results for this idea to ensure fresh analysis
-        const normalizedTitle = normalizeIdeaValue(ideaTitle);
+        // ── Force re-analyze: delete cached rows for this idea ────────────────
         const { data: existingAnalyses } = await supabase
-          .from('idea_analyses')
-          .select('id, idea_title')
-          .eq('user_id', user.id);
-        
+          .from('idea_analyses').select('id, idea_title').eq('user_id', user.id);
         if (existingAnalyses) {
           const matchingIds = existingAnalyses
             .filter(a => normalizeIdeaValue(a.idea_title) === normalizedTitle)
             .map(a => a.id);
-          
           if (matchingIds.length > 0) {
-            console.log('[IdeaAnalyser] Deleting old cached analyses:', matchingIds);
             await supabase.from('idea_analyses').delete().in('id', matchingIds);
           }
         }
       }
 
-      // Call backend API for analysis (backend also persists the result)
-      console.log('[IdeaAnalyser] Calling analyzeIdea (OpenAI)...');
-      const analysisData = await analyzeIdea({
+      // ── Start async job — returns immediately with a jobId ────────────────
+      console.log('[IdeaAnalyser] Starting async analysis job...');
+      const { jobId } = await startAnalysis({
         title: ideaTitle,
         description: ideaDescription,
         targetMarket: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
       });
+      currentJobIdRef.current = jobId;
+      console.log('[IdeaAnalyser] Job started, jobId:', jobId);
 
-      console.log('[IdeaAnalyser] Analysis result received:', analysisData);
-      setAnalysisResult(analysisData);
+      // ── Poll every 2.5 s — survives tab switches ──────────────────────────
+      const doPoll = async () => {
+        try {
+          const status = await pollAnalysisStatus(jobId);
+          console.log('[IdeaAnalyser] Poll result:', status.status);
 
-      // Frontend fallback save: ensures the analysis is always persisted.
-      // We first check if the backend already saved it to avoid duplicates.
-      try {
-        const truncatedTitle = ideaTitle.substring(0, 100);
-        const { data: existing } = await supabase
-          .from('idea_analyses')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('idea_title', truncatedTitle)
-          .order('created_at', { ascending: false })
-          .limit(1);
+          if (status.status === 'COMPLETED' && status.result) {
+            clearInterval(pollIntervalRef.current!);
+            pollIntervalRef.current = null;
 
-        if (!existing || existing.length === 0) {
-          // Backend did not save it — do frontend save
-          const { error: saveError } = await supabase.from('idea_analyses').insert({
-            user_id: user.id,
-            idea_title: truncatedTitle,
-            idea_description: ideaDescription.substring(0, 10000),
-            target_market: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
-            score: analysisData.score,
-            strengths: analysisData.strengths,
-            weaknesses: analysisData.weaknesses,
-            recommendations: analysisData.recommendations,
-            market_size: analysisData.marketSize,
-            competition: analysisData.competition,
-            viability: analysisData.viability,
-          });
-          if (saveError) {
-            console.warn('[IdeaAnalyser] Frontend save warning:', saveError.message);
-          } else {
-            console.log('[IdeaAnalyser] Frontend save succeeded');
+            const analysisData = status.result;
+            setAnalysisResult(analysisData);
+
+            // Frontend fallback save (backend also saves; this catches cold-start DB failures)
+            try {
+              const truncatedTitle = ideaTitle.substring(0, 100);
+              const { data: existing } = await supabase
+                .from('idea_analyses').select('id')
+                .eq('user_id', user.id).eq('idea_title', truncatedTitle)
+                .order('created_at', { ascending: false }).limit(1);
+
+              if (!existing || existing.length === 0) {
+                await supabase.from('idea_analyses').insert({
+                  user_id: user.id,
+                  idea_title: truncatedTitle,
+                  idea_description: ideaDescription.substring(0, 10000),
+                  target_market: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
+                  score: analysisData.score,
+                  strengths: analysisData.strengths,
+                  weaknesses: analysisData.weaknesses,
+                  recommendations: analysisData.recommendations,
+                  market_size: analysisData.marketSize,
+                  competition: analysisData.competition,
+                  viability: analysisData.viability,
+                });
+              }
+            } catch (saveErr) {
+              console.warn('[IdeaAnalyser] Frontend save failed (non-fatal):', saveErr);
+            }
+
+            setIsAnalyzing(false);
+            toast.success('Analysis complete!');
+
+          } else if (status.status === 'FAILED') {
+            clearInterval(pollIntervalRef.current!);
+            pollIntervalRef.current = null;
+            setIsAnalyzing(false);
+
+            const msg = status.errorMessage || 'Analysis failed. Please try again.';
+            if (msg.includes('Rate limit') || msg.includes('rate_limit')) {
+              toast.error('Rate limit exceeded. Please try again in a few moments.');
+            } else if (msg.toLowerCase().includes('parse') || msg.toLowerCase().includes('format')) {
+              toast.error('AI returned an unexpected response. Please try again — this is usually a one-time glitch.');
+            } else {
+              toast.error(msg);
+            }
           }
-        } else {
-          console.log('[IdeaAnalyser] Backend already saved — skipping frontend save');
+          // PENDING / PROCESSING → keep polling
+        } catch (pollErr) {
+          // Transient network error — log and retry on next tick
+          console.warn('[IdeaAnalyser] Poll error (will retry):', pollErr);
         }
-      } catch (saveErr) {
-        console.warn('[IdeaAnalyser] Frontend save failed:', saveErr);
-      }
+      };
 
-      toast.success('Analysis complete!');
+      // Fire immediately then repeat every 2.5 s
+      doPoll();
+      pollIntervalRef.current = setInterval(doPoll, 2500);
+
     } catch (error) {
-      console.error('[IdeaAnalyser] Analysis error caught in component:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to analyze idea. Please try again.';
-
+      // Error starting the job itself (auth, validation, network)
+      setIsAnalyzing(false);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start analysis. Please try again.';
       if (errorMessage.includes('Rate limit') || errorMessage.includes('rate_limit')) {
         toast.error('Rate limit exceeded. Please try again in a few moments.');
       } else if (errorMessage.includes('API key')) {
         toast.error('AI service is not configured. Please contact support.');
-      } else if (errorMessage.toLowerCase().includes('parse') || errorMessage.toLowerCase().includes('format')) {
-        toast.error('AI returned an unexpected response. Please try again — this is usually a one-time glitch.');
       } else {
         toast.error(errorMessage);
       }
-      return;
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -633,7 +659,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     // Create text content for download
     const reportContent = `
 STARTUP IDEA ANALYSIS REPORT
-Generated by IdeaForge AI
+Generated by Motif AI
 ========================================
 
 IDEA: ${reportData.title}
@@ -667,7 +693,7 @@ ${reportData.recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}
 ========================================
 Report generated on: ${new Date().toLocaleDateString()}
 
-Powered by IdeaForge - Your AI-Powered Startup Companion
+Powered by Motif - Your AI-Powered Startup Companion
     `.trim();
 
     // Create and download the file

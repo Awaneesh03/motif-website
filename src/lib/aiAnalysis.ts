@@ -53,6 +53,65 @@ const mockIdeas: GeneratedIdea[] = [
 ];
 
 
+// ── Job-based async analysis ──────────────────────────────────────────────────
+
+export interface StartAnalysisResult {
+  jobId: string;
+  /** "PENDING" = new job created; "EXISTING" = reusing an active job */
+  status: 'PENDING' | 'EXISTING';
+  message: string;
+}
+
+export interface JobStatusResult {
+  jobId: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  result?: IdeaAnalysisResult;
+  errorMessage?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+/**
+ * Start an async analysis job. Returns immediately with a jobId.
+ * The OpenAI call runs on a backend background thread — independent of this connection.
+ */
+export async function startAnalysis(
+  request: IdeaAnalysisRequest
+): Promise<StartAnalysisResult> {
+  const truncatedTitle = request.title?.substring(0, 100) || 'Untitled';
+  const truncatedDescription = request.description?.substring(0, 10000) || '';
+  const truncatedMarket = request.targetMarket?.substring(0, 200) || null;
+
+  return apiClient.post<StartAnalysisResult>('/api/analysis/start', {
+    title: truncatedTitle,
+    description: truncatedDescription,
+    targetMarket: truncatedMarket,
+  });
+}
+
+/**
+ * Poll the status of a running analysis job.
+ * Call every 2–3 seconds until status = COMPLETED or FAILED.
+ */
+export async function pollAnalysisStatus(jobId: string): Promise<JobStatusResult> {
+  const raw = await apiClient.get<any>(`/api/analysis/status/${jobId}`);
+  // Normalise backend snake_case fields inside result to camelCase
+  if (raw.result) {
+    raw.result = {
+      score: raw.result.score ?? 70,
+      strengths: raw.result.strengths || [],
+      weaknesses: raw.result.weaknesses || [],
+      recommendations: raw.result.recommendations || [],
+      marketSize: raw.result.marketSize || raw.result.market_size || 'Unknown',
+      competition: raw.result.competition || 'Unknown',
+      viability: raw.result.viability || 'Medium Viability',
+    };
+  }
+  return raw as JobStatusResult;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Analyze a startup idea via backend API (powered by OpenAI / ChatGPT)
  */
