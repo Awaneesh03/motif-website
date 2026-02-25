@@ -838,29 +838,6 @@ Powered by Motif - Your AI-Powered Startup Companion
   };
 
 
-  const getConfidenceColor = (score: number) => {
-    if (score >= 70) return 'text-green-600';
-    if (score >= 40) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getConfidenceBg = (score: number) => {
-    if (score >= 70) return 'from-green-500/20 to-emerald-500/20';
-    if (score >= 40) return 'from-yellow-500/20 to-amber-500/20';
-    return 'from-red-500/20 to-orange-500/20';
-  };
-
-  const getConfidenceLabel = (score: number) => {
-    if (score >= 70) return 'High Confidence';
-    if (score >= 40) return 'Medium Confidence';
-    return 'Low Confidence';
-  };
-
-  const getMarketSizeBadge = (category: string) => {
-    if (category === 'Large') return { color: 'bg-green-500/10 text-green-700 border-green-500/30', label: 'Large Market' };
-    if (category === 'Small') return { color: 'bg-orange-500/10 text-orange-700 border-orange-500/30', label: 'Small Market' };
-    return { color: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/30', label: 'Medium Market' };
-  };
 
   return (
     <div className="bg-background min-h-screen">
@@ -1365,10 +1342,8 @@ Powered by Motif - Your AI-Powered Startup Companion
               animate={{ opacity: 1, y: 0 }}
               className="mt-12 space-y-6"
             >
-              {/* Confidence & Summary Card */}
-              <Card
-                className={`glass-card border-border/50 bg-gradient-to-br ${getConfidenceBg(analysisResult.confidence_score)}`}
-              >
+              {/* Analysis Summary Card */}
+              <Card className="glass-card border-border/50 bg-gradient-to-br from-primary/10 to-purple-500/10">
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
                     <div className="text-center md:text-left flex-1">
@@ -1383,33 +1358,21 @@ Powered by Motif - Your AI-Powered Startup Companion
                         {analysisResult.confidence_reasoning}
                       </p>
                     </div>
-                    <div className="text-center flex-shrink-0 flex flex-col items-center gap-3">
-                      {/* Viability score */}
-                      <div className="flex flex-col items-center gap-0.5">
-                        <div className="flex items-baseline gap-1 leading-none">
-                          <span className={`text-5xl font-bold ${
-                            analysisResult.score >= 70
-                              ? 'text-green-600'
-                              : analysisResult.score >= 50
-                              ? 'text-yellow-600'
-                              : 'text-red-600'
-                          }`}>
-                            {analysisResult.score}
-                          </span>
-                          <span className="text-muted-foreground text-lg font-medium">/100</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Viability Score</p>
+                    {/* Single score — Viability only */}
+                    <div className="text-center flex-shrink-0 flex flex-col items-center gap-1.5">
+                      <div className="flex items-baseline gap-1 leading-none">
+                        <span className={`text-5xl font-bold ${
+                          (analysisResult.score ?? 0) >= 70
+                            ? 'text-green-600'
+                            : (analysisResult.score ?? 0) >= 50
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
+                        }`}>
+                          {analysisResult.score ?? 0}
+                        </span>
+                        <span className="text-muted-foreground text-lg font-medium">/100</span>
                       </div>
-                      {/* Confidence score */}
-                      <div className="flex flex-col items-center gap-0.5">
-                        <div className="flex items-baseline gap-1 leading-none">
-                          <span className={`text-2xl font-semibold ${getConfidenceColor(analysisResult.confidence_score)}`}>
-                            {analysisResult.confidence_score}
-                          </span>
-                          <span className="text-muted-foreground text-sm font-medium">/100</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{getConfidenceLabel(analysisResult.confidence_score)}</p>
-                      </div>
+                      <p className="text-xs text-muted-foreground">Viability Score</p>
                       {analysisResult._flags.length > 0 && (
                         <p className="text-xs text-amber-600 mt-1 flex items-center justify-center gap-1">
                           <AlertCircle className="h-3 w-3" />
@@ -1421,56 +1384,56 @@ Powered by Motif - Your AI-Powered Startup Companion
                 </CardContent>
               </Card>
 
-              {/* Key Metrics — Market, Competitors, Score */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Card className="glass-card border-border/50">
-                  <CardContent className="pt-5 pb-5">
-                    <div className="flex items-center gap-3">
+              {/* Key Metrics — Market Size + Competitors */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-stretch">
+                {/* Market Size */}
+                <Card className="glass-card border-border/50 h-full">
+                  <CardContent className="flex flex-col justify-between h-full p-5">
+                    <div className="flex items-center gap-3 mb-3">
                       <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
                         <Target className="h-4 w-4 text-white" />
                       </div>
-                      <div>
-                        <div className="text-muted-foreground text-xs mb-0.5">Market Size</div>
-                        <Badge variant="outline" className={`text-xs ${getMarketSizeBadge(analysisResult.market_analysis.market_size_category).color}`}>
-                          {getMarketSizeBadge(analysisResult.market_analysis.market_size_category).label}
-                        </Badge>
-                        {analysisResult.market_analysis.tam && (
-                          <div className="mt-1 text-xs text-muted-foreground">TAM {analysisResult.market_analysis.tam.split(' ')[0]}</div>
+                      <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Market Size</div>
+                    </div>
+                    {analysisResult.market_analysis.tam ? (
+                      <div className="space-y-1.5">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-xl font-bold">{analysisResult.market_analysis.tam.split('—')[0].trim()}</span>
+                          <span className="text-xs text-muted-foreground">TAM</span>
+                        </div>
+                        {analysisResult.market_analysis.growth_rate && (
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            Growth: {analysisResult.market_analysis.growth_rate}
+                          </p>
                         )}
                       </div>
-                    </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No verified data available.</p>
+                    )}
                   </CardContent>
                 </Card>
 
-                <Card className="glass-card border-border/50">
-                  <CardContent className="pt-5 pb-5">
-                    <div className="flex items-center gap-3">
+                {/* Competitors Identified */}
+                <Card className="glass-card border-border/50 h-full">
+                  <CardContent className="flex flex-col justify-between h-full p-5">
+                    <div className="flex items-center gap-3 mb-3">
                       <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
                         <Users className="h-4 w-4 text-white" />
                       </div>
-                      <div>
-                        <div className="text-muted-foreground text-xs mb-0.5">Competitors Identified</div>
-                        <div className="font-semibold text-sm">
-                          {analysisResult.competition_analysis.competitors.length} companies
-                        </div>
-                      </div>
+                      <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Competitors Identified</div>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="glass-card border-border/50">
-                  <CardContent className="pt-5 pb-5">
-                    <div className="flex items-center gap-3">
-                      <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
-                        <CheckCircle className="h-4 w-4 text-white" />
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground text-xs mb-0.5">Analysis Confidence</div>
-                        <div className={`font-semibold text-sm ${getConfidenceColor(analysisResult.confidence_score)}`}>
-                          {getConfidenceLabel(analysisResult.confidence_score)}
-                        </div>
-                      </div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-xl font-bold">
+                        {analysisResult.competition_analysis.competitors.length}
+                      </span>
+                      <span className="text-xs text-muted-foreground">companies mapped</span>
                     </div>
+                    {analysisResult.competition_analysis.competitors.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                        {analysisResult.competition_analysis.competitors.slice(0, 2).map(c => c.name).join(', ')}
+                        {analysisResult.competition_analysis.competitors.length > 2 && ` +${analysisResult.competition_analysis.competitors.length - 2} more`}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -1779,10 +1742,13 @@ Powered by Motif - Your AI-Powered Startup Companion
                       </Button>
                     </div>
                   </div>
-                  <div className="flex items-center justify-center gap-4 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 p-4 md:w-32 md:flex-col md:gap-2">
+                  <div className="flex items-center justify-center rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 p-5 md:w-32 md:flex-col">
                     <div className="text-center">
-                      <Badge className="border-0 bg-green-500/15 text-green-700 text-sm px-3 py-1">High</Badge>
-                      <div className="text-muted-foreground text-xs mt-1">Confidence</div>
+                      <div className="flex items-baseline gap-0.5 justify-center">
+                        <span className="text-3xl font-bold text-green-600">85</span>
+                        <span className="text-base font-medium text-muted-foreground">/100</span>
+                      </div>
+                      <div className="text-muted-foreground text-xs mt-1">Viability Score</div>
                     </div>
                   </div>
                 </div>
