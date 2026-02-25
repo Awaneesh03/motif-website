@@ -1343,95 +1343,80 @@ Powered by Motif - Your AI-Powered Startup Companion
               className="max-w-6xl mx-auto px-6 py-10 space-y-10"
             >
               {/* Analysis Summary Card */}
-              <div className="rounded-2xl border bg-gradient-to-r from-background to-muted/30 shadow-sm p-8">
-                <div className="flex flex-col justify-between gap-8 md:flex-row md:items-center">
-                  <div className="flex-1 space-y-2">
+              <div className="rounded-2xl border bg-card p-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                  <div className="md:col-span-2 space-y-3">
                     <h3 className="text-2xl font-semibold flex items-center gap-2">
                       <Shield className="h-5 w-5 text-primary" />
                       Analysis Summary
                     </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {analysisResult.idea_summary}
                     </p>
                     <p className="text-xs text-muted-foreground italic">
                       {analysisResult.confidence_reasoning}
                     </p>
                   </div>
-                  {/* Viability Score box */}
-                  <div className="min-w-[200px] text-center flex-shrink-0 flex flex-col items-center bg-white/60 backdrop-blur-sm rounded-2xl border shadow-md px-8 py-6">
-                    <div className="flex items-baseline leading-none">
-                      <span className="text-6xl font-extrabold tracking-tight text-amber-600">
-                        {analysisResult.score ?? 0}
-                      </span>
-                      <span className="text-base text-muted-foreground ml-1">/100</span>
+                  <div className="flex justify-center md:justify-end">
+                    <div className="bg-muted/40 rounded-2xl px-10 py-8 border text-center">
+                      <div className="flex items-baseline justify-center leading-none">
+                        <span className="text-6xl font-bold text-amber-600">
+                          {analysisResult.score ?? 0}
+                        </span>
+                        <span className="text-base text-muted-foreground ml-1">/100</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">Viability Score</p>
+                      {analysisResult._flags.length > 0 && (
+                        <p className="text-xs text-amber-600 mt-2 flex items-center justify-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Some figures flagged for verification
+                        </p>
+                      )}
                     </div>
-                    <p className="mt-2 text-sm text-muted-foreground">Viability Score</p>
-                    {analysisResult._flags.length > 0 && (
-                      <p className="text-xs text-amber-600 mt-2 flex items-center justify-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Some figures flagged for verification
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
 
               {/* Key Metrics — Market Size + Competitors */}
-              <div className="bg-muted/30 rounded-2xl p-6">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-stretch">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Market Size */}
-                <div className="rounded-2xl border bg-card shadow-sm p-8 h-full flex flex-col justify-between transition-all hover:shadow-md">
-                  <div className="flex items-center gap-3">
-                    <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
-                      <Target className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="text-base font-semibold">Market Size</span>
-                  </div>
-                  <div className="border-t mt-4 pt-4 space-y-3">
-                    {analysisResult.market_analysis.tam ? (
-                      <>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-3xl font-bold">{analysisResult.market_analysis.tam.split('—')[0].trim()}</span>
-                          <span className="text-xs text-muted-foreground">TAM</span>
-                        </div>
-                        {analysisResult.market_analysis.growth_rate && (
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            Growth: {analysisResult.market_analysis.growth_rate}
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">No verified data available.</p>
-                    )}
-                  </div>
+                <div className="rounded-2xl border bg-card p-8 h-full">
+                  <p className="text-base font-semibold mb-4">Market Size</p>
+                  {analysisResult.market_analysis.tam ? (
+                    <>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-3xl font-bold">{analysisResult.market_analysis.tam.split('—')[0].trim()}</span>
+                        <span className="text-sm text-muted-foreground">TAM</span>
+                      </div>
+                      {analysisResult.market_analysis.growth_rate && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Growth: {analysisResult.market_analysis.growth_rate}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">No verified data available.</p>
+                  )}
                 </div>
 
                 {/* Competitors Identified */}
-                <div className="rounded-2xl border bg-card shadow-sm p-8 h-full flex flex-col justify-between transition-all hover:shadow-md">
-                  <div className="flex items-center gap-3">
-                    <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
-                      <Users className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="text-base font-semibold">Competitors Identified</span>
+                <div className="rounded-2xl border bg-card p-8 h-full">
+                  <p className="text-base font-semibold mb-4">Competitors Identified</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-bold">
+                      {analysisResult.competition_analysis.competitors.length}
+                    </span>
+                    <span className="text-sm text-muted-foreground">companies mapped</span>
                   </div>
-                  <div className="border-t mt-4 pt-4 space-y-3">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-3xl font-bold">
-                        {analysisResult.competition_analysis.competitors.length}
-                      </span>
-                      <span className="text-sm text-muted-foreground">companies mapped</span>
-                    </div>
-                    {analysisResult.competition_analysis.competitors.length > 0 ? (
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        {analysisResult.competition_analysis.competitors.slice(0, 2).map(c => c.name).join(', ')}
-                        {analysisResult.competition_analysis.competitors.length > 2 && ` +${analysisResult.competition_analysis.competitors.length - 2} more`}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">No competitors identified.</p>
-                    )}
-                  </div>
+                  {analysisResult.competition_analysis.competitors.length > 0 ? (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {analysisResult.competition_analysis.competitors.slice(0, 2).map(c => c.name).join(', ')}
+                      {analysisResult.competition_analysis.competitors.length > 2 && ` +${analysisResult.competition_analysis.competitors.length - 2} more`}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic mt-2">No competitors identified.</p>
+                  )}
                 </div>
-              </div>
               </div>
 
               {/* Dimension Score Bars — shown only when heuristic_scores is available */}
