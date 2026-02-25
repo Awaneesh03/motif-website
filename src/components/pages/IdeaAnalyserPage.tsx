@@ -1342,6 +1342,8 @@ Powered by Motif - Your AI-Powered Startup Companion
               animate={{ opacity: 1, y: 0 }}
               className="max-w-6xl mx-auto px-6 md:px-10 py-8 space-y-10"
             >
+              {/* Analysis Summary + Key Metrics */}
+              <div className="space-y-8">
               {/* Analysis Summary Card */}
               <div className="rounded-2xl border bg-card p-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-center">
@@ -1357,7 +1359,7 @@ Powered by Motif - Your AI-Powered Startup Companion
                       {analysisResult.confidence_reasoning}
                     </p>
                   </div>
-                  <div className="flex justify-center md:justify-end">
+                  <div className="md:justify-self-end flex justify-center md:justify-end">
                     <div className="bg-muted/40 rounded-2xl px-8 py-6 border shadow-sm text-center min-h-[140px] flex flex-col justify-center">
                       <div className="flex items-baseline justify-center leading-none">
                         <span className="text-6xl font-bold text-amber-600">
@@ -1378,7 +1380,7 @@ Powered by Motif - Your AI-Powered Startup Companion
               </div>
 
               {/* Key Metrics — Market Size + Competitors */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
                 {/* Market Size */}
                 <div className="rounded-2xl border bg-card p-8 h-full">
                   <p className="text-base font-semibold mb-4">Market Size</p>
@@ -1422,6 +1424,7 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </div>
                 </div>
               </div>
+              </div>{/* end space-y-8 wrapper */}
 
               {/* Dimension Score Bars — shown only when heuristic_scores is available */}
               {analysisResult.heuristic_scores && (
