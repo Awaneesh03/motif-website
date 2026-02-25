@@ -880,13 +880,13 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
               {/* Post Form Dialog */}
               <Dialog open={postFormOpen} onOpenChange={setPostFormOpen}>
-                <DialogContent className="sm:max-w-lg p-0 gap-0">
-                  <DialogHeader className="px-6 pt-6 pb-3">
+                <DialogContent className="sm:max-w-lg p-0 gap-0 max-h-[90vh] flex flex-col">
+                  <DialogHeader className="px-6 pt-6 pb-3 flex-shrink-0">
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
                   </DialogHeader>
 
-                  {/* Scroll area with hard max-height cap */}
-                  <div className="max-h-[60vh] overflow-y-auto px-6 pb-2">
+                  {/* Scroll area — fills remaining height, scrolls smoothly */}
+                  <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
                     {isLoadingIdeas ? (
                       <div className="flex flex-col items-center justify-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
