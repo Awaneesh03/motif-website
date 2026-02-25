@@ -1340,7 +1340,7 @@ Powered by Motif - Your AI-Powered Startup Companion
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="max-w-6xl mx-auto px-6 py-10 space-y-10"
+              className="max-w-6xl mx-auto px-6 md:px-10 py-8 space-y-10"
             >
               {/* Analysis Summary Card */}
               <div className="rounded-2xl border bg-card p-8">
@@ -1378,7 +1378,7 @@ Powered by Motif - Your AI-Powered Startup Companion
               </div>
 
               {/* Key Metrics — Market Size + Competitors */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Market Size */}
                 <div className="rounded-2xl border bg-card p-8 h-full">
                   <p className="text-base font-semibold mb-4">Market Size</p>
