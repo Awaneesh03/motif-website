@@ -150,6 +150,10 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   // Polling refs for job-based async analysis
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentJobIdRef = useRef<string | null>(null);
+  // Auto-retry tracking — reset on each new analysis, max 1 silent retry
+  const autoRetryCountRef = useRef<number>(0);
+  // Poll tick counter — used to enforce a 3-minute max poll duration
+  const pollTickRef = useRef<number>(0);
   // Controls whether extracted PDF text is shown in full or as a preview
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   // File upload state
@@ -457,6 +461,10 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       pollIntervalRef.current = null;
     }
 
+    // Reset per-analysis counters
+    autoRetryCountRef.current = 0;
+    pollTickRef.current = 0;
+
     setIsAnalyzing(true);
 
     try {
@@ -521,7 +529,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       // ── Poll every 2.5 s — survives tab switches ──────────────────────────
       const doPoll = async () => {
         try {
-          const status = await pollAnalysisStatusSafe(jobId);
+          const status = await pollAnalysisStatusSafe(currentJobIdRef.current!);
           console.log('[IdeaAnalyser] Poll result:', status.status);
 
           if (status.status === 'COMPLETED' && status.safeResult) {
@@ -573,20 +581,55 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
           } else if (status.status === 'FAILED') {
             clearInterval(pollIntervalRef.current!);
             pollIntervalRef.current = null;
-            setIsAnalyzing(false);
 
-            const msg = status.errorMessage || 'Analysis failed. Please try again.';
-            if (msg.includes('Rate limit') || msg.includes('rate_limit')) {
+            const msg = status.errorMessage || '';
+            const isRateLimit = msg.includes('Rate limit') || msg.includes('rate_limit') || msg.includes('429');
+            const isAuth = msg.includes('authentication') || msg.includes('401') || msg.includes('API key');
+
+            // Auto-retry once for transient failures (not rate-limit or auth errors)
+            if (!isRateLimit && !isAuth && autoRetryCountRef.current < 1) {
+              autoRetryCountRef.current += 1;
+              pollTickRef.current = 0;
+              console.log('[IdeaAnalyser] Auto-retrying after FAILED (attempt', autoRetryCountRef.current, ')');
+              toast.info('Analysis hit a snag — retrying automatically…');
+              try {
+                const retry = await startAnalysis({
+                  title: ideaTitle,
+                  description: ideaDescription,
+                  targetMarket: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
+                });
+                currentJobIdRef.current = retry.jobId;
+                doPoll();
+                pollIntervalRef.current = setInterval(doPoll, 2500);
+              } catch {
+                setIsAnalyzing(false);
+                toast.error('Analysis failed. Please try again.');
+              }
+              return;
+            }
+
+            setIsAnalyzing(false);
+            if (isRateLimit) {
               toast.error('Rate limit exceeded. Please try again in a few moments.');
             } else if (msg.toLowerCase().includes('parse') || msg.toLowerCase().includes('format')) {
               toast.error('AI returned an unexpected response. Please try again — this is usually a one-time glitch.');
             } else if (msg.toLowerCase().includes('too long') || msg.toLowerCase().includes('timed out')) {
               toast.error('Analysis is taking longer than usual. Please try again — the AI is under load.');
             } else {
-              toast.error(msg);
+              toast.error(msg || 'Analysis failed. Please try again.');
+            }
+          } else {
+            // PENDING / PROCESSING — track ticks for max-poll cap (3 min = 72 × 2.5 s)
+            pollTickRef.current += 1;
+            if (pollTickRef.current > 72) {
+              clearInterval(pollIntervalRef.current!);
+              pollIntervalRef.current = null;
+              setIsAnalyzing(false);
+              toast.error('Analysis is taking too long. Please try again — the AI may be under heavy load.');
+              return;
             }
           }
-          // PENDING / PROCESSING → keep polling
+          // PENDING / PROCESSING → keep polling (handled in else above)
         } catch (pollErr) {
           // Transient network error — log and retry on next tick
           console.warn('[IdeaAnalyser] Poll error (will retry):', pollErr);
