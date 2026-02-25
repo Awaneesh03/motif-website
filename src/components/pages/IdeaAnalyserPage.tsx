@@ -1340,7 +1340,7 @@ Powered by Motif - Your AI-Powered Startup Companion
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-12 space-y-8"
+              className="max-w-6xl mx-auto px-6 py-10 space-y-10"
             >
               {/* Analysis Summary Card */}
               <Card className="glass-card border-primary/20 shadow-sm bg-gradient-to-br from-primary/8 via-background/50 to-purple-500/8">
@@ -1385,6 +1385,7 @@ Powered by Motif - Your AI-Powered Startup Companion
               </Card>
 
               {/* Key Metrics — Market Size + Competitors */}
+              <div className="bg-muted/30 rounded-2xl p-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-stretch">
                 {/* Market Size */}
                 <Card className="glass-card border-border/50 h-full shadow-sm hover:shadow-md transition-shadow">
@@ -1437,9 +1438,11 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </CardContent>
                 </Card>
               </div>
+              </div>
 
               {/* Dimension Score Bars — shown only when heuristic_scores is available */}
               {analysisResult.heuristic_scores && (
+                <div className="bg-muted/30 rounded-2xl p-6">
                 <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                   <CardHeader className="pb-4 border-b border-border/40">
                     <CardTitle className="flex items-center gap-2 text-xl font-semibold">
@@ -1483,10 +1486,12 @@ Powered by Motif - Your AI-Powered Startup Companion
                     })}
                   </CardContent>
                 </Card>
+                </div>
               )}
 
               {/* Market Analysis Deep Dive */}
-              <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow bg-muted/20">
+              <div className="bg-muted/30 rounded-2xl p-6">
+              <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4 border-b border-border/40">
                   <CardTitle className="flex items-center gap-2 text-xl font-semibold">
                     <BarChart3 className="text-primary h-5 w-5" />
@@ -1535,9 +1540,11 @@ Powered by Motif - Your AI-Powered Startup Companion
                   )}
                 </CardContent>
               </Card>
+              </div>
 
               {/* Competition Analysis */}
-              <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow bg-muted/20">
+              <div className="bg-muted/30 rounded-2xl p-6">
+              <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4 border-b border-border/40">
                   <CardTitle className="flex items-center gap-2 text-xl font-semibold">
                     <Users className="text-primary h-5 w-5" />
@@ -1565,8 +1572,10 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </div>
                 </CardContent>
               </Card>
+              </div>
 
               {/* Strengths & Risks */}
+              <div className="bg-muted/30 rounded-2xl p-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                   <CardHeader className="pb-4 border-b border-border/40">
@@ -1606,8 +1615,10 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </CardContent>
                 </Card>
               </div>
+              </div>
 
               {/* Overall Assessment */}
+              <div className="bg-muted/30 rounded-2xl p-6">
               <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4 border-b border-border/40">
                   <CardTitle className="flex items-center gap-2 text-xl font-semibold">
@@ -1621,8 +1632,10 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </p>
                 </CardContent>
               </Card>
+              </div>
 
               {/* Recommendations */}
+              <div className="bg-muted/30 rounded-2xl p-6">
               <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4 border-b border-border/40">
                   <CardTitle className="flex items-center gap-2 text-xl font-semibold">
@@ -1643,9 +1656,11 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </ul>
                 </CardContent>
               </Card>
+              </div>
 
               {/* Investor Analysis — shown only when present */}
               {analysisResult.investor_analysis && (
+                <div className="bg-muted/30 rounded-2xl p-6">
                 <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                   <CardHeader className="pb-4 border-b border-border/40">
                     <CardTitle className="flex items-center gap-2 text-xl font-semibold">
@@ -1701,6 +1716,7 @@ Powered by Motif - Your AI-Powered Startup Companion
                     )}
                   </CardContent>
                 </Card>
+                </div>
               )}
 
               {/* Data Transparency Note */}
