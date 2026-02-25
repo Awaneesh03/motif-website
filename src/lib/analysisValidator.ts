@@ -17,6 +17,22 @@ export interface Competitor {
   opportunity?: string;
 }
 
+/** Per-dimension heuristic scores (each 0–20, sum = overall score). */
+export interface HeuristicScores {
+  problem: number;
+  market: number;
+  defensibility: number;
+  monetization: number;
+  execution: number;
+}
+
+/** Investor simulation output. */
+export interface InvestorAnalysis {
+  bull_case: string;
+  bear_case: string;
+  key_questions: string[];
+}
+
 export interface MarketAnalysis {
   market_size_category: 'Small' | 'Medium' | 'Large';
   market_reasoning: string;
@@ -56,6 +72,10 @@ export interface SafeAnalysisResult {
   confidence_score: number;
   confidence_reasoning: string;
   recommendations: string[];
+  /** Per-dimension heuristic scores — present for fresh AI results only. */
+  heuristic_scores?: HeuristicScores;
+  /** Investor simulation — present for fresh AI results only. */
+  investor_analysis?: InvestorAnalysis;
   /** Fields that were flagged / rewritten by the validator. */
   _flags: string[];
 }
@@ -288,6 +308,37 @@ export function validateAndSanitise(raw: unknown): SafeAnalysisResult {
       ? obj.confidence_reasoning
       : `Confidence score of ${confidenceScore}/100 assessed based on the level of detail provided.`;
 
+  // ── Heuristic scores ───────────────────────────────────────────────────────
+  let heuristicScores: HeuristicScores | undefined;
+  const hs = obj.heuristic_scores ?? obj.heuristicScores;
+  if (hs && typeof hs === 'object') {
+    const clamp20 = (v: unknown) =>
+      typeof v === 'number' ? Math.max(0, Math.min(20, Math.round(v))) : 0;
+    heuristicScores = {
+      problem:       clamp20(hs.problem),
+      market:        clamp20(hs.market),
+      defensibility: clamp20(hs.defensibility),
+      monetization:  clamp20(hs.monetization),
+      execution:     clamp20(hs.execution),
+    };
+  }
+
+  // ── Investor analysis ──────────────────────────────────────────────────────
+  let investorAnalysis: InvestorAnalysis | undefined;
+  const ia = obj.investor_analysis ?? obj.investorAnalysis;
+  if (ia && typeof ia === 'object') {
+    const bullCase = typeof ia.bull_case === 'string' ? ia.bull_case.trim() : (typeof ia.bullCase === 'string' ? ia.bullCase.trim() : '');
+    const bearCase = typeof ia.bear_case === 'string' ? ia.bear_case.trim() : (typeof ia.bearCase === 'string' ? ia.bearCase.trim() : '');
+    const keyQuestions = Array.isArray(ia.key_questions)
+      ? ia.key_questions.filter((q: unknown) => typeof q === 'string') as string[]
+      : Array.isArray(ia.keyQuestions)
+      ? ia.keyQuestions.filter((q: unknown) => typeof q === 'string') as string[]
+      : [];
+    if (bullCase || bearCase || keyQuestions.length > 0) {
+      investorAnalysis = { bull_case: bullCase, bear_case: bearCase, key_questions: keyQuestions };
+    }
+  }
+
   return {
     score,
     idea_summary: ideaSummary,
@@ -313,6 +364,8 @@ export function validateAndSanitise(raw: unknown): SafeAnalysisResult {
     confidence_score: confidenceScore,
     confidence_reasoning: confidenceReasoning,
     recommendations,
+    heuristic_scores: heuristicScores,
+    investor_analysis: investorAnalysis,
     _flags: flags,
   };
 }

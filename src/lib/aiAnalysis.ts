@@ -93,6 +93,9 @@ export async function pollAnalysisStatus(jobId: string): Promise<JobStatusResult
       competitiveAdvantage: r.competitiveAdvantage || r.competitive_advantage || undefined,
       market: r.market || undefined,
       confidenceScore: r.confidenceScore || r.confidence_score || undefined,
+      ideaSummary: r.ideaSummary || r.idea_summary || undefined,
+      heuristicScores: r.heuristicScores || r.heuristic_scores || undefined,
+      investorAnalysis: r.investorAnalysis || r.investor_analysis || undefined,
     };
   }
   return raw as JobStatusResult;

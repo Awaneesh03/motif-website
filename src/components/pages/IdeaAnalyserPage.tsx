@@ -40,7 +40,7 @@ import { startAnalysis, pollAnalysisStatusSafe, generateIdea, improveDescription
 import type { SafeAnalysisResult } from '../../lib/aiAnalysis';
 import { fromLegacyResult } from '../../lib/analysisValidator';
 import type { Competitor } from '../../lib/analysisValidator';
-import { Shield, BarChart3 } from 'lucide-react';
+import { Shield, BarChart3, TrendingDown, HelpCircle } from 'lucide-react';
 
 interface CommunityIdea {
   title: string;
@@ -1438,6 +1438,53 @@ Powered by Motif - Your AI-Powered Startup Companion
                 </Card>
               </div>
 
+              {/* Dimension Score Bars — shown only when heuristic_scores is available */}
+              {analysisResult.heuristic_scores && (
+                <Card className="glass-card border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="text-primary h-5 w-5" />
+                      Scoring Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {(
+                      [
+                        { key: 'problem',       label: 'Problem Severity' },
+                        { key: 'market',        label: 'Market Opportunity' },
+                        { key: 'defensibility', label: 'Defensibility' },
+                        { key: 'monetization',  label: 'Monetization' },
+                        { key: 'execution',     label: 'Execution Feasibility' },
+                      ] as const
+                    ).map(({ key, label }) => {
+                      const raw = analysisResult.heuristic_scores![key];
+                      const val = typeof raw === 'number' ? raw : 0;
+                      const pct = Math.round((val / 20) * 100);
+                      const color =
+                        pct >= 70
+                          ? 'bg-green-500'
+                          : pct >= 45
+                          ? 'bg-yellow-500'
+                          : 'bg-red-500';
+                      return (
+                        <div key={key} className="flex items-center gap-3">
+                          <span className="w-40 flex-shrink-0 text-xs text-muted-foreground">{label}</span>
+                          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${color} transition-all duration-700`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="w-10 flex-shrink-0 text-right text-xs font-medium tabular-nums">
+                            {val}/20
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Market Analysis Deep Dive */}
               <Card className="glass-card border-border/50">
                 <CardHeader>
@@ -1596,6 +1643,65 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </ul>
                 </CardContent>
               </Card>
+
+              {/* Investor Analysis — shown only when present */}
+              {analysisResult.investor_analysis && (
+                <Card className="glass-card border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="text-primary h-5 w-5" />
+                      Investor Simulation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Bull case */}
+                    {analysisResult.investor_analysis.bull_case && (
+                      <div className="rounded-lg bg-green-500/8 border border-green-500/20 p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-xs font-semibold uppercase tracking-wider text-green-700">Bull Case</span>
+                        </div>
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                          {analysisResult.investor_analysis.bull_case}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Bear case */}
+                    {analysisResult.investor_analysis.bear_case && (
+                      <div className="rounded-lg bg-red-500/8 border border-red-500/20 p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />
+                          <span className="text-xs font-semibold uppercase tracking-wider text-red-700">Bear Case</span>
+                        </div>
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                          {analysisResult.investor_analysis.bear_case}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Key due-diligence questions */}
+                    {analysisResult.investor_analysis.key_questions.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <HelpCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Due Diligence Questions</span>
+                        </div>
+                        <ul className="space-y-2">
+                          {analysisResult.investor_analysis.key_questions.map((q, i) => (
+                            <li key={i} className="flex items-start gap-2.5">
+                              <span className="mt-0.5 flex-shrink-0 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                                {i + 1}
+                              </span>
+                              <span className="text-sm text-muted-foreground">{q}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Data Transparency Note */}
               {analysisResult._flags.length > 0 && (
