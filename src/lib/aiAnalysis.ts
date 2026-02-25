@@ -62,11 +62,13 @@ export async function startAnalysis(
   const truncatedDescription = request.description?.substring(0, 10000) || '';
   const truncatedMarket = request.targetMarket?.substring(0, 200) || null;
 
+  // 90s timeout: survives Render cold-starts (60–90s boot time) while still
+  // failing fast if the server is genuinely unreachable.
   return apiClient.post<StartAnalysisResult>('/api/analysis/start', {
     title: truncatedTitle,
     description: truncatedDescription,
     targetMarket: truncatedMarket,
-  });
+  }, 90000);
 }
 
 /**

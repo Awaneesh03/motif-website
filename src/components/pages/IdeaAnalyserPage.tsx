@@ -580,6 +580,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               toast.error('Rate limit exceeded. Please try again in a few moments.');
             } else if (msg.toLowerCase().includes('parse') || msg.toLowerCase().includes('format')) {
               toast.error('AI returned an unexpected response. Please try again — this is usually a one-time glitch.');
+            } else if (msg.toLowerCase().includes('too long') || msg.toLowerCase().includes('timed out')) {
+              toast.error('Analysis is taking longer than usual. Please try again — the AI is under load.');
             } else {
               toast.error(msg);
             }
@@ -603,6 +605,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         toast.error('Rate limit exceeded. Please try again in a few moments.');
       } else if (errorMessage.includes('API key')) {
         toast.error('AI service is not configured. Please contact support.');
+      } else if (errorMessage.includes('timed out') || errorMessage.includes('Failed to fetch')) {
+        toast.error('The server is starting up — please wait 30 seconds and try again.');
       } else {
         toast.error(errorMessage);
       }
