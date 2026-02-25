@@ -1343,63 +1343,55 @@ Powered by Motif - Your AI-Powered Startup Companion
               className="max-w-6xl mx-auto px-6 py-10 space-y-10"
             >
               {/* Analysis Summary Card */}
-              <Card className="glass-card border-primary/20 shadow-sm bg-gradient-to-br from-primary/8 via-background/50 to-purple-500/8">
-                <CardContent className="p-6 sm:p-8">
-                  <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                        <Shield className="h-5 w-5 text-primary" />
-                        Analysis Summary
-                      </h3>
-                      <p className="text-muted-foreground text-sm mb-3 leading-relaxed max-w-2xl">
-                        {analysisResult.idea_summary}
-                      </p>
-                      <p className="text-xs text-muted-foreground italic">
-                        {analysisResult.confidence_reasoning}
-                      </p>
-                    </div>
-                    {/* Single score — Viability only */}
-                    <div className="text-center flex-shrink-0 flex flex-col items-center gap-1.5 bg-background/60 rounded-2xl px-8 py-5 border border-border/40">
-                      <div className="flex items-baseline gap-1 leading-none">
-                        <span className={`text-6xl font-bold tracking-tight ${
-                          (analysisResult.score ?? 0) >= 70
-                            ? 'text-green-600'
-                            : (analysisResult.score ?? 0) >= 50
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                        }`}>
-                          {analysisResult.score ?? 0}
-                        </span>
-                        <span className="text-muted-foreground text-lg font-medium">/100</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Viability Score</p>
-                      {analysisResult._flags.length > 0 && (
-                        <p className="text-xs text-amber-600 mt-1 flex items-center justify-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          Some figures flagged for verification
-                        </p>
-                      )}
-                    </div>
+              <div className="rounded-2xl border bg-card shadow-sm p-6">
+                <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
+                  <div className="flex-1 space-y-2">
+                    <h3 className="text-xl font-semibold flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      Analysis Summary
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
+                      {analysisResult.idea_summary}
+                    </p>
+                    <p className="text-xs text-muted-foreground italic">
+                      {analysisResult.confidence_reasoning}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
+                  {/* Viability Score box */}
+                  <div className="text-center flex-shrink-0 flex flex-col items-center gap-1.5 bg-muted/40 rounded-xl px-8 py-5 border">
+                    <div className="flex items-baseline gap-1 leading-none">
+                      <span className="text-5xl font-bold tracking-tight text-amber-600">
+                        {analysisResult.score ?? 0}
+                      </span>
+                      <span className="text-sm text-muted-foreground font-medium">/100</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Viability Score</p>
+                    {analysisResult._flags.length > 0 && (
+                      <p className="text-xs text-amber-600 mt-1 flex items-center justify-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        Some figures flagged for verification
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {/* Key Metrics — Market Size + Competitors */}
               <div className="bg-muted/30 rounded-2xl p-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-stretch">
                 {/* Market Size */}
-                <Card className="glass-card border-border/50 h-full shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="flex flex-col justify-between h-full p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
-                        <Target className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Market Size</div>
+                <div className="rounded-2xl border bg-card shadow-sm p-6 h-full flex flex-col justify-between">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
+                      <Target className="h-4 w-4 text-white" />
                     </div>
+                    <span className="text-base font-semibold">Market Size</span>
+                  </div>
+                  <div className="space-y-3">
                     {analysisResult.market_analysis.tam ? (
-                      <div className="space-y-1.5">
+                      <>
                         <div className="flex items-baseline gap-1.5">
-                          <span className="text-xl font-bold">{analysisResult.market_analysis.tam.split('—')[0].trim()}</span>
+                          <span className="text-2xl font-bold">{analysisResult.market_analysis.tam.split('—')[0].trim()}</span>
                           <span className="text-xs text-muted-foreground">TAM</span>
                         </div>
                         {analysisResult.market_analysis.growth_rate && (
@@ -1407,36 +1399,38 @@ Powered by Motif - Your AI-Powered Startup Companion
                             Growth: {analysisResult.market_analysis.growth_rate}
                           </p>
                         )}
-                      </div>
+                      </>
                     ) : (
-                      <p className="text-sm text-muted-foreground">No verified data available.</p>
+                      <p className="text-sm text-muted-foreground italic">No verified data available.</p>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* Competitors Identified */}
-                <Card className="glass-card border-border/50 h-full shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="flex flex-col justify-between h-full p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
-                        <Users className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Competitors Identified</div>
+                <div className="rounded-2xl border bg-card shadow-sm p-6 h-full flex flex-col justify-between">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="gradient-lavender flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
+                      <Users className="h-4 w-4 text-white" />
                     </div>
+                    <span className="text-base font-semibold">Competitors Identified</span>
+                  </div>
+                  <div className="space-y-3">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-xl font-bold">
+                      <span className="text-2xl font-bold">
                         {analysisResult.competition_analysis.competitors.length}
                       </span>
                       <span className="text-xs text-muted-foreground">companies mapped</span>
                     </div>
-                    {analysisResult.competition_analysis.competitors.length > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                    {analysisResult.competition_analysis.competitors.length > 0 ? (
+                      <p className="text-xs text-muted-foreground leading-relaxed">
                         {analysisResult.competition_analysis.competitors.slice(0, 2).map(c => c.name).join(', ')}
                         {analysisResult.competition_analysis.competitors.length > 2 && ` +${analysisResult.competition_analysis.competitors.length - 2} more`}
                       </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No competitors identified.</p>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
               </div>
 
