@@ -4,6 +4,8 @@ import { motion } from 'motion/react';
 import {
   ArrowLeft,
   Clock,
+  Trophy,
+  Target,
   Save,
   Send,
   Bold,
@@ -293,44 +295,47 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     <div className="bg-background min-h-screen">
       {/* Header */}
       <div className="border-border border-b bg-gradient-to-r from-[#C9A7EB]/10 to-transparent">
-        <div className="mx-auto max-w-[1140px] px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="mx-auto max-w-[1140px] px-4 pt-4 pb-6 sm:px-6 lg:px-8">
+          {/* Back button row */}
+          <div className="mb-5">
+            <Button variant="ghost" size="sm" onClick={handleBack} className="rounded-lg -ml-2 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              Back to Case Studies
+            </Button>
+          </div>
+
+          {/* Logo + Title + CTA */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <img
                 src={caseData.logo}
                 alt={caseData.company}
-                className="h-16 w-16 rounded-lg object-cover"
+                className="h-14 w-14 rounded-xl object-cover border border-border/40 flex-shrink-0"
               />
               <div>
-                <h1 className="mb-2">{caseData.title}</h1>
-                <p className="text-muted-foreground">{caseData.company}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">{caseData.company}</p>
+                <h1 className="text-xl font-bold leading-snug">{caseData.title}</h1>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={handleBack} className="rounded-xl">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to List
-              </Button>
-              <Button
-                className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90"
-                onClick={() =>
-                  document.getElementById('workspace')?.scrollIntoView({ behavior: 'smooth' })
-                }
-              >
-                Start Solving
-              </Button>
-            </div>
+            <Button
+              className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90 sm:flex-shrink-0"
+              onClick={() =>
+                document.getElementById('workspace')?.scrollIntoView({ behavior: 'smooth' })
+              }
+            >
+              Start Solving
+            </Button>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          {/* Tags row */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <DifficultyBadge difficulty={caseData.difficulty} />
             {caseData.tags.map((tag: string) => (
-              <Badge key={tag} variant="outline" className="rounded-lg">
+              <Badge key={tag} variant="outline" className="rounded-lg text-xs">
                 {tag}
               </Badge>
             ))}
-            <Badge variant="secondary" className="ml-auto rounded-lg">
-              {caseData.publishedDate}
-            </Badge>
+            <span className="ml-auto text-xs text-muted-foreground">{caseData.publishedDate}</span>
           </div>
         </div>
       </div>
@@ -341,49 +346,46 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
           {/* Left Content */}
           <div className="space-y-6 md:col-span-2">
             {/* Problem Overview */}
-            <Card className="glass-surface border-border/50">
-              <CardContent className="p-6">
-                <h2 className="mb-4">Problem Overview</h2>
-                <p className="text-muted-foreground mb-6">{caseData.description}</p>
-                <div className="glass-surface border-border/30 rounded-xl border p-4">
-                  <h3 className="mb-3">The Challenge</h3>
-                  <p className="text-muted-foreground leading-relaxed">{caseData.problem}</p>
+            <Card className="border-border/50">
+              <CardContent className="p-6 space-y-5">
+                <div>
+                  <h2 className="text-base font-semibold mb-2">Problem Overview</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{caseData.description}</p>
+                </div>
+                <div className="rounded-xl bg-muted/40 border border-border/40 p-4">
+                  <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary flex-shrink-0" />
+                    The Challenge
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{caseData.problem}</p>
                 </div>
               </CardContent>
             </Card>
 
             {/* Info Bar */}
-            <div className="grid grid-cols-3 gap-4">
-              <Card className="glass-surface border-border/50">
-                <CardContent className="p-4 text-center">
-                  <Clock className="text-primary mx-auto mb-2 h-5 w-5" />
-                  <p className="text-muted-foreground text-sm">Estimated Time</p>
-                  <p>{caseData.estimatedTime}</p>
-                </CardContent>
-              </Card>
-              <Card className="glass-surface border-border/50">
-                <CardContent className="p-4 text-center">
-                  <DifficultyBadge difficulty={caseData.difficulty} className="mx-auto mb-2" />
-                  <p className="text-muted-foreground text-sm">Difficulty</p>
-                  <p>{caseData.difficulty}</p>
-                </CardContent>
-              </Card>
-              <Card className="glass-surface border-border/50">
-                <CardContent className="p-4 text-center">
-                  <Badge className="mx-auto mb-2 bg-[#A9F5D0] text-[#0E1020]">
-                    {caseData.reward}
-                  </Badge>
-                  <p className="text-muted-foreground text-sm">Reward</p>
-                  <p>Points</p>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-border/50 bg-card p-4 flex flex-col items-center gap-2 text-center">
+                <Clock className="h-5 w-5 text-primary" />
+                <p className="text-xs text-muted-foreground">Est. Time</p>
+                <p className="text-sm font-semibold">{caseData.estimatedTime}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-card p-4 flex flex-col items-center gap-2 text-center">
+                <Target className="h-5 w-5 text-primary" />
+                <p className="text-xs text-muted-foreground">Difficulty</p>
+                <p className="text-sm font-semibold">{caseData.difficulty}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-card p-4 flex flex-col items-center gap-2 text-center">
+                <Trophy className="h-5 w-5 text-amber-500" />
+                <p className="text-xs text-muted-foreground">Reward</p>
+                <p className="text-sm font-semibold">{caseData.reward}</p>
+              </div>
             </div>
 
             {/* Workspace Panel */}
-            <Card id="workspace" className="glass-surface border-border/50">
+            <Card id="workspace" className="border-border/50">
               <CardContent className="p-6">
                 <div className="mb-4 flex items-center justify-between">
-                  <h2>Your Solution</h2>
+                  <h2 className="text-base font-semibold">Your Solution</h2>
                   <div className="text-muted-foreground flex items-center gap-2 text-sm">
                     {isSaving ? (
                       <>
@@ -478,14 +480,14 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
             />
 
             {/* Progress Card */}
-            <Card className="glass-surface border-border/50">
-              <CardContent className="p-6">
+            <Card className="border-border/50">
+              <CardContent className="p-5">
                 <Tabs defaultValue="history">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="history">History</TabsTrigger>
-                    <TabsTrigger value="badges">Badges</TabsTrigger>
-                    <TabsTrigger value="notes">Notes</TabsTrigger>
-                    <TabsTrigger value="report">Report</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-2 h-auto gap-1 p-1">
+                    <TabsTrigger value="history" className="text-xs py-1.5">History</TabsTrigger>
+                    <TabsTrigger value="badges" className="text-xs py-1.5">Badges</TabsTrigger>
+                    <TabsTrigger value="notes" className="text-xs py-1.5">Notes</TabsTrigger>
+                    <TabsTrigger value="report" className="text-xs py-1.5">Report</TabsTrigger>
                   </TabsList>
                   <TabsContent value="history" className="mt-4">
                     <div className="space-y-3">
@@ -511,7 +513,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                         {/* Case Summary */}
                         <div>
                           <h4 className="mb-2 text-sm">Case Summary</h4>
-                          <Card className="glass-surface border-border/30">
+                          <Card className="border border-border/40 bg-muted/30">
                             <CardContent className="text-muted-foreground p-3 text-xs">
                               Completed on {new Date().toLocaleDateString()}
                             </CardContent>
@@ -521,7 +523,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                         {/* AI Evaluation */}
                         <div>
                           <h4 className="mb-2 text-sm">AI Evaluation</h4>
-                          <Card className="glass-surface border-border/30">
+                          <Card className="border border-border/40 bg-muted/30">
                             <CardContent className="p-3">
                               <div className="mb-3 text-center">
                                 <div className="text-gradient-lavender mb-1 text-2xl">
@@ -544,7 +546,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                         {/* Improvement Suggestions */}
                         <div>
                           <h4 className="mb-2 text-sm">Suggestions</h4>
-                          <Card className="glass-surface border-border/30">
+                          <Card className="border border-border/40 bg-muted/30">
                             <CardContent className="text-muted-foreground space-y-2 p-3 text-xs">
                               <div className="flex gap-2">
                                 <CheckCircle2 className="text-primary mt-0.5 h-3 w-3 flex-shrink-0" />
