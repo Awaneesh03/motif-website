@@ -104,13 +104,14 @@ function truncateText(text: string, limit: number): string {
 export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const { user, profile, displayName } = useUser();
   
-  // Storage key for persisting form data (sessionStorage = cleared on new tab)
-  const FORM_STORAGE_KEY = 'motif-idea-analyser-form';
-  
-  // Clear old localStorage data (migration to sessionStorage)
+  // Storage key is user-specific — prevents one user seeing another user's data
+  const FORM_STORAGE_KEY = `motif-idea-analyser-form-${user?.id ?? 'anon'}`;
+
+  // Clear old non-user-scoped localStorage/sessionStorage keys (one-time migration)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(FORM_STORAGE_KEY);
+      localStorage.removeItem('motif-idea-analyser-form');
+      sessionStorage.removeItem('motif-idea-analyser-form');
     }
   }, []);
   
@@ -154,6 +155,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const autoRetryCountRef = useRef<number>(0);
   // Poll tick counter — used to enforce a 3-minute max poll duration
   const pollTickRef = useRef<number>(0);
+  // Track user ID to detect account switches in the same tab
+  const prevUserIdRef = useRef(user?.id);
   // Controls whether extracted PDF text is shown in full or as a preview
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   // File upload state
@@ -172,6 +175,23 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     };
     sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
   }, [ideaTitle, ideaDescription, selectedMarkets, analysisResult]);
+
+  // Reset all state when the logged-in user changes (e.g. logout → new login in same tab)
+  useEffect(() => {
+    if (prevUserIdRef.current === user?.id) return;
+    prevUserIdRef.current = user?.id;
+
+    setIdeaTitle('');
+    setIdeaDescription('');
+    setSelectedMarkets([]);
+    setAnalysisResult(null);
+    setUploadedFile(null);
+    setIsAnalyzing(false);
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  }, [user?.id]);
 
   // Drive staged progress while the API call is in-flight.
   // Stages:  0–20% | 20–40% | 40–60% | 60–80% | 80–95%
