@@ -119,7 +119,7 @@ export function IdeaCard({
             </div>
 
             {description && (
-              <p className="text-xs text-muted-foreground line-clamp-1 mt-1.5">
+              <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5 leading-relaxed">
                 {description}
               </p>
             )}
