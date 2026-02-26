@@ -552,19 +552,13 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
           >
             <p className="text-muted-foreground mb-6">Proudly sponsored by</p>
             <div className="flex flex-wrap items-center justify-center gap-8">
-              {[
-                { name: 'Y Combinator', logo: '🚀' },
-                { name: 'Stripe', logo: '💳' },
-                { name: 'Amazon Web Services', logo: '☁️' },
-                { name: 'Google Cloud', logo: '🔧' },
-              ].map(sponsor => (
+              {[1, 2, 3, 4].map(i => (
                 <Badge
-                  key={sponsor.name}
+                  key={i}
                   variant="outline"
-                  className="hover:bg-primary/10 cursor-pointer px-6 py-3 text-base transition-all hover:scale-105 hover:border-primary/50"
+                  className="px-6 py-3 text-base text-muted-foreground border-dashed opacity-60 cursor-default select-none"
                 >
-                  <span className="mr-2">{sponsor.logo}</span>
-                  {sponsor.name}
+                  Coming Soon
                 </Badge>
               ))}
             </div>
@@ -576,53 +570,15 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
       <section className="bg-muted/20 py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Ad 1 - Notion */}
-            <Card className="hover:shadow-lavender group cursor-pointer overflow-hidden border-primary/20 transition-all hover:border-primary/40">
-              <CardContent className="p-6">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20">
-                    <span className="text-2xl">📝</span>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">Notion for Startups</h4>
-                    <p className="text-xs text-muted-foreground">Sponsored</p>
-                  </div>
-                </div>
-                <p className="text-muted-foreground mb-4 text-sm">
-                  Build your startup wiki, roadmap, and docs in one place. Get $1,000 in credits for free.
-                </p>
-                <Button
-                  size="sm"
-                  className="gradient-lavender w-full rounded-xl text-white hover:opacity-90"
-                >
-                  Claim Free Credits →
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Ad 2 - Stripe */}
-            <Card className="hover:shadow-lavender group cursor-pointer overflow-hidden border-primary/20 transition-all hover:border-primary/40">
-              <CardContent className="p-6">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20">
-                    <span className="text-2xl">💳</span>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">Stripe Atlas</h4>
-                    <p className="text-xs text-muted-foreground">Sponsored</p>
-                  </div>
-                </div>
-                <p className="text-muted-foreground mb-4 text-sm">
-                  Incorporate your startup and access Silicon Valley bank accounts from anywhere in the world.
-                </p>
-                <Button
-                  size="sm"
-                  className="gradient-lavender w-full rounded-xl text-white hover:opacity-90"
-                >
-                  Start Your Company →
-                </Button>
-              </CardContent>
-            </Card>
+            {[1, 2].map(i => (
+              <Card key={i} className="overflow-hidden border-dashed border-primary/20 opacity-60">
+                <CardContent className="p-6 flex flex-col items-center justify-center min-h-[160px] gap-3 text-center">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground">Sponsored</p>
+                  <p className="text-lg font-semibold text-muted-foreground">Coming Soon</p>
+                  <p className="text-xs text-muted-foreground">This spot is available for sponsors</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
