@@ -195,7 +195,7 @@ export async function analyzeIdea(
  * Generate a startup idea via backend API (powered by OpenAI / ChatGPT)
  */
 export async function generateIdea(): Promise<GeneratedIdea> {
-  const response = await apiClient.post<IdeaResponse>('/api/ai/generate-idea', {});
+  const response = await apiClient.post<IdeaResponse>('/api/ai/generate-idea', {}, 90000);
   return {
     title: response.title || '',
     description: response.description || '',
@@ -209,6 +209,6 @@ export async function generateIdea(): Promise<GeneratedIdea> {
 export async function improveDescription(description: string): Promise<string> {
   const response = await apiClient.post<ChatResponse>('/api/ai/improve-description', {
     description,
-  });
+  }, 90000);
   return response.message?.trim() || description;
 }

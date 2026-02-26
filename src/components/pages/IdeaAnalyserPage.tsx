@@ -698,12 +698,21 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       setSelectedMarkets(matchedMarkets.length > 0 ? matchedMarkets : ['B2C']);
       toast.success('New idea generated! Click "Analyze" to see its potential.');
     } catch (error) {
-      console.error('Generation error:', error);
-      const msg = error instanceof Error ? error.message : 'Failed to generate idea';
-      if (msg.includes('timed out') || msg.includes('Failed to fetch')) {
-        toast.error('The server is waking up. Please wait a moment and try again.');
-      } else {
-        toast.error('Failed to generate idea. Please try again.');
+      console.error('[GenerateIdea] First attempt failed, retrying...', error);
+      // One automatic retry — covers Render cold-start and transient network blips
+      try {
+        const retried = await generateIdea();
+        setIdeaTitle(retried.title);
+        setIdeaDescription(retried.description);
+        const generatedMarkets = retried.targetMarket?.split(/[,&]/).map(m => m.trim()) || [];
+        const matchedMarkets = MARKET_OPTIONS.filter(opt =>
+          generatedMarkets.some(gm => gm.toLowerCase().includes(opt.toLowerCase()))
+        ).slice(0, 3);
+        setSelectedMarkets(matchedMarkets.length > 0 ? matchedMarkets : ['B2C']);
+        toast.success('New idea generated! Click "Analyze" to see its potential.');
+      } catch (retryError) {
+        console.error('[GenerateIdea] Retry also failed:', retryError);
+        toast.error('Failed to generate idea. Please try again in a moment.');
       }
     } finally {
       setIsGenerating(false);
