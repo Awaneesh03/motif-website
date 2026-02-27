@@ -132,25 +132,21 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
   };
 
   const handleViewAnalysis = (idea: SavedIdea) => {
-    // Pre-load the saved idea data into sessionStorage so IdeaAnalyserPage picks it up
-    const FORM_STORAGE_KEY = 'motif-idea-analyser-form';
-    const markets = idea.tags.length > 0 ? idea.tags : [];
-    const formData = {
-      ideaTitle: idea.title,
-      ideaDescription: idea.description,
-      selectedMarkets: markets,
-      analysisResult: idea.strengths.length > 0 ? {
-        score: idea.score || 0,
-        strengths: idea.strengths,
-        weaknesses: idea.weaknesses,
-        recommendations: idea.recommendations,
-        marketSize: idea.marketSize,
-        competition: idea.competition,
-        viability: idea.viability,
-      } : null,
+    // Store the idea + analysis data for the dedicated SavedAnalysisPage
+    const data = {
+      title: idea.title,
+      description: idea.description,
+      targetMarket: idea.tags.join(', '),
+      score: idea.score || 0,
+      strengths: idea.strengths,
+      weaknesses: idea.weaknesses,
+      recommendations: idea.recommendations,
+      marketSize: idea.marketSize,
+      competition: idea.competition,
+      viability: idea.viability,
     };
-    sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
-    onNavigate?.('Idea Analyser');
+    sessionStorage.setItem('motif-saved-analysis-view', JSON.stringify(data));
+    onNavigate?.('saved-analysis');
   };
 
   // Sort ideas

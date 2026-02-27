@@ -1,0 +1,515 @@
+import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+import {
+  ArrowLeft,
+  Shield,
+  BarChart3,
+  Users,
+  CheckCircle,
+  AlertCircle,
+  Lightbulb,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  HelpCircle,
+  RefreshCw,
+} from 'lucide-react';
+
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { fromLegacyResult } from '../../lib/analysisValidator';
+import type { SafeAnalysisResult, Competitor } from '../../lib/analysisValidator';
+
+// ── Storage key written by SavedIdeasPage ────────────────────────────────────
+export const SAVED_ANALYSIS_KEY = 'motif-saved-analysis-view';
+
+export interface SavedAnalysisData {
+  title: string;
+  description: string;
+  targetMarket: string;
+  score?: number;
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+  marketSize: string;
+  competition: string;
+  viability: string;
+}
+
+// ── Competitor card (same as in IdeaAnalyserPage) ───────────────────────────
+
+function CompetitorCard({ competitor }: { competitor: Competitor }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-card p-4">
+      <p className="text-sm font-semibold leading-snug text-foreground">{competitor.name}</p>
+      {competitor.threat && (
+        <div className="flex items-start gap-2">
+          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500" />
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-600">Threat</span>
+            <p className="text-xs leading-relaxed text-muted-foreground">{competitor.threat}</p>
+          </div>
+        </div>
+      )}
+      {competitor.opportunity && (
+        <div className="flex items-start gap-2">
+          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-500" />
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-green-600">Opportunity</span>
+            <p className="text-xs leading-relaxed text-muted-foreground">{competitor.opportunity}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
+interface SavedAnalysisPageProps {
+  onNavigate?: (page: string) => void;
+}
+
+export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
+  const [raw, setRaw] = useState<SavedAnalysisData | null>(null);
+  const [result, setResult] = useState<SafeAnalysisResult | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(SAVED_ANALYSIS_KEY);
+      if (!stored) return;
+      const data: SavedAnalysisData = JSON.parse(stored);
+      setRaw(data);
+      setResult(
+        fromLegacyResult({
+          score: data.score ?? 0,
+          strengths: data.strengths,
+          weaknesses: data.weaknesses,
+          recommendations: data.recommendations,
+          marketSize: data.marketSize,
+          competition: data.competition,
+          viability: data.viability,
+        })
+      );
+    } catch {
+      // malformed storage — show empty state
+    }
+  }, []);
+
+  // ── Empty / error state ──────────────────────────────────────────────────
+
+  if (!raw || !result) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+          <h2 className="text-lg font-semibold">No analysis to display</h2>
+          <p className="text-sm text-muted-foreground">Go to your vault and click "View Analysis" on a saved idea.</p>
+          <Button variant="outline" onClick={() => onNavigate?.('saved-ideas')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Vault
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Report ───────────────────────────────────────────────────────────────
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border bg-gradient-to-r from-[#C9A7EB]/10 to-transparent">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pt-4 pb-6">
+          {/* Back */}
+          <div className="mb-5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate?.('saved-ideas')}
+              className="rounded-lg -ml-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              Back to Vault
+            </Button>
+          </div>
+
+          {/* Title + meta */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2 flex-1 min-w-0">
+              <h1 className="text-2xl font-bold leading-snug">{raw.title}</h1>
+              {raw.description && (
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl line-clamp-3">
+                  {raw.description}
+                </p>
+              )}
+              {raw.targetMarket && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {raw.targetMarket.split(/[,;]/).map(m => m.trim()).filter(Boolean).map(m => (
+                    <Badge key={m} variant="secondary" className="text-xs rounded-lg">{m}</Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl flex-shrink-0"
+              onClick={() => onNavigate?.('Idea Analyser')}
+            >
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+              Re-Analyze
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Report body */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 space-y-8"
+      >
+        {/* ── Score + Summary ───────────────────────────────────────────── */}
+        <div className="rounded-2xl border bg-card p-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+            <div className="md:col-span-2 space-y-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                Analysis Summary
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {result.idea_summary}
+              </p>
+              {result.confidence_reasoning && (
+                <p className="text-xs text-muted-foreground/70 italic">
+                  {result.confidence_reasoning}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-center md:justify-end">
+              <div className="bg-muted/40 rounded-2xl px-8 py-6 border shadow-sm text-center min-h-[130px] flex flex-col justify-center">
+                <div className="flex items-baseline justify-center leading-none">
+                  <span className="text-6xl font-bold text-amber-600">{result.score ?? 0}</span>
+                  <span className="text-base text-muted-foreground ml-1">/100</span>
+                </div>
+                <p className="text-sm text-muted-foreground/80 mt-2">Viability Score</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Key Metrics ───────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="rounded-2xl border bg-card p-6">
+            <p className="text-sm font-semibold mb-4">Market Size</p>
+            {result.market_analysis.tam ? (
+              <>
+                <div className="flex items-baseline gap-1.5 mt-4">
+                  <span className="text-3xl font-semibold">{result.market_analysis.tam.split('—')[0].trim()}</span>
+                  <span className="text-xs uppercase tracking-wide text-muted-foreground">TAM</span>
+                </div>
+                {result.market_analysis.growth_rate && (
+                  <p className="text-sm text-muted-foreground mt-2">Growth: {result.market_analysis.growth_rate}</p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground italic mt-4">{result.market_analysis.market_size_category} market</p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border bg-card p-6">
+            <p className="text-sm font-semibold mb-4">Competitors Identified</p>
+            <div className="flex items-baseline gap-1.5 mt-4">
+              <span className="text-3xl font-semibold">{result.competition_analysis.competitors.length}</span>
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">companies mapped</span>
+            </div>
+            {result.competition_analysis.competitors.length > 0 && (
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                {result.competition_analysis.competitors.slice(0, 2).map(c => c.name).join(', ')}
+                {result.competition_analysis.competitors.length > 2 && ` +${result.competition_analysis.competitors.length - 2} more`}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* ── Heuristic Scores (fresh results only) ─────────────────────── */}
+        {result.heuristic_scores && (
+          <Card className="border-border/50">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Scoring Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-4">
+              {(
+                [
+                  { key: 'problem',       label: 'Problem Severity' },
+                  { key: 'market',        label: 'Market Opportunity' },
+                  { key: 'defensibility', label: 'Defensibility' },
+                  { key: 'monetization',  label: 'Monetization' },
+                  { key: 'execution',     label: 'Execution Feasibility' },
+                ] as const
+              ).map(({ key, label }) => {
+                const raw = result.heuristic_scores![key];
+                const val = typeof raw === 'number' ? raw : 0;
+                const pct = Math.round((val / 20) * 100);
+                const color = pct >= 70 ? 'bg-green-500' : pct >= 45 ? 'bg-yellow-500' : 'bg-red-500';
+                return (
+                  <div key={key} className="flex items-center gap-3">
+                    <span className="w-40 flex-shrink-0 text-xs text-muted-foreground">{label}</span>
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <div className={`h-full rounded-full ${color} transition-all duration-700`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="w-10 flex-shrink-0 text-right text-xs font-medium tabular-nums">{val}/20</span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Market Analysis ───────────────────────────────────────────── */}
+        <Card className="border-border/50">
+          <CardHeader className="pb-4 border-b border-border/40">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Market Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-4">
+            {(result.market_analysis.tam || result.market_analysis.sam || result.market_analysis.som) && (
+              <div className="grid grid-cols-3 gap-3 rounded-lg bg-muted/20 p-3">
+                {result.market_analysis.tam && (
+                  <div className="text-center">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">TAM</div>
+                    <div className="text-sm font-semibold">{result.market_analysis.tam.split(' ')[0]}</div>
+                    <div className="text-[10px] text-muted-foreground">Total Market</div>
+                  </div>
+                )}
+                {result.market_analysis.sam && (
+                  <div className="text-center">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">SAM</div>
+                    <div className="text-sm font-semibold">{result.market_analysis.sam.split(' ')[0]}</div>
+                    <div className="text-[10px] text-muted-foreground">Serviceable</div>
+                  </div>
+                )}
+                {result.market_analysis.som && (
+                  <div className="text-center">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">SOM</div>
+                    <div className="text-sm font-semibold">{result.market_analysis.som.split(' ')[0]}</div>
+                    <div className="text-[10px] text-muted-foreground">Obtainable</div>
+                  </div>
+                )}
+              </div>
+            )}
+            <div>
+              <h4 className="text-sm font-medium mb-1">Market Reasoning</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">{result.market_analysis.market_reasoning}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-1">Growth Potential</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">{result.market_analysis.growth_potential}</p>
+            </div>
+            {result.market_analysis.source_summary && (
+              <p className="text-xs text-muted-foreground/70 italic border-t border-border/30 pt-3">
+                Estimates basis: {result.market_analysis.source_summary}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Competition ───────────────────────────────────────────────── */}
+        <Card className="border-border/50">
+          <CardHeader className="pb-4 border-b border-border/40">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Users className="h-5 w-5 text-primary" />
+              Competition Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5 pt-4">
+            {result.competition_analysis.competitors.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {result.competition_analysis.competitors.map((c, i) => (
+                  <CompetitorCard key={i} competitor={c} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No specific competitors identified.</p>
+            )}
+            <div className="border-t border-border/40 pt-4">
+              <h4 className="mb-2 text-sm font-medium">Your Competitive Advantage</h4>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {result.competition_analysis.competitive_advantage}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ── Strengths & Risks ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Card className="border-border/50">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold text-green-600">
+                <CheckCircle className="h-5 w-5" />
+                Strengths
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <ul className="space-y-3">
+                {result.viability_analysis.strengths.map((s, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
+                    <span className="text-sm">{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold text-amber-600">
+                <AlertCircle className="h-5 w-5" />
+                Risks
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <ul className="space-y-3">
+                {result.viability_analysis.risks.map((r, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+                    <span className="text-sm">{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ── Overall Assessment ────────────────────────────────────────── */}
+        <Card className="border-border/50">
+          <CardHeader className="pb-4 border-b border-border/40">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Shield className="h-5 w-5 text-primary" />
+              Overall Viability Assessment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {result.viability_analysis.overall_assessment}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* ── Recommendations ───────────────────────────────────────────── */}
+        <Card className="border-border/50">
+          <CardHeader className="pb-4 border-b border-border/40">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Lightbulb className="h-5 w-5 text-primary" />
+              AI Recommendations
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <ul className="space-y-4">
+              {result.recommendations.map((rec, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <Badge variant="outline" className="mt-0.5 flex-shrink-0">{i + 1}</Badge>
+                  <span className="text-sm">{rec}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* ── Investor Simulation (fresh results only) ──────────────────── */}
+        {result.investor_analysis && (
+          <Card className="border-border/50">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                <DollarSign className="h-5 w-5 text-primary" />
+                Investor Simulation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              {result.investor_analysis.bull_case && (
+                <div className="rounded-lg bg-green-500/8 border border-green-500/20 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-green-700">Bull Case</span>
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{result.investor_analysis.bull_case}</p>
+                </div>
+              )}
+              {result.investor_analysis.bear_case && (
+                <div className="rounded-lg bg-red-500/8 border border-red-500/20 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-red-700">Bear Case</span>
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{result.investor_analysis.bear_case}</p>
+                </div>
+              )}
+              {result.investor_analysis.key_questions.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <HelpCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Due Diligence Questions</span>
+                  </div>
+                  <ul className="space-y-2">
+                    {result.investor_analysis.key_questions.map((q, i) => (
+                      <li key={i} className="flex items-start gap-2.5">
+                        <span className="mt-0.5 flex-shrink-0 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{i + 1}</span>
+                        <span className="text-sm text-muted-foreground">{q}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Data flags notice ─────────────────────────────────────────── */}
+        {result._flags.length > 0 && (
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-sm text-amber-700 mb-1">Data Verification Notice</h4>
+                  <p className="text-xs text-amber-600">
+                    Some figures in this analysis are estimated from general industry patterns.
+                    Verify specific numbers before using them in business decisions.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Footer CTA ────────────────────────────────────────────────── */}
+        <Card className="border-border/50 bg-gradient-to-br from-[#C9A7EB]/10 to-[#B084E8]/10">
+          <CardContent className="pt-6 pb-5">
+            <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+              <div className="text-center md:text-left">
+                <h3 className="text-base font-semibold mb-1">Want a fresh analysis?</h3>
+                <p className="text-sm text-muted-foreground">Re-run the analyser to get updated market data and AI insights.</p>
+              </div>
+              <Button
+                className="gradient-lavender rounded-xl"
+                onClick={() => onNavigate?.('Idea Analyser')}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Re-Analyze Idea
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  );
+}

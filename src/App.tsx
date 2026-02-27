@@ -22,6 +22,7 @@ import { PitchCreatorPage } from './components/pages/PitchCreatorPage';
 import { DashboardPage } from './components/pages/DashboardPage';
 import { VCConnectionPage } from './components/pages/VCConnectionPage';
 import { SavedIdeasPage } from './components/pages/SavedIdeasPage';
+import { SavedAnalysisPage } from './components/pages/SavedAnalysisPage';
 import { NotFoundPage } from './components/pages/NotFoundPage';
 import { NotificationsPage } from './components/pages/NotificationsPage';
 import { supabase } from './lib/supabase';
@@ -95,6 +96,7 @@ function AppContent() {
       'Dashboard': '/dashboard',
       'Get Funded': '/get-funded',
       'saved-ideas': '/saved-ideas',
+      'saved-analysis': '/saved-analysis',
       'Notifications': '/notifications'
     };
 
@@ -419,6 +421,14 @@ function AppContent() {
                       element={
                         <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
                           <SavedIdeasPage onNavigate={handleNavigate} />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/saved-analysis"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                          <SavedAnalysisPage onNavigate={handleNavigate} />
                         </ProtectedRoute>
                       }
                     />
