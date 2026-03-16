@@ -127,8 +127,8 @@ function AppContent() {
       navigate('/dashboard');
     } catch (error) {
       console.error('[handleLogin] Error during login redirect:', error);
-      // Fallback: navigate to dashboard anyway to prevent hanging
-      navigate('/dashboard/home');
+      // Fallback: navigate to role-aware dashboard redirect to prevent hanging
+      navigate('/dashboard');
     }
   };
 
@@ -155,6 +155,7 @@ function AppContent() {
       '/dashboard': 'Dashboard',
       '/get-funded': 'Get Funded',
       '/saved-ideas': 'Saved Ideas',
+      '/saved-analysis': 'Saved Analysis',
       '/notifications': 'Notifications'
     };
 
@@ -285,7 +286,7 @@ function AppContent() {
                   <Routes>
                     {/* Public Routes - Only Home and Auth */}
                     <Route path="/" element={<HomePage onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />} />
-                    <Route path="/auth" element={<AuthPage onNavigate={handleNavigate} onLogin={handleLogin} />} />
+                    <Route path="/auth" element={<AuthPage onLogin={handleLogin} />} />
 
                     {/* Protected Routes - Require login */}
                     <Route

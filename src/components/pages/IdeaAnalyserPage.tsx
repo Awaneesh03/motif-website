@@ -21,6 +21,10 @@ import {
   X,
   File,
   RefreshCw,
+  Shield,
+  BarChart3,
+  TrendingDown,
+  HelpCircle,
 } from 'lucide-react';
 
 // Set up PDF.js worker
@@ -40,7 +44,6 @@ import { startAnalysis, pollAnalysisStatusSafe, generateIdea, improveDescription
 import type { SafeAnalysisResult } from '../../lib/aiAnalysis';
 import { fromLegacyResult } from '../../lib/analysisValidator';
 import type { Competitor } from '../../lib/analysisValidator';
-import { Shield, BarChart3, TrendingDown, HelpCircle } from 'lucide-react';
 
 interface CommunityIdea {
   title: string;

@@ -12,7 +12,6 @@ import { supabase, supabaseConfigured, setRememberMe, getRememberMe } from '../.
 import { Checkbox } from '../ui/checkbox';
 
 interface AuthPageProps {
-  onNavigate?: (page: string) => void;
   onLogin?: () => void;
 }
 

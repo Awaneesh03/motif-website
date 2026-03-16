@@ -4,6 +4,7 @@ import { Search, BarChart3, Trash2, Filter, Lightbulb, Loader2 } from 'lucide-re
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
+import { SAVED_ANALYSIS_KEY } from './SavedAnalysisPage';
 
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
@@ -145,7 +146,7 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
       competition: idea.competition,
       viability: idea.viability,
     };
-    sessionStorage.setItem('motif-saved-analysis-view', JSON.stringify(data));
+    sessionStorage.setItem(SAVED_ANALYSIS_KEY, JSON.stringify(data));
     onNavigate?.('saved-analysis');
   };
 

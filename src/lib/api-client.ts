@@ -1,6 +1,8 @@
 import { supabase } from './supabase';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+// Use environment variable in production, localhost fallback only in dev
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? 'http://localhost:8080' : '');
 console.log('[ApiClient] Backend URL:', BACKEND_URL);
 
 /**

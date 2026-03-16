@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Search, Trophy, Target, Clock, CheckCircle, Star, TrendingUp, Loader2, BookOpen } from 'lucide-react';
-
-import { StarRating } from '../ui/star-rating';
+import { Search, Trophy, Target, CheckCircle, Loader2, BookOpen } from 'lucide-react';
 
 import { CaseCard, CaseCardProps } from '../CaseCard';
 import { FilterChip } from '../FilterChip';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { supabase } from '@/lib/supabase';
 
 interface CaseStudiesPageProps {

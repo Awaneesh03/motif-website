@@ -1,5 +1,5 @@
 // AI services - routes all calls through the backend API (OpenAI / ChatGPT)
-import { apiClient, AnalysisResponse, ChatResponse, IdeaResponse } from './api-client';
+import { apiClient, ChatResponse, IdeaResponse } from './api-client';
 import {
   SafeAnalysisResult,
   fromLegacyResult,
@@ -143,53 +143,6 @@ export async function pollAnalysisStatusSafe(jobId: string): Promise<SafeJobStat
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Analyze a startup idea via backend API (powered by OpenAI / ChatGPT)
- */
-export async function analyzeIdea(
-  request: IdeaAnalysisRequest
-): Promise<IdeaAnalysisResult> {
-  console.log('[IdeaAnalysis] Starting analysis for:', request.title);
-  try {
-    console.log('[IdeaAnalysis] Calling backend API (OpenAI, long timeout)...');
-
-    // Truncate to match backend validation limits
-    const truncatedTitle = request.title?.substring(0, 100) || 'Untitled';
-    const truncatedDescription = request.description?.substring(0, 10000) || '';
-    const truncatedMarket = request.targetMarket?.substring(0, 200) || null;
-
-    console.log('[IdeaAnalysis] Title length:', truncatedTitle.length, 'Desc length:', truncatedDescription.length);
-
-    const response = await apiClient.postLong<AnalysisResponse>('/api/ai/analyze-idea', {
-      title: truncatedTitle,
-      description: truncatedDescription,
-      targetMarket: truncatedMarket,
-    });
-    console.log('[IdeaAnalysis] Backend response received:', response);
-
-    return {
-      score: response.score ?? 70,
-      strengths: response.strengths || [],
-      weaknesses: response.weaknesses || [],
-      recommendations: response.recommendations || [],
-      marketSize: response.marketSize || 'Unknown',
-      competition: response.competition || 'Unknown',
-      viability: response.viability || 'Medium Viability',
-    };
-  } catch (error) {
-    console.error('[IdeaAnalysis] Error occurred:', error);
-    const raw = error instanceof Error ? error.message : 'Backend analysis failed';
-    // Give a friendlier message for cold-start / network failures
-    let errorMessage = raw;
-    if (raw.includes('timed out') || raw.includes('Failed to fetch')) {
-      errorMessage =
-        'The server is waking up after inactivity (this can take 1–2 minutes). Please wait a moment and try again.';
-    }
-    console.error('[IdeaAnalysis] Throwing error to user:', errorMessage);
-    throw new Error(errorMessage);
-  }
-}
 
 /**
  * Generate a startup idea via backend API (powered by OpenAI / ChatGPT)
