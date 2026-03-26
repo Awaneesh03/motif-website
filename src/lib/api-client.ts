@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 // Use environment variable in production, localhost fallback only in dev
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? 'http://localhost:8080' : '');
-console.log('[ApiClient] Backend URL:', BACKEND_URL);
+if (import.meta.env.DEV) console.log('[ApiClient] Backend URL:', BACKEND_URL);
 
 /**
  * API Client for communicating with the Java Spring Boot backend
@@ -32,14 +32,12 @@ class ApiClient {
     timeoutMs: number = 30000  // Default 30s timeout
   ): Promise<T> {
     const token = await this.getAuthToken();
-    console.log('[ApiClient] Token available:', !!token);
 
     if (!token) {
       throw new Error('Authentication required. Please login first.');
     }
 
     const url = `${BACKEND_URL}${endpoint}`;
-    console.log('[ApiClient] Making request to:', url, 'timeout:', timeoutMs);
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
@@ -74,7 +72,7 @@ class ApiClient {
 
     } catch (error) {
       clearTimeout(timeoutId);
-      console.error(`API request failed: ${endpoint}`, error);
+      if (import.meta.env.DEV) console.error(`API request failed: ${endpoint}`, error);
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           throw new Error('Request timed out. The AI analysis is taking longer than expected. Please try again.');
@@ -116,7 +114,7 @@ class ApiClient {
         (error.name === 'AbortError' ||
           error.message.includes('timed out') ||
           error.message.includes('Failed to fetch'))) {
-        console.warn('[ApiClient] First attempt failed, retrying once...', error.message);
+        if (import.meta.env.DEV) console.warn('[ApiClient] First attempt failed, retrying once...', error.message);
         return this.request<T>(endpoint, {
           method: 'POST',
           body: JSON.stringify(body),

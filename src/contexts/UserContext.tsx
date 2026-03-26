@@ -53,7 +53,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const loadUser = useCallback(async (explicitUser?: User | null) => {
+  const loadUser = useCallback(async (explicitUser?: User | null, isMounted?: () => boolean) => {
+    const checkMounted = isMounted ?? (() => true);
     setLoadingUser(true);
     try {
       let authUser = explicitUser;
@@ -64,6 +65,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         authUser = sessionData.session?.user ?? null;
       }
 
+      if (!checkMounted()) return;
       setUser(authUser);
 
       if (authUser) {
@@ -88,6 +90,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           // Profile exists - ensure role is set
           if (!profile.role || profile.role === 'no-role') {
             const updatedProfile = { ...profile, role: 'founder' };
+            if (!checkMounted()) return;
             setProfile(updatedProfile);
             setDisplayName(resolveDisplayName(updatedProfile, authUser));
 
@@ -101,6 +104,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
               console.warn('[UserContext] Failed to backfill missing role:', roleUpdateError);
             }
           } else {
+            if (!checkMounted()) return;
             setProfile(profile);
             setDisplayName(resolveDisplayName(profile, authUser));
           }
@@ -136,11 +140,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
             console.log('✅ Profile auto-created successfully');
             // Map avatar_url from DB to avatar for internal use
             newProfile.avatar = newProfile.avatar_url || avatarValue;
+            if (!checkMounted()) return;
             setProfile(newProfile);
             setDisplayName(resolveDisplayName(newProfile, authUser));
           } else {
             // If insert fails (e.g., RLS policy), use in-memory profile
             console.warn('⚠️ Failed to create profile in database, using in-memory profile:', insertError);
+            if (!checkMounted()) return;
             const inMemoryProfile = { ...defaultProfile, avatar: avatarValue };
             setProfile(inMemoryProfile as any);
             setDisplayName(resolveDisplayName(inMemoryProfile as any, authUser));
@@ -200,7 +206,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setUser(sessionUser);
 
         if (sessionUser) {
-          await loadUser(sessionUser);
+          await loadUser(sessionUser, () => isMounted);
         } else {
           setProfile(null);
           setDisplayName('there');
@@ -236,7 +242,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_IN') {
           setUser(sessionUser);
           if (sessionUser) {
-            await loadUser(sessionUser);
+            await loadUser(sessionUser, () => isMounted);
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
@@ -245,7 +251,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           if (sessionUser) {
             setUser(sessionUser);
-            await loadUser(sessionUser);
+            await loadUser(sessionUser, () => isMounted);
           }
         }
       };

@@ -1,7 +1,7 @@
 // Custom hook for handling async actions with loading states and error handling
 // Prevents double-clicks, handles deleted resources, and provides consistent UX
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 
 export interface UseAsyncActionOptions {
@@ -74,6 +74,10 @@ export function useAsyncAction<T = any>(
 ): UseAsyncActionReturn<T> {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  // useRef-based lock ensures double-click prevention is race-free.
+  // State updates are asynchronous — two rapid calls can both pass a `if (loading)` check
+  // before the first re-render. A ref updates synchronously and prevents this.
+  const isExecutingRef = useRef(false);
 
   const {
     successMessage,
@@ -85,11 +89,11 @@ export function useAsyncAction<T = any>(
 
   const execute = useCallback(
     async (...args: any[]): Promise<T | null> => {
-      // Prevent double-execution
-      if (loading) {
-        console.warn('Action already in progress, ignoring duplicate call');
+      // Prevent double-execution via synchronous ref check
+      if (isExecutingRef.current) {
         return null;
       }
+      isExecutingRef.current = true;
 
       setLoading(true);
       setError(null);
@@ -124,10 +128,11 @@ export function useAsyncAction<T = any>(
 
         return null;
       } finally {
+        isExecutingRef.current = false;
         setLoading(false);
       }
     },
-    [action, loading, successMessage, errorMessage, onSuccess, onError, showToast]
+    [action, successMessage, errorMessage, onSuccess, onError, showToast]
   );
 
   const resetError = useCallback(() => {

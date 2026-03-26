@@ -122,6 +122,8 @@ export function FounderDashboard() {
 
     // Subscribe to real-time updates for community ideas
     if (user?.id) {
+      // Capture userId at subscription setup time to avoid stale closure
+      const userId = user.id;
       const channel = supabase
         .channel('founder-dashboard-updates')
         .on(
@@ -134,7 +136,7 @@ export function FounderDashboard() {
           async () => {
             // Refetch metrics when community ideas change
             try {
-              const founderMetrics = await getFounderMetrics(user.id);
+              const founderMetrics = await getFounderMetrics(userId);
               setMetrics(founderMetrics);
             } catch (err) {
               console.error('Error updating metrics:', err);
@@ -152,8 +154,8 @@ export function FounderDashboard() {
             // Refetch all data when ideas change
             try {
               const [ideas, founderMetrics] = await Promise.all([
-                getUserIdeas(user.id),
-                getFounderMetrics(user.id),
+                getUserIdeas(userId),
+                getFounderMetrics(userId),
               ]);
               setMyStartups(ideas);
               setMetrics(founderMetrics);
@@ -165,6 +167,7 @@ export function FounderDashboard() {
         .subscribe();
 
       return () => {
+        channel.unsubscribe();
         supabase.removeChannel(channel);
       };
     }

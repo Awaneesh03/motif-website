@@ -19,49 +19,74 @@ export interface CommunityUpvote {
 }
 
 export async function fetchComments(ideaId: string): Promise<CommunityComment[]> {
-  const { data, error } = await supabase
-    .from('community_comments')
-    .select('*')
-    .eq('idea_id', ideaId)
-    .order('timestamp', { ascending: true });
-  if (error) throw error;
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from('community_comments')
+      .select('*')
+      .eq('idea_id', ideaId)
+      .order('timestamp', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    if (import.meta.env.DEV) console.error('[communityService] fetchComments failed:', error);
+    return [];
+  }
 }
 
 export async function addComment(comment: Omit<CommunityComment, 'id'>): Promise<CommunityComment | null> {
-  const { data, error } = await supabase
-    .from('community_comments')
-    .insert(comment)
-    .select()
-    .single();
-  if (error) throw error;
-  return data || null;
+  try {
+    const { data, error } = await supabase
+      .from('community_comments')
+      .insert(comment)
+      .select()
+      .single();
+    if (error) throw error;
+    return data || null;
+  } catch (error) {
+    if (import.meta.env.DEV) console.error('[communityService] addComment failed:', error);
+    return null;
+  }
 }
 
 export async function fetchUpvotes(ideaId: string): Promise<CommunityUpvote[]> {
-  const { data, error } = await supabase
-    .from('community_upvotes')
-    .select('*')
-    .eq('idea_id', ideaId);
-  if (error) throw error;
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from('community_upvotes')
+      .select('*')
+      .eq('idea_id', ideaId);
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    if (import.meta.env.DEV) console.error('[communityService] fetchUpvotes failed:', error);
+    return [];
+  }
 }
 
 export async function addUpvote(upvote: Omit<CommunityUpvote, 'id'>): Promise<CommunityUpvote | null> {
-  const { data, error } = await supabase
-    .from('community_upvotes')
-    .insert(upvote)
-    .select()
-    .single();
-  if (error) throw error;
-  return data || null;
+  try {
+    const { data, error } = await supabase
+      .from('community_upvotes')
+      .insert(upvote)
+      .select()
+      .single();
+    if (error) throw error;
+    return data || null;
+  } catch (error) {
+    if (import.meta.env.DEV) console.error('[communityService] addUpvote failed:', error);
+    return null;
+  }
 }
 
 export async function removeUpvote(ideaId: string, userId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('community_upvotes')
-    .delete()
-    .eq('idea_id', ideaId)
-    .eq('user_id', userId);
-  return !error;
+  try {
+    const { error } = await supabase
+      .from('community_upvotes')
+      .delete()
+      .eq('idea_id', ideaId)
+      .eq('user_id', userId);
+    return !error;
+  } catch (error) {
+    if (import.meta.env.DEV) console.error('[communityService] removeUpvote failed:', error);
+    return false;
+  }
 }

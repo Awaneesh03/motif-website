@@ -37,24 +37,31 @@ export interface ConnectedStartup {
   connectedAt: string;
 }
 
+// Helper: map a raw vc_applications row (with optional joined data) to IntroRequest
+const mapRow = (row: any): IntroRequest => ({
+  id: row.id,
+  startupId: row.idea_id,
+  vcId: row.vc_id || null,
+  vcName: row.vc_profile?.name || row.vc_profile?.full_name || (row.vc_id ? 'VC' : 'Founder'),
+  startupName: row.idea?.idea_title || 'Startup',
+  status: row.status,
+  createdAt: row.created_at,
+});
+
 // Get all intro requests
 export const getAllIntroRequests = async (): Promise<IntroRequest[]> => {
   try {
     const { data, error } = await supabase
       .from('vc_applications')
-      .select('*')
+      .select(`
+        *,
+        vc_profile:profiles!vc_id(name, full_name),
+        idea:idea_analyses!idea_id(idea_title)
+      `)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data || []).map((row: any) => ({
-      id: row.id,
-      startupId: row.idea_id,
-      vcId: row.vc_id || null,
-      vcName: 'VC',
-      startupName: 'Startup',
-      status: row.status,
-      createdAt: row.created_at,
-    }));
+    return (data || []).map(mapRow);
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error('Error fetching intro requests:', error);
@@ -80,21 +87,17 @@ export const getIntroRequestsByVC = async (vcId: string): Promise<IntroRequest[]
     () =>
       supabase
         .from('vc_applications')
-        .select('*')
+        .select(`
+          *,
+          vc_profile:profiles!vc_id(name, full_name),
+          idea:idea_analyses!idea_id(idea_title)
+        `)
         .eq('vc_id', vcId)
         .order('created_at', { ascending: false }),
     { serviceName: 'introRequestService.getIntroRequestsByVC' }
   );
 
-  return data.map((row: any) => ({
-    id: row.id,
-    startupId: row.idea_id,
-    vcId: row.vc_id || null,
-    vcName: 'VC',
-    startupName: 'Startup',
-    status: row.status,
-    createdAt: row.created_at,
-  }));
+  return data.map(mapRow);
 };
 
 // Get intro requests by startup (idea)
@@ -114,21 +117,17 @@ export const getIntroRequestsByStartup = async (startupId: string): Promise<Intr
     () =>
       supabase
         .from('vc_applications')
-        .select('*')
+        .select(`
+          *,
+          vc_profile:profiles!vc_id(name, full_name),
+          idea:idea_analyses!idea_id(idea_title)
+        `)
         .eq('idea_id', startupId)
         .order('created_at', { ascending: false }),
     { serviceName: 'introRequestService.getIntroRequestsByStartup' }
   );
 
-  return data.map((row: any) => ({
-    id: row.id,
-    startupId: row.idea_id,
-    vcId: row.vc_id || null,
-    vcName: 'VC',
-    startupName: 'Startup',
-    status: row.status,
-    createdAt: row.created_at,
-  }));
+  return data.map(mapRow);
 };
 
 // Check if intro request exists (by VC and startup)
@@ -207,15 +206,7 @@ export const createIntroRequest = async (
       }
       throw error;
     }
-    return data ? {
-      id: data.id,
-      startupId: data.idea_id,
-      vcId: data.vc_id || null,
-      vcName: 'VC',
-      startupName: 'Startup',
-      status: data.status,
-      createdAt: data.created_at,
-    } : null;
+    return data ? mapRow(data) : null;
   } catch (error) {
     console.error('Error creating intro request:', error);
     // Re-throw to allow caller to handle
@@ -258,15 +249,7 @@ export const createFounderIntroRequest = async (
       }
       throw error;
     }
-    return data ? {
-      id: data.id,
-      startupId: data.idea_id,
-      vcId: data.vc_id || null,
-      vcName: 'VC',
-      startupName: 'Startup',
-      status: data.status,
-      createdAt: data.created_at,
-    } : null;
+    return data ? mapRow(data) : null;
   } catch (error) {
     console.error('Error creating founder intro request:', error);
     // Re-throw to allow caller to handle
@@ -294,15 +277,7 @@ export const updateIntroRequestStatus = async (
       .single();
 
     if (error) throw error;
-    return data ? {
-      id: data.id,
-      startupId: data.idea_id,
-      vcId: data.vc_id || null,
-      vcName: 'VC',
-      startupName: 'Startup',
-      status: data.status,
-      createdAt: data.created_at,
-    } : null;
+    return data ? mapRow(data) : null;
   } catch (error) {
     console.error('Error updating intro request status:', error);
     return null;
