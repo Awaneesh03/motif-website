@@ -467,7 +467,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const isFormValid = isTitleValid && isDescriptionValid;
 
   const handleAnalyze = async (forceReanalyze: boolean = false) => {
-    console.log('[IdeaAnalyser] handleAnalyze called, forceReanalyze:', forceReanalyze);
 
     if (!isFormValid) {
       toast.error('Please fill in all required fields with minimum lengths');
@@ -540,20 +539,17 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
 
       // ── Start async job — returns immediately with a jobId ────────────────
-      console.log('[IdeaAnalyser] Starting async analysis job...');
       const { jobId } = await startAnalysis({
         title: ideaTitle,
         description: ideaDescription,
         targetMarket: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
       });
       currentJobIdRef.current = jobId;
-      console.log('[IdeaAnalyser] Job started, jobId:', jobId);
 
       // ── Poll every 2.5 s — survives tab switches ──────────────────────────
       const doPoll = async () => {
         try {
           const status = await pollAnalysisStatusSafe(currentJobIdRef.current!);
-          console.log('[IdeaAnalyser] Poll result:', status.status);
 
           if (status.status === 'COMPLETED' && status.safeResult) {
             clearInterval(pollIntervalRef.current!);
@@ -613,7 +609,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
             if (!isRateLimit && !isAuth && autoRetryCountRef.current < 1) {
               autoRetryCountRef.current += 1;
               pollTickRef.current = 0;
-              console.log('[IdeaAnalyser] Auto-retrying after FAILED (attempt', autoRetryCountRef.current, ')');
               toast.info('Analysis hit a snag — retrying automatically…');
               try {
                 const retry = await startAnalysis({
@@ -691,7 +686,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       setIdeaDescription(improvedDescription);
       toast.success('Description improved with AI!');
     } catch (error) {
-      console.error('Improvement error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to improve description';
 
       if (errorMessage.includes('Rate limit') || errorMessage.includes('rate_limit')) {
@@ -720,8 +714,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       ).slice(0, 3);
       setSelectedMarkets(matchedMarkets.length > 0 ? matchedMarkets : ['B2C']);
       toast.success('New idea generated! Click "Analyze" to see its potential.');
-    } catch (error) {
-      console.error('[GenerateIdea] First attempt failed, retrying...', error);
+    } catch {
       // One automatic retry — covers Render cold-start and transient network blips
       try {
         const retried = await generateIdea();
@@ -733,8 +726,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         ).slice(0, 3);
         setSelectedMarkets(matchedMarkets.length > 0 ? matchedMarkets : ['B2C']);
         toast.success('New idea generated! Click "Analyze" to see its potential.');
-      } catch (retryError) {
-        console.error('[GenerateIdea] Retry also failed:', retryError);
+      } catch {
         toast.error('Failed to generate idea. Please try again in a moment.');
       }
     } finally {

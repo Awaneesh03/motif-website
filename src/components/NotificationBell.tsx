@@ -66,6 +66,7 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
         .subscribe();
 
       return () => {
+        subscription.unsubscribe();
         supabase.removeChannel(subscription);
       };
     } else {

@@ -71,8 +71,9 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         setSavedIdeas(data ?? []);
-      } catch {
-        // Silent fail — selector just stays empty
+      } catch (err) {
+        if (import.meta.env.DEV) console.error('[PitchCreator] Failed to load saved ideas:', err);
+        toast.error('Could not load your saved ideas. You can still fill in the form manually.');
       } finally {
         setIsLoadingIdeas(false);
       }
