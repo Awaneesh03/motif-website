@@ -109,6 +109,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   
   // Storage key is user-specific — prevents one user seeing another user's data
   const FORM_STORAGE_KEY = `motif-idea-analyser-form-${user?.id ?? 'anon'}`;
+  // localStorage key for active job — survives navigation and tab switches (unlike sessionStorage)
+  const ACTIVE_JOB_KEY = `motif-active-analysis-job-${user?.id ?? 'anon'}`;
 
   // Clear old non-user-scoped localStorage/sessionStorage keys (one-time migration)
   useEffect(() => {
@@ -253,6 +255,89 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
     };
   }, []);
+
+  // Resume any in-progress analysis after navigation or tab switch.
+  // The backend job continues independently; we just restart polling here.
+  useEffect(() => {
+    if (!user?.id) return;
+    if (pollIntervalRef.current) return; // already polling
+
+    const stored = localStorage.getItem(ACTIVE_JOB_KEY);
+    if (!stored) return;
+
+    let activeJob: { jobId: string; ideaTitle?: string; ideaDescription?: string } | null = null;
+    try {
+      activeJob = JSON.parse(stored);
+    } catch {
+      localStorage.removeItem(ACTIVE_JOB_KEY);
+      return;
+    }
+
+    if (!activeJob?.jobId) {
+      localStorage.removeItem(ACTIVE_JOB_KEY);
+      return;
+    }
+
+    const resumedJobId = activeJob.jobId;
+    const localJobKey = ACTIVE_JOB_KEY; // capture for closure
+
+    // Restore form fields if empty (e.g. user opened a new tab while analysis was running)
+    if (activeJob.ideaTitle) setIdeaTitle(prev => prev || activeJob!.ideaTitle!);
+    if (activeJob.ideaDescription) setIdeaDescription(prev => prev || activeJob!.ideaDescription!);
+
+    currentJobIdRef.current = resumedJobId;
+    autoRetryCountRef.current = 0;
+    pollTickRef.current = 0;
+    setIsAnalyzing(true);
+
+    const resumePoll = async () => {
+      try {
+        const status = await pollAnalysisStatusSafe(resumedJobId);
+
+        if (status.status === 'COMPLETED' && status.safeResult) {
+          clearInterval(pollIntervalRef.current!);
+          pollIntervalRef.current = null;
+          localStorage.removeItem(localJobKey);
+          setAnalysisResult(status.safeResult);
+          setIsAnalyzing(false);
+          toast.success('Analysis complete!');
+
+        } else if (status.status === 'FAILED') {
+          clearInterval(pollIntervalRef.current!);
+          pollIntervalRef.current = null;
+          localStorage.removeItem(localJobKey);
+          setIsAnalyzing(false);
+          toast.error(status.errorMessage || 'Analysis failed. Please try again.');
+
+        } else {
+          // PENDING / PROCESSING — enforce 3-minute cap
+          pollTickRef.current += 1;
+          if (pollTickRef.current > 72) {
+            clearInterval(pollIntervalRef.current!);
+            pollIntervalRef.current = null;
+            localStorage.removeItem(localJobKey);
+            setIsAnalyzing(false);
+            toast.error('Analysis timed out. Please try again.');
+          }
+        }
+      } catch (pollErr) {
+        const errMsg = pollErr instanceof Error ? pollErr.message : '';
+        // Job expired / cleaned up on the server — stop polling immediately
+        if (errMsg.toLowerCase().includes('not found') || errMsg.includes('404')) {
+          clearInterval(pollIntervalRef.current!);
+          pollIntervalRef.current = null;
+          localStorage.removeItem(localJobKey);
+          setIsAnalyzing(false);
+          toast.error('Analysis session expired. Please start a new analysis.');
+          return;
+        }
+        console.warn('[IdeaAnalyser] Resume poll error (will retry):', pollErr);
+      }
+    };
+
+    resumePoll();
+    pollIntervalRef.current = setInterval(resumePoll, 2500);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Scroll the loading card into view once it mounts
   useEffect(() => {
@@ -433,6 +518,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       fileInputRef.current.value = '';
     }
     sessionStorage.removeItem(FORM_STORAGE_KEY);
+    localStorage.removeItem(ACTIVE_JOB_KEY);
     toast.success('Form cleared');
   };
 
@@ -545,6 +631,12 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         targetMarket: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
       });
       currentJobIdRef.current = jobId;
+      // Persist so polling can resume if user navigates away and comes back
+      localStorage.setItem(ACTIVE_JOB_KEY, JSON.stringify({
+        jobId,
+        ideaTitle,
+        ideaDescription,
+      }));
 
       // ── Poll every 2.5 s — survives tab switches ──────────────────────────
       const doPoll = async () => {
@@ -554,6 +646,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
           if (status.status === 'COMPLETED' && status.safeResult) {
             clearInterval(pollIntervalRef.current!);
             pollIntervalRef.current = null;
+            localStorage.removeItem(ACTIVE_JOB_KEY);
 
             const safeData = status.safeResult;
             setAnalysisResult(safeData);
@@ -617,15 +710,19 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
                   targetMarket: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
                 });
                 currentJobIdRef.current = retry.jobId;
+                // Update localStorage with the new jobId for the retry
+                localStorage.setItem(ACTIVE_JOB_KEY, JSON.stringify({ jobId: retry.jobId, ideaTitle, ideaDescription }));
                 doPoll();
                 pollIntervalRef.current = setInterval(doPoll, 2500);
               } catch {
+                localStorage.removeItem(ACTIVE_JOB_KEY);
                 setIsAnalyzing(false);
                 toast.error('Analysis failed. Please try again.');
               }
               return;
             }
 
+            localStorage.removeItem(ACTIVE_JOB_KEY);
             setIsAnalyzing(false);
             if (isRateLimit) {
               toast.error('Rate limit exceeded. Please try again in a few moments.');
@@ -642,6 +739,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
             if (pollTickRef.current > 72) {
               clearInterval(pollIntervalRef.current!);
               pollIntervalRef.current = null;
+              localStorage.removeItem(ACTIVE_JOB_KEY);
               setIsAnalyzing(false);
               toast.error('Analysis is taking too long. Please try again — the AI may be under heavy load.');
               return;
