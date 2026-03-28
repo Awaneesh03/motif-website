@@ -196,8 +196,8 @@ export async function pollPitchStatus(jobId: string): Promise<PitchJobStatusResu
 /**
  * Generate a startup idea via backend API (powered by OpenAI / ChatGPT)
  */
-export async function generateIdea(): Promise<GeneratedIdea> {
-  const response = await apiClient.post<IdeaResponse>('/api/ai/generate-idea', {}, 90000);
+export async function generateIdea(timeoutMs = 90000): Promise<GeneratedIdea> {
+  const response = await apiClient.post<IdeaResponse>('/api/ai/generate-idea', {}, timeoutMs);
   return {
     title: response.title || '',
     description: response.description || '',

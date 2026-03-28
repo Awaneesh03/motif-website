@@ -42,7 +42,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { startAnalysis, pollAnalysisStatusSafe, generateIdea, improveDescription } from '../../lib/aiAnalysis';
-import type { SafeAnalysisResult } from '../../lib/aiAnalysis';
+import type { SafeAnalysisResult, GeneratedIdea } from '../../lib/aiAnalysis';
 import { fromLegacyResult } from '../../lib/analysisValidator';
 import type { Competitor } from '../../lib/analysisValidator';
 
@@ -802,34 +802,37 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
   const handleGenerateIdea = async () => {
     setIsGenerating(true);
-    try {
-      const generatedIdea = await generateIdea();
 
+    // Show a helpful message if the server takes more than 10s (Render cold-start)
+    const coldStartToastId = setTimeout(() => {
+      toast.info('Server is waking up — this can take up to 60 seconds on the first request…');
+    }, 10000);
+
+    const applyIdea = (generatedIdea: GeneratedIdea) => {
+      clearTimeout(coldStartToastId);
       setIdeaTitle(generatedIdea.title);
       setIdeaDescription(generatedIdea.description);
-      // Parse target market from generated idea - try to match with predefined options
-      const generatedMarkets = generatedIdea.targetMarket?.split(/[,&]/).map(m => m.trim()) || [];
-      const matchedMarkets = MARKET_OPTIONS.filter(opt => 
-        generatedMarkets.some(gm => gm.toLowerCase().includes(opt.toLowerCase()))
+      const generatedMarkets = generatedIdea.targetMarket?.split(/[,&]/).map((m: string) => m.trim()) || [];
+      const matchedMarkets = MARKET_OPTIONS.filter(opt =>
+        generatedMarkets.some((gm: string) => gm.toLowerCase().includes(opt.toLowerCase()))
       ).slice(0, 3);
       setSelectedMarkets(matchedMarkets.length > 0 ? matchedMarkets : ['B2C']);
       toast.success('New idea generated! Click "Analyze" to see its potential.');
+    };
+
+    try {
+      // First attempt — up to 90s to cover Render cold-start (~60s) + OpenAI latency
+      applyIdea(await generateIdea(90000));
     } catch {
-      // One automatic retry — covers Render cold-start and transient network blips
+      // Retry with shorter timeout — server is now warm after the first attempt
       try {
-        const retried = await generateIdea();
-        setIdeaTitle(retried.title);
-        setIdeaDescription(retried.description);
-        const generatedMarkets = retried.targetMarket?.split(/[,&]/).map(m => m.trim()) || [];
-        const matchedMarkets = MARKET_OPTIONS.filter(opt =>
-          generatedMarkets.some(gm => gm.toLowerCase().includes(opt.toLowerCase()))
-        ).slice(0, 3);
-        setSelectedMarkets(matchedMarkets.length > 0 ? matchedMarkets : ['B2C']);
-        toast.success('New idea generated! Click "Analyze" to see its potential.');
+        applyIdea(await generateIdea(30000));
       } catch {
+        clearTimeout(coldStartToastId);
         toast.error('Failed to generate idea. Please try again in a moment.');
       }
     } finally {
+      clearTimeout(coldStartToastId);
       setIsGenerating(false);
     }
   };
