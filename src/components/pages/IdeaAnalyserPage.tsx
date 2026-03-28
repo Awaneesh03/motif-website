@@ -1552,95 +1552,82 @@ Powered by Motif - Your AI-Powered Startup Companion
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="max-w-6xl mx-auto px-6 md:px-10 py-8 space-y-10"
+              className="max-w-6xl mx-auto px-6 md:px-10 py-8 space-y-8"
             >
-              {/* Analysis Summary + Key Metrics */}
-              <div className="space-y-8">
-              {/* Analysis Summary Card */}
-              <div className="rounded-2xl border bg-card p-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-center">
-                  <div className="md:col-span-2 space-y-4">
-                    <h3 className="text-2xl font-semibold flex items-center gap-2">
-                      <Shield className="h-5 w-5 text-primary" />
-                      Analysis Summary
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
-                      {analysisResult.idea_summary}
+              {/* ── Analysis Summary ──────────────────────────────────── */}
+              <div className="space-y-6">
+                {/* Section heading */}
+                <h2 className="flex items-center gap-2.5 text-2xl font-semibold">
+                  <span className="gradient-lavender flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg">
+                    <Shield className="h-4 w-4 text-white" />
+                  </span>
+                  Analysis Summary
+                </h2>
+
+                {/* Score hero + summary row */}
+                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                  {/* Viability Score — primary dominant element */}
+                  <div className={`flex-shrink-0 flex flex-col items-center justify-center rounded-2xl border px-8 py-7 text-center min-w-[164px] ${
+                    (analysisResult.score ?? 0) >= 70
+                      ? 'border-green-200 bg-green-50/50 dark:border-green-800/40 dark:bg-green-950/20'
+                      : (analysisResult.score ?? 0) >= 50
+                      ? 'border-amber-200 bg-amber-50/50 dark:border-amber-800/40 dark:bg-amber-950/20'
+                      : 'border-red-200 bg-red-50/50 dark:border-red-800/40 dark:bg-red-950/20'
+                  }`}>
+                    <span className={`text-[56px] font-bold leading-none tabular-nums ${
+                      (analysisResult.score ?? 0) >= 70
+                        ? 'text-green-600'
+                        : (analysisResult.score ?? 0) >= 50
+                        ? 'text-amber-600'
+                        : 'text-red-500'
+                    }`}>
+                      {analysisResult.score ?? 0}
+                    </span>
+                    <span className="text-sm text-muted-foreground/70 leading-none mt-1">/100</span>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mt-3">
+                      Viability Score
                     </p>
-                    <p className="text-xs text-muted-foreground/80 italic">
-                      {analysisResult.confidence_reasoning}
-                    </p>
+                    {analysisResult._flags.length > 0 && (
+                      <p className="mt-2 flex items-center gap-1 text-[10px] text-amber-600">
+                        <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                        Some figures estimated
+                      </p>
+                    )}
                   </div>
-                  <div className="md:justify-self-end flex justify-center md:justify-end">
-                    <div className="bg-muted/40 rounded-2xl px-8 py-6 border shadow-sm text-center min-h-[140px] flex flex-col justify-center">
-                      <div className="flex items-baseline justify-center leading-none">
-                        <span className="text-6xl font-bold text-amber-600">
-                          {analysisResult.score ?? 0}
+
+                  {/* Summary text + quick stat chips */}
+                  <div className="flex-1 space-y-4 pt-1">
+                    {analysisResult.idea_summary && (
+                      <p className="text-sm leading-relaxed text-foreground/90 max-w-2xl">
+                        {analysisResult.idea_summary}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {analysisResult.market_analysis?.tam && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+                          <DollarSign className="h-3 w-3" />
+                          TAM: <span className="ml-0.5 font-medium text-foreground">{analysisResult.market_analysis.tam.split(' ')[0]}</span>
                         </span>
-                        <span className="text-base text-muted-foreground ml-1">/100</span>
-                      </div>
-                          <p className="text-sm text-muted-foreground/80 mt-2">Viability Score</p>
-                      {analysisResult._flags.length > 0 && (
-                        <p className="text-xs text-amber-600 mt-2 flex items-center justify-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          Some figures flagged for verification
-                        </p>
+                      )}
+                      {analysisResult.competition_analysis?.competitors?.length > 0 && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+                          <Users className="h-3 w-3" />
+                          <span className="font-medium text-foreground">{analysisResult.competition_analysis.competitors.length}</span>&nbsp;competitors mapped
+                        </span>
+                      )}
+                      {analysisResult.heuristic_scores && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+                          <BarChart3 className="h-3 w-3" />
+                          Score breakdown below
+                        </span>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Key Metrics — Market Size + Competitors */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                {/* Market Size */}
-                <div className="rounded-2xl border bg-card p-8 h-full">
-                  <p className="text-base font-semibold mb-4">Market Size</p>
-                  <div className="space-y-5">
-                  {analysisResult.market_analysis.tam ? (
-                    <>
-                      <div className="flex items-baseline gap-1.5 mt-6">
-                        <span className="text-4xl font-semibold">{analysisResult.market_analysis.tam.split('—')[0].trim()}</span>
-                        <span className="text-xs uppercase tracking-wide text-muted-foreground">TAM</span>
-                      </div>
-                      {analysisResult.market_analysis.growth_rate && (
-                        <p className="text-sm text-muted-foreground">
-                          Growth: {analysisResult.market_analysis.growth_rate}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">No verified data available.</p>
-                  )}
-                  </div>
-                </div>
-
-                {/* Competitors Identified */}
-                <div className="rounded-2xl border bg-card p-8 h-full">
-                  <p className="text-base font-semibold mb-4">Competitors Identified</p>
-                  <div className="space-y-5">
-                  <div className="flex items-baseline gap-1.5 mt-6">
-                    <span className="text-4xl font-semibold">
-                      {analysisResult.competition_analysis.competitors.length}
-                    </span>
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">companies mapped</span>
-                  </div>
-                  {analysisResult.competition_analysis.competitors.length > 0 ? (
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {analysisResult.competition_analysis.competitors.slice(0, 2).map(c => c.name).join(', ')}
-                      {analysisResult.competition_analysis.competitors.length > 2 && ` +${analysisResult.competition_analysis.competitors.length - 2} more`}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">No competitors identified.</p>
-                  )}
-                  </div>
-                </div>
-              </div>
-              </div>{/* end space-y-8 wrapper */}
-
               {/* Dimension Score Bars — shown only when heuristic_scores is available */}
               {analysisResult.heuristic_scores && (
-                <div className="bg-muted/30 rounded-2xl p-6">
                 <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                   <CardHeader className="pb-4 border-b border-border/40">
                     <CardTitle className="flex items-center gap-2 text-xl font-semibold">
@@ -1684,11 +1671,9 @@ Powered by Motif - Your AI-Powered Startup Companion
                     })}
                   </CardContent>
                 </Card>
-                </div>
               )}
 
               {/* Market Analysis Deep Dive */}
-              <div className="bg-muted/30 rounded-2xl p-6">
               <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4 border-b border-border/40">
                   <CardTitle className="flex items-center gap-2 text-xl font-semibold">
@@ -1738,10 +1723,8 @@ Powered by Motif - Your AI-Powered Startup Companion
                   )}
                 </CardContent>
               </Card>
-              </div>
 
               {/* Competition Analysis */}
-              <div className="bg-muted/30 rounded-2xl p-6">
               <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4 border-b border-border/40">
                   <CardTitle className="flex items-center gap-2 text-xl font-semibold">
@@ -1750,7 +1733,6 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-5 pt-4">
-                  {/* Key Competitors grid */}
                   {analysisResult.competition_analysis.competitors.length > 0 ? (
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {analysisResult.competition_analysis.competitors.map((competitor, i) => (
@@ -1760,8 +1742,6 @@ Powered by Motif - Your AI-Powered Startup Companion
                   ) : (
                     <p className="text-sm text-muted-foreground">No specific competitors identified. Re-run analysis for a more detailed description.</p>
                   )}
-
-                  {/* Competitive Advantage */}
                   <div className="border-t border-border/40 pt-4">
                     <h4 className="mb-2 text-sm font-medium">Your Competitive Advantage</h4>
                     <p className="text-sm leading-relaxed text-muted-foreground">
@@ -1770,10 +1750,8 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </div>
                 </CardContent>
               </Card>
-              </div>
 
               {/* Strengths & Risks */}
-              <div className="bg-muted/30 rounded-2xl p-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                   <CardHeader className="pb-4 border-b border-border/40">
@@ -1813,10 +1791,8 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </CardContent>
                 </Card>
               </div>
-              </div>
 
               {/* Overall Assessment */}
-              <div className="bg-muted/30 rounded-2xl p-6">
               <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4 border-b border-border/40">
                   <CardTitle className="flex items-center gap-2 text-xl font-semibold">
@@ -1830,10 +1806,8 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </p>
                 </CardContent>
               </Card>
-              </div>
 
               {/* Recommendations */}
-              <div className="bg-muted/30 rounded-2xl p-6">
               <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4 border-b border-border/40">
                   <CardTitle className="flex items-center gap-2 text-xl font-semibold">
@@ -1854,11 +1828,9 @@ Powered by Motif - Your AI-Powered Startup Companion
                   </ul>
                 </CardContent>
               </Card>
-              </div>
 
               {/* Investor Analysis — shown only when present */}
               {analysisResult.investor_analysis && (
-                <div className="bg-muted/30 rounded-2xl p-6">
                 <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
                   <CardHeader className="pb-4 border-b border-border/40">
                     <CardTitle className="flex items-center gap-2 text-xl font-semibold">
@@ -1867,7 +1839,6 @@ Powered by Motif - Your AI-Powered Startup Companion
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-4">
-                    {/* Bull case */}
                     {analysisResult.investor_analysis.bull_case && (
                       <div className="rounded-lg bg-green-500/8 border border-green-500/20 p-4">
                         <div className="flex items-center gap-2 mb-2">
@@ -1879,8 +1850,6 @@ Powered by Motif - Your AI-Powered Startup Companion
                         </p>
                       </div>
                     )}
-
-                    {/* Bear case */}
                     {analysisResult.investor_analysis.bear_case && (
                       <div className="rounded-lg bg-red-500/8 border border-red-500/20 p-4">
                         <div className="flex items-center gap-2 mb-2">
@@ -1892,8 +1861,6 @@ Powered by Motif - Your AI-Powered Startup Companion
                         </p>
                       </div>
                     )}
-
-                    {/* Key due-diligence questions */}
                     {analysisResult.investor_analysis.key_questions.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-3">
@@ -1914,7 +1881,6 @@ Powered by Motif - Your AI-Powered Startup Companion
                     )}
                   </CardContent>
                 </Card>
-                </div>
               )}
 
               {/* Data Transparency Note */}
