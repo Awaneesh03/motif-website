@@ -659,7 +659,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       // Check for duplicates in Supabase
       const { data: existingIdeas } = await supabase
         .from('community_ideas')
-        .select('id')
+        .select('id, title, description')
         .eq('author_id', user.id);
 
       const isDuplicate = existingIdeas?.some(

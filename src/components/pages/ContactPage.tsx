@@ -314,7 +314,7 @@ export function ContactPage() {
                         <p className="text-muted-foreground mb-2">
                           Join our active founder community
                         </p>
-                        <a href="#" className="text-primary hover:underline">
+                        <a href="https://discord.gg/motif" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                           discord.gg/motif
                         </a>
                       </div>
@@ -331,7 +331,7 @@ export function ContactPage() {
                       <div>
                         <h4 className="mb-1">Twitter</h4>
                         <p className="text-muted-foreground mb-2">Follow us for updates and tips</p>
-                        <a href="#" className="text-primary hover:underline">
+                        <a href="https://twitter.com/motif" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                           @motif
                         </a>
                       </div>

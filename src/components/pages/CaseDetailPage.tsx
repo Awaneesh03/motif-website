@@ -8,10 +8,6 @@ import {
   Target,
   Save,
   Send,
-  Bold,
-  Italic,
-  List,
-  Paperclip,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -403,22 +399,6 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                   </div>
                 </div>
 
-                {/* Editor Toolbar */}
-                <div className="bg-muted/30 mb-4 flex gap-2 rounded-lg p-2">
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                    <Bold className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                    <Italic className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                </div>
-
                 {/* Editor */}
                 <Textarea
                   value={solution}
@@ -569,7 +549,18 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                         <Button
                           variant="outline"
                           className="h-8 w-full rounded-xl text-xs"
-                          title="Export as PDF (mock)"
+                          onClick={() => {
+                            const content = evaluationData
+                              ? `Case Study Report\n\nScore: ${evaluationData.score}/100\n\nStrengths:\n${evaluationData.strengths?.join('\n')}\n\nImprovements:\n${evaluationData.improvements?.join('\n')}\n\nFeedback:\n${evaluationData.feedback}`
+                              : 'No report available';
+                            const blob = new Blob([content], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'case-study-report.txt';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
                         >
                           Export Report
                         </Button>
@@ -704,6 +695,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                   <Button
                     variant="outline"
                     className="border-primary text-primary hover:bg-primary flex-1 rounded-xl hover:text-white"
+                    onClick={() => { setShowEvaluationModal(false); onNavigate?.('leaderboard'); }}
                   >
                     View Leaderboard
                   </Button>
