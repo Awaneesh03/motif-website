@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-import { useUser } from '../../contexts/UserContext';
-import { supabase } from '../../lib/supabase';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import {
   Sparkles,
@@ -26,6 +24,9 @@ import {
   TrendingDown,
   HelpCircle,
 } from 'lucide-react';
+
+import { useUser } from '../../contexts/UserContext';
+import { supabase } from '../../lib/supabase';
 
 // Set up PDF.js worker
 GlobalWorkerOptions.workerSrc = new URL(
@@ -244,7 +245,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         analysisTimerRef.current = null;
       }
     };
-  }, [isAnalyzing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAnalyzing]);  
 
   // Cancel any in-flight poll when the component unmounts
   useEffect(() => {
@@ -282,8 +283,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     const localJobKey = ACTIVE_JOB_KEY; // capture for closure
 
     // Restore form fields if empty (e.g. user opened a new tab while analysis was running)
-    if (activeJob.ideaTitle) setIdeaTitle(prev => prev || activeJob!.ideaTitle!);
-    if (activeJob.ideaDescription) setIdeaDescription(prev => prev || activeJob!.ideaDescription!);
+    if (activeJob.ideaTitle && !ideaTitle) setIdeaTitle(activeJob.ideaTitle);
+    if (activeJob.ideaDescription && !ideaDescription) setIdeaDescription(activeJob.ideaDescription);
 
     currentJobIdRef.current = resumedJobId;
     autoRetryCountRef.current = 0;
@@ -337,7 +338,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
     resumePoll();
     pollIntervalRef.current = setInterval(resumePoll, 2500);
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id]);  
 
   // Scroll the loading card into view once it mounts
   useEffect(() => {
@@ -391,6 +392,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const sanitizeExtractedText = (text: string): string => {
     return text
       .replace(/\0/g, '') // Remove null bytes — PostgreSQL rejects these in TEXT columns
+      // eslint-disable-next-line no-control-regex
       .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars (keep \t \n \r)
       .trim();
   };

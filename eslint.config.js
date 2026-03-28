@@ -3,7 +3,6 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import typescript from '@typescript-eslint/eslint-plugin';
 import typescriptParser from '@typescript-eslint/parser';
-import tailwindcss from 'eslint-plugin-tailwindcss';
 import importPlugin from 'eslint-plugin-import';
 import prettier from 'eslint-config-prettier';
 
@@ -52,7 +51,6 @@ export default [
       react,
       'react-hooks': reactHooks,
       '@typescript-eslint': typescript,
-      tailwindcss,
       import: importPlugin,
     },
     rules: {
@@ -76,10 +74,6 @@ export default [
           'newlines-between': 'always',
         },
       ],
-
-      // Tailwind
-      'tailwindcss/classnames-order': 'warn',
-      'tailwindcss/no-custom-classname': 'off',
 
       // TypeScript
       '@typescript-eslint/no-explicit-any': 'off',
