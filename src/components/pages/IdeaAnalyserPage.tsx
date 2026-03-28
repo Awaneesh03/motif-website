@@ -1626,7 +1626,48 @@ Powered by Motif - Your AI-Powered Startup Companion
                 </div>
               </div>
 
-              {/* Overall Viability Assessment — bars + summary merged in one place */}
+              {/* Scoring Breakdown */}
+              {analysisResult.heuristic_scores && (
+                <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-4 border-b border-border/40">
+                    <CardTitle className="flex items-center gap-2 text-xl font-semibold">
+                      <BarChart3 className="text-primary h-5 w-5" />
+                      Scoring Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-4">
+                    {(
+                      [
+                        { key: 'problem',       label: 'Problem Severity' },
+                        { key: 'market',        label: 'Market Opportunity' },
+                        { key: 'defensibility', label: 'Defensibility' },
+                        { key: 'monetization',  label: 'Monetization' },
+                        { key: 'execution',     label: 'Execution Feasibility' },
+                      ] as const
+                    ).map(({ key, label }) => {
+                      const raw = analysisResult.heuristic_scores![key];
+                      const val = typeof raw === 'number' ? raw : 0;
+                      const pct = Math.round((val / 20) * 100);
+                      const color =
+                        pct >= 70 ? 'bg-green-500' : pct >= 45 ? 'bg-yellow-500' : 'bg-red-500';
+                      return (
+                        <div key={key} className="flex items-center gap-3">
+                          <span className="w-40 flex-shrink-0 text-xs text-muted-foreground">{label}</span>
+                          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${color} transition-all duration-700`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="w-10 flex-shrink-0 text-right text-xs font-medium tabular-nums">
+                            {val}/20
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Market Analysis Deep Dive */}
               <Card className="glass-card border-border/50 shadow-sm hover:shadow-md transition-shadow">
