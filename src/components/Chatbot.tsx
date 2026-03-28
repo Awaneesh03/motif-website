@@ -2,12 +2,13 @@ import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, Send, X, Settings, Bot, User, Sparkles, BrainCircuit } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { useUser } from '../contexts/UserContext';
+import { apiClient } from '../lib/api-client';
+
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
-import { useUser } from '../contexts/UserContext';
-import { apiClient } from '../lib/api-client';
 
 interface ChatMessage {
   id: string;

@@ -15,9 +15,9 @@ import {
   RefreshCw,
   TrendingUp,
 } from 'lucide-react';
+
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
-
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';

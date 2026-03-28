@@ -2,10 +2,9 @@ import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { Search, BarChart3, Trash2, Filter, Lightbulb, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
-import { SAVED_ANALYSIS_KEY } from './SavedAnalysisPage';
-
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -20,6 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog';
+
+import { SAVED_ANALYSIS_KEY } from './SavedAnalysisPage';
 
 interface SavedIdea {
   id: string;

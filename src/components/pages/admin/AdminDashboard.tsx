@@ -15,9 +15,11 @@ import {
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+
 import { Button } from '../../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
+
 import { getAllStartups } from '@/lib/startupService';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';

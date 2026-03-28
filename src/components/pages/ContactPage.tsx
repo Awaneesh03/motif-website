@@ -2,8 +2,8 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Mail, MessageSquare, Twitter, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '../../lib/supabase';
 
+import { supabase } from '../../lib/supabase';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';

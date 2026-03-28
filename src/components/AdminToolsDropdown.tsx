@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { Wrench, TrendingUp, BookOpen, Users, Shield } from 'lucide-react';
+
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -8,7 +10,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from './ui/dropdown-menu';
-import { Wrench, TrendingUp, BookOpen, Users, Shield } from 'lucide-react';
 
 export const AdminToolsDropdown = () => {
   const location = useLocation();

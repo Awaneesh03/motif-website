@@ -1,8 +1,9 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
+
 import { useUser } from '@/contexts/UserContext';
 import { UserRole, hasAccess, getRoleDefaultRoute } from '@/types/roles';
-import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

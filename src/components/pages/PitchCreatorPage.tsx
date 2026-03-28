@@ -58,7 +58,8 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
   // Polling refs — keep these out of state to avoid re-render loops
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentJobIdRef = useRef<string | null>(null);
-  const pollTickRef = useRef<number>(0);
+  const pollFnRef = useRef<(() => Promise<void>) | null>(null);
+  const pitchStartRef = useRef<number>(0);
 
   // localStorage key for active pitch job — survives navigation and tab switches
   const ACTIVE_PITCH_JOB_KEY = `motif-active-pitch-job-${user?.id ?? 'anon'}`;
@@ -99,6 +100,17 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     };
   }, []);
 
+  // When the user switches back to this tab, immediately fire a poll.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && pollFnRef.current) {
+        pollFnRef.current();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   // Resume any in-progress pitch job after navigation or tab switch.
   // The backend job continues independently; we just restart polling here.
   useEffect(() => {
@@ -125,7 +137,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     const localJobKey = ACTIVE_PITCH_JOB_KEY;
 
     currentJobIdRef.current = resumedJobId;
-    pollTickRef.current = 0;
+    pitchStartRef.current = Date.now();
     setIsGenerating(true);
 
     const resumePoll = async () => {
@@ -135,6 +147,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
         if (status.status === 'COMPLETED' && status.result) {
           clearInterval(pollIntervalRef.current!);
           pollIntervalRef.current = null;
+          pollFnRef.current = null;
           localStorage.removeItem(localJobKey);
           setGeneratedSlides({
             slides: status.result.slides.map(slide => ({
@@ -150,15 +163,17 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
         } else if (status.status === 'FAILED') {
           clearInterval(pollIntervalRef.current!);
           pollIntervalRef.current = null;
+          pollFnRef.current = null;
           localStorage.removeItem(localJobKey);
           setIsGenerating(false);
           toast.error(status.errorMessage || 'Pitch generation failed. Please try again.');
 
         } else {
-          pollTickRef.current += 1;
-          if (pollTickRef.current > 72) {
+          // PENDING / PROCESSING — enforce 5-minute wall-clock cap (immune to tab throttling)
+          if (Date.now() - pitchStartRef.current > 5 * 60 * 1000) {
             clearInterval(pollIntervalRef.current!);
             pollIntervalRef.current = null;
+            pollFnRef.current = null;
             localStorage.removeItem(localJobKey);
             setIsGenerating(false);
             toast.error('Pitch generation timed out. Please try again.');
@@ -169,6 +184,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
         if (errMsg.toLowerCase().includes('not found') || errMsg.includes('404')) {
           clearInterval(pollIntervalRef.current!);
           pollIntervalRef.current = null;
+          pollFnRef.current = null;
           localStorage.removeItem(localJobKey);
           setIsGenerating(false);
           toast.error('Pitch session expired. Please generate again.');
@@ -178,6 +194,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
       }
     };
 
+    pollFnRef.current = resumePoll;
     resumePoll();
     pollIntervalRef.current = setInterval(resumePoll, 2500);
   }, [user?.id]); // only re-run when user changes (intentional — closes over ACTIVE_PITCH_JOB_KEY derived from user.id)
@@ -225,7 +242,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
       pollIntervalRef.current = null;
     }
 
-    pollTickRef.current = 0;
+    pitchStartRef.current = Date.now();
     setIsGenerating(true);
 
     try {
@@ -249,6 +266,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
           if (status.status === 'COMPLETED' && status.result) {
             clearInterval(pollIntervalRef.current!);
             pollIntervalRef.current = null;
+            pollFnRef.current = null;
             localStorage.removeItem(ACTIVE_PITCH_JOB_KEY);
 
             const pitchData = {
@@ -297,16 +315,17 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
           } else if (status.status === 'FAILED') {
             clearInterval(pollIntervalRef.current!);
             pollIntervalRef.current = null;
+            pollFnRef.current = null;
             localStorage.removeItem(ACTIVE_PITCH_JOB_KEY);
             setIsGenerating(false);
             toast.error(status.errorMessage || 'Pitch generation failed. Please try again.');
 
           } else {
-            // PENDING / PROCESSING — enforce 3-minute cap (72 × 2.5s)
-            pollTickRef.current += 1;
-            if (pollTickRef.current > 72) {
+            // PENDING / PROCESSING — enforce 5-minute wall-clock cap (immune to tab throttling)
+            if (Date.now() - pitchStartRef.current > 5 * 60 * 1000) {
               clearInterval(pollIntervalRef.current!);
               pollIntervalRef.current = null;
+              pollFnRef.current = null;
               localStorage.removeItem(ACTIVE_PITCH_JOB_KEY);
               setIsGenerating(false);
               toast.error('Pitch generation is taking too long. Please try again.');
@@ -317,6 +336,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
         }
       };
 
+      pollFnRef.current = doPoll;
       doPoll();
       pollIntervalRef.current = setInterval(doPoll, 2500);
 

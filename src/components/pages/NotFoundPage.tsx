@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { Home, Search } from 'lucide-react';
+
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 

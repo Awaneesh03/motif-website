@@ -14,9 +14,11 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
+
 import { getIdeaById, type Idea } from '@/lib/ideasService';
 import { createIntroRequest, hasIntroRequest, isConnected } from '@/lib/introRequestService';
 import { useUser } from '@/contexts/UserContext';

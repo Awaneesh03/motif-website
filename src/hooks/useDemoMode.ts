@@ -2,6 +2,7 @@
 // Demo mode is enabled when users have no real data
 
 import { useState, useEffect } from 'react';
+
 import type { Idea } from '../lib/ideasService';
 import type { FounderMetrics, AdminMetrics } from '../lib/metricsService';
 

@@ -7,6 +7,7 @@ import { FilterChip } from '../FilterChip';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
+
 import { supabase } from '@/lib/supabase';
 
 interface CaseStudiesPageProps {

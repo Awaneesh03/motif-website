@@ -2,16 +2,18 @@ import { Bell } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { formatDistanceToNow } from 'date-fns';
+
 import { useUser } from '../contexts/UserContext';
 import { supabase } from '../lib/supabase';
 import { getUnreadCount, getAllNotifications, getUserNotifications } from '../lib/notificationService';
+import type { Notification } from '../lib/notificationService';
+
 import { Button } from './ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
-import { formatDistanceToNow } from 'date-fns';
-import type { Notification } from '../lib/notificationService';
 
 interface NotificationBellProps {
   variant?: 'default' | 'light' | 'dark';

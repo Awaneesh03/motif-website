@@ -11,12 +11,14 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
 import { Button } from '../../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Checkbox } from '../../ui/checkbox';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { Textarea } from '../../ui/textarea';
+
 import { useUser } from '@/contexts/UserContext';
 import { supabase, supabaseConfigured } from '@/lib/supabase';
 

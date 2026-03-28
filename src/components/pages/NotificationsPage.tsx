@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Bell, CheckCircle2, Clock, XCircle, Inbox, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
 import { UserRole } from '../../types/roles';
@@ -13,7 +14,6 @@ import {
   Notification,
   NotificationType,
 } from '../../lib/notificationService';
-
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';

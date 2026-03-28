@@ -1,8 +1,10 @@
 import { motion } from 'motion/react';
 import { CheckCircle2, XCircle, Send, Clock, UserCheck, Inbox } from 'lucide-react';
+
+import type { Notification, NotificationType } from '../lib/notificationService';
+
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import type { Notification, NotificationType } from '../lib/notificationService';
 
 interface ActivityTimelineProps {
   activities: Notification[];

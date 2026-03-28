@@ -13,14 +13,16 @@ import {
   Target,
   Lightbulb,
 } from 'lucide-react';
-import { useUser } from '@/contexts/UserContext';
-import { createStartup } from '@/lib/startupService';
-import { useAsyncAction } from '@/hooks/useAsyncAction';
+
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
+
+import { useAsyncAction } from '@/hooks/useAsyncAction';
+import { createStartup } from '@/lib/startupService';
+import { useUser } from '@/contexts/UserContext';
 
 const SubmitStartupPage = () => {
   const { profile } = useUser();

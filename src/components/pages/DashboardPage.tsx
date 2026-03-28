@@ -1,11 +1,13 @@
 import { motion } from 'motion/react';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { useUser } from '@/contexts/UserContext';
+
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 
 // Import founder dashboard
 import { FounderDashboard } from './founder/FounderDashboard';
+
+import { useUser } from '@/contexts/UserContext';
 
 interface DashboardPageProps {
   onNavigate?: (page: string) => void;

@@ -3,6 +3,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertCircle, RefreshCcw } from 'lucide-react';
+
 import { Button } from './ui/button';
 
 interface Props {

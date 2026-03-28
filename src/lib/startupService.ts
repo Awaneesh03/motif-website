@@ -2,7 +2,6 @@
 // A startup = an idea that has a pitch
 
 import { supabase } from './supabase';
-
 import { verifyAdminRole, verifyFounderRole } from './roleVerification';
 
 export type StartupStatus = 'draft' | 'pending_review' | 'approved_for_vc' | 'rejected' | 'active';

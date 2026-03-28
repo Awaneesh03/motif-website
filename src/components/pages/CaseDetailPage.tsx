@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Progress } from '../ui/progress';
 import { StarRating } from '../ui/star-rating';
+
 import { supabase } from '@/lib/supabase';
 import { apiClient, CaseEvaluationResponse } from '@/lib/api-client';
 

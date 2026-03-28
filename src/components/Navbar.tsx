@@ -1,6 +1,6 @@
 import { Moon, Sun, Sparkles, User, Menu, DollarSign } from 'lucide-react';
 import { useState } from 'react';
-import { useUser } from '@/contexts/UserContext';
+
 
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -13,6 +13,8 @@ import {
   DropdownMenuSeparator,
 } from './ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+
+import { useUser } from '@/contexts/UserContext';
 
 interface NavbarProps {
   isDark: boolean;

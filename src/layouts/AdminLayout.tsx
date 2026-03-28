@@ -1,5 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import { Building2, TrendingUp, LogOut, Shield, BookOpen, BarChart3, Menu } from 'lucide-react';
+
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -8,7 +10,6 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Building2, TrendingUp, LogOut, Shield, BookOpen, BarChart3, Menu } from 'lucide-react';
 
 export const AdminLayout = () => {
   const { profile } = useUser();

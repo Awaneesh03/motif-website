@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card } from './ui/card';
+
 import {
   getUserNotifications,
   getUnreadCount,
@@ -8,9 +13,6 @@ import {
   markAllAsRead,
   type Notification,
 } from '@/lib/notificationService';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
 
 interface NotificationDropdownProps {
   userId: string;

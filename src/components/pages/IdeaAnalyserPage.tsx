@@ -159,8 +159,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const currentJobIdRef = useRef<string | null>(null);
   // Auto-retry tracking — reset on each new analysis, max 1 silent retry
   const autoRetryCountRef = useRef<number>(0);
-  // Poll tick counter — used to enforce a 3-minute max poll duration
-  const pollTickRef = useRef<number>(0);
+  // Ref to current poll function — used by visibilitychange listener to fire immediately on tab focus
+  const pollFnRef = useRef<(() => Promise<void>) | null>(null);
   // Track user ID to detect account switches in the same tab
   const prevUserIdRef = useRef(user?.id);
   // Controls whether extracted PDF text is shown in full or as a preview
@@ -257,6 +257,19 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     };
   }, []);
 
+  // When the user switches back to this tab, immediately fire a poll so the
+  // result appears without waiting up to 2.5 s for the next interval tick.
+  // Also resets the start time so throttled/catch-up ticks don't cause false timeouts.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && pollFnRef.current) {
+        pollFnRef.current();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   // Resume any in-progress analysis after navigation or tab switch.
   // The backend job continues independently; we just restart polling here.
   useEffect(() => {
@@ -288,7 +301,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
     currentJobIdRef.current = resumedJobId;
     autoRetryCountRef.current = 0;
-    pollTickRef.current = 0;
+    analysisStartRef.current = Date.now();
     setIsAnalyzing(true);
 
     const resumePoll = async () => {
@@ -298,6 +311,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         if (status.status === 'COMPLETED' && status.safeResult) {
           clearInterval(pollIntervalRef.current!);
           pollIntervalRef.current = null;
+          pollFnRef.current = null;
           localStorage.removeItem(localJobKey);
           setAnalysisResult(status.safeResult);
           setIsAnalyzing(false);
@@ -306,16 +320,17 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         } else if (status.status === 'FAILED') {
           clearInterval(pollIntervalRef.current!);
           pollIntervalRef.current = null;
+          pollFnRef.current = null;
           localStorage.removeItem(localJobKey);
           setIsAnalyzing(false);
           toast.error(status.errorMessage || 'Analysis failed. Please try again.');
 
         } else {
-          // PENDING / PROCESSING — enforce 3-minute cap
-          pollTickRef.current += 1;
-          if (pollTickRef.current > 72) {
+          // PENDING / PROCESSING — enforce 5-minute wall-clock cap (immune to tab throttling)
+          if (Date.now() - analysisStartRef.current > 5 * 60 * 1000) {
             clearInterval(pollIntervalRef.current!);
             pollIntervalRef.current = null;
+            pollFnRef.current = null;
             localStorage.removeItem(localJobKey);
             setIsAnalyzing(false);
             toast.error('Analysis timed out. Please try again.');
@@ -327,6 +342,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         if (errMsg.toLowerCase().includes('not found') || errMsg.includes('404')) {
           clearInterval(pollIntervalRef.current!);
           pollIntervalRef.current = null;
+          pollFnRef.current = null;
           localStorage.removeItem(localJobKey);
           setIsAnalyzing(false);
           toast.error('Analysis session expired. Please start a new analysis.');
@@ -336,6 +352,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
     };
 
+    pollFnRef.current = resumePoll;
     resumePoll();
     pollIntervalRef.current = setInterval(resumePoll, 2500);
   }, [user?.id]);  
@@ -573,7 +590,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
     // Reset per-analysis counters
     autoRetryCountRef.current = 0;
-    pollTickRef.current = 0;
+    analysisStartRef.current = Date.now();
 
     setIsAnalyzing(true);
 
@@ -648,6 +665,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
           if (status.status === 'COMPLETED' && status.safeResult) {
             clearInterval(pollIntervalRef.current!);
             pollIntervalRef.current = null;
+            pollFnRef.current = null;
             localStorage.removeItem(ACTIVE_JOB_KEY);
 
             const safeData = status.safeResult;
@@ -703,7 +721,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
             // Auto-retry once for transient failures (not rate-limit or auth errors)
             if (!isRateLimit && !isAuth && autoRetryCountRef.current < 1) {
               autoRetryCountRef.current += 1;
-              pollTickRef.current = 0;
+              analysisStartRef.current = Date.now();
               toast.info('Analysis hit a snag — retrying automatically…');
               try {
                 const retry = await startAnalysis({
@@ -724,6 +742,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               return;
             }
 
+            pollFnRef.current = null;
             localStorage.removeItem(ACTIVE_JOB_KEY);
             setIsAnalyzing(false);
             if (isRateLimit) {
@@ -736,11 +755,11 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               toast.error(msg || 'Analysis failed. Please try again.');
             }
           } else {
-            // PENDING / PROCESSING — track ticks for max-poll cap (3 min = 72 × 2.5 s)
-            pollTickRef.current += 1;
-            if (pollTickRef.current > 72) {
+            // PENDING / PROCESSING — enforce 5-minute wall-clock cap (immune to tab throttling)
+            if (Date.now() - analysisStartRef.current > 5 * 60 * 1000) {
               clearInterval(pollIntervalRef.current!);
               pollIntervalRef.current = null;
+              pollFnRef.current = null;
               localStorage.removeItem(ACTIVE_JOB_KEY);
               setIsAnalyzing(false);
               toast.error('Analysis is taking too long. Please try again — the AI may be under heavy load.');
@@ -755,6 +774,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       };
 
       // Fire immediately then repeat every 2.5 s
+      pollFnRef.current = doPoll;
       doPoll();
       pollIntervalRef.current = setInterval(doPoll, 2500);
 

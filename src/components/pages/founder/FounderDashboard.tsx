@@ -16,10 +16,12 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import { Button } from '../../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
+
 import { useUser } from '@/contexts/UserContext';
 import { getUserIdeas, type Idea } from '@/lib/ideasService';
 import { supabase } from '@/lib/supabase';
@@ -29,7 +31,6 @@ import { getFounderMetrics, type FounderMetrics } from '@/lib/metricsService';
 import { useFounderDemoMode } from '@/hooks/useDemoMode';
 import { demoFounderStartups } from '@/lib/demoData';
 import { apiClient } from '@/lib/api-client';
-import { toast } from 'sonner';
 
 export function FounderDashboard() {
   const { user, profile } = useUser();

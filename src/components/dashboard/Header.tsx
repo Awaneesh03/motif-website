@@ -2,8 +2,9 @@
 
 import { useMemo } from 'react';
 
-import { useUser } from '@/contexts/UserContext';
 import { Skeleton } from '../ui/skeleton';
+
+import { useUser } from '@/contexts/UserContext';
 
 export const DashboardHeader = () => {
   const { displayName, loadingUser } = useUser();

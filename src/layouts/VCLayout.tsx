@@ -1,9 +1,10 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { ArrowLeft, Home } from 'lucide-react';
+
 import { VCNavbar } from '@/components/vc/VCNavbar';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Home } from 'lucide-react';
 
 export const VCLayout = () => {
   const navigate = useNavigate();
