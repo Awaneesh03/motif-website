@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import {
@@ -26,7 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
-import { apiClient, PitchResponse, PitchSlideContent } from '../../lib/api-client';
+import { startPitch, pollPitchStatus } from '../../lib/aiAnalysis';
 
 interface SavedIdea {
   id: string;
@@ -55,6 +55,14 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
   const [showPitchModal, setShowPitchModal] = useState(false);
   const [generatedSlides, setGeneratedSlides] = useState<any>(null);
 
+  // Polling refs — keep these out of state to avoid re-render loops
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentJobIdRef = useRef<string | null>(null);
+  const pollTickRef = useRef<number>(0);
+
+  // localStorage key for active pitch job — survives navigation and tab switches
+  const ACTIVE_PITCH_JOB_KEY = `motif-active-pitch-job-${user?.id ?? 'anon'}`;
+
   // Saved ideas state
   const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>([]);
   const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
@@ -80,6 +88,99 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     };
     fetchSavedIdeas();
   }, [user?.id]);
+
+  // Cancel any in-flight poll when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
+
+  // Resume any in-progress pitch job after navigation or tab switch.
+  // The backend job continues independently; we just restart polling here.
+  useEffect(() => {
+    if (!user?.id) return;
+    if (pollIntervalRef.current) return; // already polling
+
+    const stored = localStorage.getItem(ACTIVE_PITCH_JOB_KEY);
+    if (!stored) return;
+
+    let activeJob: { jobId: string; ideaName?: string } | null = null;
+    try {
+      activeJob = JSON.parse(stored);
+    } catch {
+      localStorage.removeItem(ACTIVE_PITCH_JOB_KEY);
+      return;
+    }
+
+    if (!activeJob?.jobId) {
+      localStorage.removeItem(ACTIVE_PITCH_JOB_KEY);
+      return;
+    }
+
+    const resumedJobId = activeJob.jobId;
+    const localJobKey = ACTIVE_PITCH_JOB_KEY;
+
+    currentJobIdRef.current = resumedJobId;
+    pollTickRef.current = 0;
+    setIsGenerating(true);
+
+    const resumePoll = async () => {
+      try {
+        const status = await pollPitchStatus(resumedJobId);
+
+        if (status.status === 'COMPLETED' && status.result) {
+          clearInterval(pollIntervalRef.current!);
+          pollIntervalRef.current = null;
+          localStorage.removeItem(localJobKey);
+          setGeneratedSlides({
+            slides: status.result.slides.map(slide => ({
+              ...slide,
+              icon: inferIconFromTitle(slide.title),
+            })),
+            speakerNotes: status.result.speakerNotes,
+          });
+          setIsGenerating(false);
+          setShowPitchModal(true);
+          toast.success('Pitch deck generated!');
+
+        } else if (status.status === 'FAILED') {
+          clearInterval(pollIntervalRef.current!);
+          pollIntervalRef.current = null;
+          localStorage.removeItem(localJobKey);
+          setIsGenerating(false);
+          toast.error(status.errorMessage || 'Pitch generation failed. Please try again.');
+
+        } else {
+          pollTickRef.current += 1;
+          if (pollTickRef.current > 72) {
+            clearInterval(pollIntervalRef.current!);
+            pollIntervalRef.current = null;
+            localStorage.removeItem(localJobKey);
+            setIsGenerating(false);
+            toast.error('Pitch generation timed out. Please try again.');
+          }
+        }
+      } catch (pollErr) {
+        const errMsg = pollErr instanceof Error ? pollErr.message : '';
+        if (errMsg.toLowerCase().includes('not found') || errMsg.includes('404')) {
+          clearInterval(pollIntervalRef.current!);
+          pollIntervalRef.current = null;
+          localStorage.removeItem(localJobKey);
+          setIsGenerating(false);
+          toast.error('Pitch session expired. Please generate again.');
+          return;
+        }
+        console.warn('[PitchCreator] Resume poll error (will retry):', pollErr);
+      }
+    };
+
+    resumePoll();
+    pollIntervalRef.current = setInterval(resumePoll, 2500);
+  }, [user?.id]); // only re-run when user changes (intentional — closes over ACTIVE_PITCH_JOB_KEY derived from user.id)
 
   // Pre-fill form when user selects a saved idea
   const handleSelectIdea = (ideaId: string) => {
@@ -113,95 +214,122 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
   };
 
   const handleGeneratePitch = async () => {
-    setIsGenerating(true);
-
-    try {
-      let pitchData;
-
-      try {
-        const response = await apiClient.postLong<PitchResponse>('/api/ai/generate-pitch', {
-          ideaName: formData.ideaName,
-          problem: formData.problem,
-          solution: formData.solution,
-          audience: formData.audience || null,
-          market: formData.market || null,
-          usp: formData.usp || null,
-        });
-
-        pitchData = {
-          slides: response.slides.map((slide: PitchSlideContent) => ({
-            title: slide.title,
-            content: slide.content,
-            bulletPoints: slide.bulletPoints,
-            icon: inferIconFromTitle(slide.title),
-          })),
-          speakerNotes: response.speakerNotes,
-        };
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          (error.message.toLowerCase().includes('failed to fetch') ||
-            error.message.toLowerCase().includes('network') ||
-            error.message.toLowerCase().includes('timed out') ||
-            error.message.toLowerCase().includes('waking up'))
-        ) {
-          pitchData = {
-            slides: [
-              { title: 'The Problem', content: formData.problem, icon: 'problem' },
-              { title: 'Our Solution', content: formData.solution, icon: 'solution' },
-              { title: 'Market Opportunity', content: formData.market || 'Large and growing addressable market', icon: 'market' },
-              { title: 'The Product', content: `${formData.ideaName}: ${formData.usp || 'Unique product offering'}`, icon: 'product' },
-            ],
-          };
-        } else {
-          throw error;
-        }
-      }
-
-      setGeneratedSlides(pitchData);
-      setShowPitchModal(true);
-      toast.success('Pitch deck generated!');
-
-      // Save pitch to Supabase
-      if (user?.id) {
-        try {
-          const { data: ideaData, error: ideaError } = await supabase
-            .from('idea_analyses')
-            .insert({
-              idea_title: formData.ideaName,
-              idea_description: formData.problem,
-              target_market: formData.market || null,
-              user_id: user.id,
-              score: 0,
-              strengths: [],
-              weaknesses: [],
-              recommendations: [],
-              market_size: formData.market || null,
-              competition: null,
-              viability: null,
-            })
-            .select()
-            .single();
-
-          if (!ideaError && ideaData) {
-            await supabase.from('pitches').insert({
-              user_id: user.id,
-              idea_id: ideaData.id,
-              title: formData.ideaName,
-            });
-          }
-        } catch (saveError) {
-          console.error('Failed to save pitch to database:', saveError);
-        }
-      }
-    } catch (error) {
-      console.error('Pitch generation error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to generate pitch. Please try again.');
-      setIsGenerating(false);
+    if (!user) {
+      toast.error('Please login to generate a pitch');
       return;
     }
 
-    setIsGenerating(false);
+    // Cancel any previous poll
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
+    pollTickRef.current = 0;
+    setIsGenerating(true);
+
+    try {
+      const { jobId } = await startPitch({
+        ideaName: formData.ideaName,
+        problem: formData.problem,
+        solution: formData.solution,
+        audience: formData.audience || null,
+        market: formData.market || null,
+        usp: formData.usp || null,
+      });
+
+      currentJobIdRef.current = jobId;
+      // Persist so polling can resume if user navigates away and comes back
+      localStorage.setItem(ACTIVE_PITCH_JOB_KEY, JSON.stringify({ jobId, ideaName: formData.ideaName }));
+
+      const doPoll = async () => {
+        try {
+          const status = await pollPitchStatus(currentJobIdRef.current!);
+
+          if (status.status === 'COMPLETED' && status.result) {
+            clearInterval(pollIntervalRef.current!);
+            pollIntervalRef.current = null;
+            localStorage.removeItem(ACTIVE_PITCH_JOB_KEY);
+
+            const pitchData = {
+              slides: status.result.slides.map(slide => ({
+                ...slide,
+                icon: inferIconFromTitle(slide.title),
+              })),
+              speakerNotes: status.result.speakerNotes,
+            };
+
+            setGeneratedSlides(pitchData);
+            setIsGenerating(false);
+            setShowPitchModal(true);
+            toast.success('Pitch deck generated!');
+
+            // Save to Supabase (non-blocking, fire-and-forget)
+            if (user?.id) {
+              const saveAsync = async () => {
+                try {
+                  const { data: ideaData, error: ideaError } = await supabase
+                    .from('idea_analyses').insert({
+                      idea_title: formData.ideaName,
+                      idea_description: formData.problem,
+                      target_market: formData.market || null,
+                      user_id: user.id,
+                      score: 0,
+                      strengths: [],
+                      weaknesses: [],
+                      recommendations: [],
+                      market_size: formData.market || null,
+                      competition: null,
+                      viability: null,
+                    }).select().single();
+                  if (!ideaError && ideaData) {
+                    await supabase.from('pitches').insert({
+                      user_id: user.id,
+                      idea_id: ideaData.id,
+                      title: formData.ideaName,
+                    });
+                  }
+                } catch { /* non-fatal */ }
+              };
+              saveAsync();
+            }
+
+          } else if (status.status === 'FAILED') {
+            clearInterval(pollIntervalRef.current!);
+            pollIntervalRef.current = null;
+            localStorage.removeItem(ACTIVE_PITCH_JOB_KEY);
+            setIsGenerating(false);
+            toast.error(status.errorMessage || 'Pitch generation failed. Please try again.');
+
+          } else {
+            // PENDING / PROCESSING — enforce 3-minute cap (72 × 2.5s)
+            pollTickRef.current += 1;
+            if (pollTickRef.current > 72) {
+              clearInterval(pollIntervalRef.current!);
+              pollIntervalRef.current = null;
+              localStorage.removeItem(ACTIVE_PITCH_JOB_KEY);
+              setIsGenerating(false);
+              toast.error('Pitch generation is taking too long. Please try again.');
+            }
+          }
+        } catch (pollErr) {
+          console.warn('[PitchCreator] Poll error (will retry):', pollErr);
+        }
+      };
+
+      doPoll();
+      pollIntervalRef.current = setInterval(doPoll, 2500);
+
+    } catch (error) {
+      localStorage.removeItem(ACTIVE_PITCH_JOB_KEY);
+      setIsGenerating(false);
+      const msg = error instanceof Error ? error.message : 'Failed to start pitch generation.';
+      if (msg.includes('timed out') || msg.includes('Failed to fetch')) {
+        toast.error('The server is starting up — please wait 30 seconds and try again.');
+      } else {
+        toast.error(msg);
+      }
+    }
   };
 
   // Validation

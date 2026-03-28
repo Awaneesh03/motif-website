@@ -142,6 +142,55 @@ export async function pollAnalysisStatusSafe(jobId: string): Promise<SafeJobStat
   return base;
 }
 
+// ── Job-based async pitch generation ─────────────────────────────────────────
+
+export interface StartPitchResult {
+  jobId: string;
+  status: 'PENDING' | 'EXISTING';
+  message: string;
+}
+
+export interface PitchSlide {
+  title: string;
+  content: string;
+  bulletPoints: string[];
+}
+
+export interface PitchJobStatusResult {
+  jobId: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  result?: {
+    slides: PitchSlide[];
+    speakerNotes: string;
+  };
+  errorMessage?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+/**
+ * Start an async pitch generation job. Returns immediately with a jobId.
+ * The OpenAI call runs on a backend background thread.
+ */
+export async function startPitch(request: {
+  ideaName: string;
+  problem: string;
+  solution: string;
+  audience?: string | null;
+  market?: string | null;
+  usp?: string | null;
+}): Promise<StartPitchResult> {
+  return apiClient.post<StartPitchResult>('/api/pitch/start', request, 90000);
+}
+
+/**
+ * Poll the status of a running pitch generation job.
+ * Call every 2–3 seconds until status = COMPLETED or FAILED.
+ */
+export async function pollPitchStatus(jobId: string): Promise<PitchJobStatusResult> {
+  return apiClient.get<PitchJobStatusResult>(`/api/pitch/status/${jobId}`);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
