@@ -841,13 +841,31 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     };
 
     try {
-      // First attempt — up to 90s to cover Render cold-start (~60s) + OpenAI latency
-      applyIdea(await generateIdea(90000));
-    } catch {
-      // Retry with shorter timeout — server is now warm after the first attempt
-      try {
-        applyIdea(await generateIdea(30000));
-      } catch {
+      // First attempt — 120s covers Render cold-start (≤90s) + OpenAI latency (≤20s)
+      applyIdea(await generateIdea(120000));
+    } catch (err) {
+      console.error('[IdeaAnalyser] Generate idea attempt 1 failed:', err);
+      const msg = err instanceof Error ? err.message : '';
+      const isTimeout = msg.includes('timed out') || msg.includes('AbortError');
+      const isNetwork = msg.includes('Failed to fetch') || msg.includes('unavailable');
+
+      if (isTimeout || isNetwork) {
+        // Server was cold — retry now that it's warm (60s is plenty for a warm server)
+        try {
+          applyIdea(await generateIdea(60000));
+          return; // success — finally will clean up
+        } catch (retryErr) {
+          console.error('[IdeaAnalyser] Generate idea attempt 2 failed:', retryErr);
+          clearTimeout(coldStartToastId);
+          toast.error('Server is taking too long to respond. Please wait 30 seconds and try again.');
+        }
+      } else if (msg.includes('Rate limit') || msg.includes('429')) {
+        clearTimeout(coldStartToastId);
+        toast.error('Rate limit reached — please wait a moment and try again.');
+      } else if (msg.includes('Authentication') || msg.includes('401') || msg.includes('login')) {
+        clearTimeout(coldStartToastId);
+        toast.error('Session expired — please log out and log back in.');
+      } else {
         clearTimeout(coldStartToastId);
         toast.error('Failed to generate idea. Please try again in a moment.');
       }
