@@ -220,6 +220,7 @@ interface LogContext {
 
 const logError = (action: string, error: any, ctx?: LogContext) => {
   console.error('[IdeaForge:Community]', {
+    seq: nextSeq(),
     action,
     code: error?.code ?? null,
     message: error?.message ?? String(error),
@@ -326,6 +327,14 @@ const generateRequestId = (): string =>
 
 /** Stable UUID for this browser tab — generated once at module load. */
 const TAB_ID = generateRequestId();
+
+/**
+ * Monotonically incrementing per-tab log sequence number.
+ * Including `seq` in every log entry lets you reconstruct exact event ordering
+ * across interleaved async operations without relying on wall-clock timestamps.
+ */
+let _tabLogSeq = 0;
+const nextSeq = () => ++_tabLogSeq;
 
 /**
  * Lightweight content fingerprint for late-delivery matching.
@@ -572,6 +581,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
     // Creates the realtime channel and subscribes. Extracted so the error
     // handler can re-initialize after a disconnect without duplicating setup.
+    // reconnectAttempt is closed over and drives exponential-backoff + jitter
+    // so rapid transport errors do not hammer the server. Resets to 0 on SUBSCRIBED.
+    let reconnectAttempt = 0;
     const initChannel = () => {
       if (destroyed) return;
       if (channelRef.current) {
@@ -583,12 +595,20 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'community_ideas' }, debouncedFetch)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'community_upvotes' }, debouncedFetch)
         .subscribe((status, err) => {
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            console.warn('[IdeaForge:Community] channel disrupted — reinitializing in 2s', {
-              status, feature: 'community-post', phase: 'realtime',
+          if (status === 'SUBSCRIBED') {
+            // Successful (re)connect — reset backoff counter
+            reconnectAttempt = 0;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            const baseDelay = Math.min(1000 * 2 ** reconnectAttempt, 30000);
+            const jitter = Math.random() * 1000;
+            const delayMs = Math.round(baseDelay + jitter);
+            reconnectAttempt += 1;
+            console.warn('[IdeaForge:Community] channel disrupted — reinitializing', {
+              seq: nextSeq(), status, attempt: reconnectAttempt, delayMs,
+              feature: 'community-post', phase: 'realtime',
               ...(err ? { error: String(err) } : {}),
             });
-            setTimeout(initChannel, 2000);
+            setTimeout(initChannel, delayMs);
           }
         });
     };
@@ -683,13 +703,19 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       // Late-delivery detection: a submission that timed out may have actually
       // succeeded. Match by content hash (title + first 50 chars of description)
       // rather than title alone to avoid false positives between similar ideas.
+      // Snapshot entries before iterating so in-loop deletes do not affect iteration.
+      // The has() check before acting is a claim-then-act guard: JS is single-threaded
+      // between awaits, but the snapshot + claim pattern makes the intent explicit and
+      // prevents the toast from firing twice if this code path is ever refactored.
       if (timedOutSubmissionsRef.current.size > 0) {
-        for (const [reqId, { contentHash, authorId }] of timedOutSubmissionsRef.current.entries()) {
+        for (const [reqId, { contentHash, authorId }] of Array.from(timedOutSubmissionsRef.current.entries())) {
           const delivered = mappedIdeas.find(
             i => i.authorId === authorId &&
                  makeContentHash(i.title, i.description) === contentHash
           );
-          if (delivered) {
+          if (delivered && timedOutSubmissionsRef.current.has(reqId)) {
+            // Claim the entry before any side-effect — prevents re-fire on the
+            // same requestId even if this block is reached by a concurrent fetch.
             timedOutSubmissionsRef.current.delete(reqId);
             toast.success('Your post was delivered!', {
               description: `"${delivered.title}" is now live in the community.`,
@@ -710,11 +736,14 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         return mappedIdeas.map(incoming => {
           if (!incoming.id || !incoming.updatedAt) return incoming;
           const existing = existingById.get(incoming.id);
+          // +200ms skew tolerance: server clocks and JS Date parsing can drift by a
+          // few milliseconds. Only treat local state as "newer" when the gap is
+          // meaningful, so a same-millisecond tick never suppresses a real DB update.
           if (
             existing?.updatedAt &&
-            new Date(existing.updatedAt).getTime() > new Date(incoming.updatedAt).getTime()
+            new Date(existing.updatedAt).getTime() > new Date(incoming.updatedAt).getTime() + 200
           ) {
-            // Local state is newer — keep existing interactive counters
+            // Local state is meaningfully newer — keep existing interactive counters
             return { ...incoming, upvotes: existing.upvotes, hasUpvoted: existing.hasUpvoted };
           }
           return incoming;
@@ -729,8 +758,14 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       // A realtime event arrived while this fetch was in-flight and was skipped
       // to avoid a redundant parallel request. Do a trailing fetch now that we
       // are clear, so no DB change is silently dropped.
+      // Cancel any pending debounce timer first so the direct call and the
+      // debounced call don't both fire — only the trailing fetch below runs.
       if (missedWhileFetchingRef.current) {
         missedWhileFetchingRef.current = false;
+        if (realtimeFetchDebounceRef.current) {
+          clearTimeout(realtimeFetchDebounceRef.current);
+          realtimeFetchDebounceRef.current = null;
+        }
         fetchCommunityIdeas();
       }
     }
@@ -1055,13 +1090,13 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
           return [realEntry, ...cleaned];
         });
         setHighlightedIdeaId(inserted.id);
-        console.info('[IdeaForge:Community] post confirmed', { requestId, realId: inserted.id, feature: 'community-post', phase: 'read-after-write' });
+        console.info('[IdeaForge:Community] post confirmed', { seq: nextSeq(), requestId, realId: inserted.id, feature: 'community-post', phase: 'read-after-write' });
       } else {
         // All retries exhausted — strip optimistic and do a full list refresh.
         // The real-time subscription will also trigger fetchCommunityIdeas
         // independently, so the row will appear even if this branch runs.
         setSupabaseIdeas(prev => prev.filter(i => i.id !== optimisticId));
-        console.warn('[IdeaForge:Community] read-after-write: row not found after retries, falling back to full refetch', { requestId, feature: 'community-post', phase: 'read-after-write' });
+        console.warn('[IdeaForge:Community] read-after-write: row not found after retries, falling back to full refetch', { seq: nextSeq(), requestId, feature: 'community-post', phase: 'read-after-write' });
         fetchCommunityIdeas();
       }
 
@@ -1129,6 +1164,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               return [realEntry, ...cleaned];
             });
             setHighlightedIdeaId(existing.id);
+            // Log before toast so the seq number reflects order of side-effects
+            console.info('[IdeaForge:Community] post confirmed (idempotent recovery)', {
+              seq: nextSeq(), requestId, realId: existing.id,
+              feature: 'community-post', phase: 'idempotent-recovery',
+            });
             toast.success('Idea posted to the community!');
             if (isAnalyzedPath) { setSelectedAnalyzedIdeaId(null); }
             else { setPostForm({ title: '', description: '', tags: '' }); setFormErrors({}); }
