@@ -47,6 +47,7 @@ interface AnalyzedIdea {
   idea_description: string;
   score?: number;
   created_at: string;
+  target_market?: string;
 }
 
 const seedIdeas: CommunityIdea[] = [
@@ -268,6 +269,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     description: '',
     tags: '',
   });
+  const [formErrors, setFormErrors] = useState<{ title?: string; description?: string }>({});
 
   // Analyzed ideas from Supabase
   const [analyzedIdeas, setAnalyzedIdeas] = useState<AnalyzedIdea[]>([]);
@@ -634,15 +636,40 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   // Validation for post form
   const isPostTitleValid = postForm.title.trim().length >= 10;
   const isPostDescriptionValid = postForm.description.trim().length >= 30;
-  const isPostFormValid = isPostTitleValid && isPostDescriptionValid;
+
+  const validateManualForm = (): boolean => {
+    const errors: { title?: string; description?: string } = {};
+    if (!postForm.title.trim()) {
+      errors.title = 'Title is required';
+    } else if (postForm.title.trim().length < 10) {
+      errors.title = `${10 - postForm.title.trim().length} more characters needed`;
+    }
+    if (!postForm.description.trim()) {
+      errors.description = 'Description is required';
+    } else if (postForm.description.trim().length < 30) {
+      errors.description = `${30 - postForm.description.trim().length} more characters needed`;
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmitIdea = async () => {
     if (!user) {
       toast.error('Please login to post an idea');
       return;
     }
-
     if (isSubmitting) return;
+
+    // ── Sync validation before locking the button ──────────────────────────
+    if (analyzedIdeas.length > 0) {
+      if (!selectedAnalyzedIdeaId) {
+        toast.error('Please select an idea to share');
+        return;
+      }
+    } else {
+      if (!validateManualForm()) return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -650,25 +677,21 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
       // ── Path A: post from analyzed ideas list ──────────────────────────────
       if (analyzedIdeas.length > 0) {
-        if (!selectedAnalyzedIdeaId) {
-          toast.error('Please select an idea to share');
-          return;
-        }
-
         const selectedIdea = analyzedIdeas.find(idea => idea.id === selectedAnalyzedIdeaId);
         if (!selectedIdea) {
-          toast.error('Selected idea not found');
+          toast.error('Selected idea not found. Please reselect and try again.');
           return;
         }
 
         const normalizedTitle = normalizeIdeaValue(selectedIdea.idea_title);
         const normalizedDescription = normalizeIdeaValue(selectedIdea.idea_description);
 
-        // Check for duplicates
-        const { data: existingIdeas } = await supabase
+        const { data: existingIdeas, error: fetchError } = await supabase
           .from('community_ideas')
           .select('id, title, description')
           .eq('author_id', user.id);
+
+        if (fetchError) throw fetchError;
 
         const isDuplicate = existingIdeas?.some(
           (idea: any) =>
@@ -681,10 +704,18 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
           return;
         }
 
+        // Derive tags from target_market if available
+        const derivedTags: string[] = [];
+        if (selectedIdea.target_market) {
+          const market = selectedIdea.target_market.trim();
+          if (market) derivedTags.push(...market.split(/[,/]/).map(t => t.trim()).filter(Boolean).slice(0, 3));
+        }
+        if (derivedTags.length === 0) derivedTags.push('AI', 'Innovation');
+
         const { error } = await supabase.from('community_ideas').insert({
           title: selectedIdea.idea_title.trim(),
           description: selectedIdea.idea_description.trim(),
-          tags: ['AI', 'Innovation'],
+          tags: derivedTags,
           author_name: authorName,
           author_avatar: profile?.avatar || null,
           author_id: user.id,
@@ -692,25 +723,22 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
         if (error) throw error;
 
-        toast.success('Idea posted successfully!');
+        toast.success('Idea posted to the community!');
         setSelectedAnalyzedIdeaId(null);
         setPostFormOpen(false);
         fetchCommunityIdeas();
 
-      // ── Path B: manual form (when user has no analyzed ideas) ──────────────
+      // ── Path B: manual form ────────────────────────────────────────────────
       } else {
-        if (!isPostFormValid) {
-          toast.error('Please fill in the title (min 10 chars) and description (min 30 chars)');
-          return;
-        }
-
         const normalizedTitle = normalizeIdeaValue(postForm.title);
         const normalizedDescription = normalizeIdeaValue(postForm.description);
 
-        const { data: existingIdeas } = await supabase
+        const { data: existingIdeas, error: fetchError } = await supabase
           .from('community_ideas')
           .select('id, title, description')
           .eq('author_id', user.id);
+
+        if (fetchError) throw fetchError;
 
         const isDuplicate = existingIdeas?.some(
           (idea: any) =>
@@ -736,15 +764,22 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
         if (error) throw error;
 
-        toast.success('Idea posted successfully!');
+        toast.success('Idea posted to the community!');
         setPostForm({ title: '', description: '', tags: '' });
+        setFormErrors({});
         setPostFormOpen(false);
         fetchCommunityIdeas();
       }
     } catch (error: any) {
       console.error('Error posting idea:', error);
-      if (error?.code === '42501' || error?.message?.includes('policy')) {
-        toast.error('Permission denied. Please make sure you are logged in.');
+      if (error instanceof TypeError || error?.message?.toLowerCase().includes('failed to fetch') || error?.message?.toLowerCase().includes('network')) {
+        toast.error('Network error. Please check your connection and try again.');
+      } else if (error?.code === '23505') {
+        toast.info('You have already shared this idea in the community.');
+      } else if (error?.code === '42501' || error?.message?.includes('policy') || error?.message?.includes('JWT')) {
+        toast.error('Permission denied. Please log out and log back in.');
+      } else if (error?.code === '42P01') {
+        toast.error('Database not set up. Please contact support.');
       } else if (error?.message) {
         toast.error(`Failed to post idea: ${error.message}`);
       } else {
@@ -886,7 +921,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               </Dialog>
 
               {/* Post Form Dialog */}
-              <Dialog open={postFormOpen} onOpenChange={open => { setPostFormOpen(open); if (!open) { setSelectedAnalyzedIdeaId(null); setPostForm({ title: '', description: '', tags: '' }); } }}>
+              <Dialog open={postFormOpen} onOpenChange={open => { setPostFormOpen(open); if (!open) { setSelectedAnalyzedIdeaId(null); setPostForm({ title: '', description: '', tags: '' }); setFormErrors({}); } }}>
                 <DialogContent className="sm:max-w-lg p-0 gap-0 max-h-[90vh] flex flex-col">
                   <DialogHeader className="px-6 pt-6 pb-3 flex-shrink-0">
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
@@ -924,12 +959,15 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                             id="post-title"
                             placeholder="e.g. AI-powered scheduling tool for freelancers"
                             value={postForm.title}
-                            onChange={e => setPostForm(f => ({ ...f, title: e.target.value }))}
+                            onChange={e => { setPostForm(f => ({ ...f, title: e.target.value })); if (formErrors.title) setFormErrors(prev => ({ ...prev, title: undefined })); }}
                             maxLength={200}
+                            className={formErrors.title ? 'border-destructive focus-visible:ring-destructive' : ''}
                           />
-                          {postForm.title.length > 0 && postForm.title.length < 10 && (
-                            <p className="text-xs text-destructive">{10 - postForm.title.length} more characters needed</p>
-                          )}
+                          {formErrors.title ? (
+                            <p className="text-xs text-destructive">{formErrors.title}</p>
+                          ) : postForm.title.length > 0 && !isPostTitleValid ? (
+                            <p className="text-xs text-muted-foreground">{10 - postForm.title.trim().length} more characters needed</p>
+                          ) : null}
                         </div>
 
                         <div className="space-y-1">
@@ -940,13 +978,15 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                             id="post-description"
                             placeholder="Describe your idea, the problem it solves, and your target audience..."
                             value={postForm.description}
-                            onChange={e => setPostForm(f => ({ ...f, description: e.target.value }))}
-                            className="min-h-[100px] resize-none"
+                            onChange={e => { setPostForm(f => ({ ...f, description: e.target.value })); if (formErrors.description) setFormErrors(prev => ({ ...prev, description: undefined })); }}
+                            className={`min-h-[100px] resize-none${formErrors.description ? ' border-destructive focus-visible:ring-destructive' : ''}`}
                             maxLength={2000}
                           />
-                          {postForm.description.length > 0 && postForm.description.length < 30 && (
-                            <p className="text-xs text-destructive">{30 - postForm.description.length} more characters needed</p>
-                          )}
+                          {formErrors.description ? (
+                            <p className="text-xs text-destructive">{formErrors.description}</p>
+                          ) : postForm.description.length > 0 && !isPostDescriptionValid ? (
+                            <p className="text-xs text-muted-foreground">{30 - postForm.description.trim().length} more characters needed</p>
+                          ) : null}
                         </div>
 
                         <div className="space-y-1">
