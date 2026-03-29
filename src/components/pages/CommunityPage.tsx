@@ -416,12 +416,29 @@ const createdAtTs = (idea: CommunityIdea): number => {
  * a small head-start. The ^1.2 gravity is mild — stronger than linear but
  * gentler than HN's ^1.8, so recent quality posts surface quickly but a
  * genuinely popular older post isn't immediately buried.
+ *
+ * @param maxAgeHours  Optional cap on age passed to the formula. For Trending,
+ *   pass 7*24 so a post at the edge of the 7-day window doesn't get an
+ *   artificially low score from a fractionally larger raw age.
  */
-const trendingScore = (idea: CommunityIdea): number => {
+const trendingScore = (idea: CommunityIdea, maxAgeHours = Infinity): number => {
   const votes = (idea.upvotes ?? 0) + (idea.comments ?? 0);
   const ts = idea.createdAt ? new Date(idea.createdAt).getTime() : NaN;
-  const ageHours = Number.isFinite(ts) ? (Date.now() - ts) / 3_600_000 : Infinity;
+  // Math.max(0, …) clamps negative ages caused by clock skew (future-dated posts).
+  const rawAge = Number.isFinite(ts) ? (Date.now() - ts) / 3_600_000 : Infinity;
+  const ageHours = Math.min(Math.max(0, rawAge), maxAgeHours);
   return votes / Math.pow(ageHours + 2, 1.2);
+};
+
+/**
+ * Final stable tie-breaker: lexicographic comparison of idea IDs.
+ * Ensures identical scores + identical timestamps always produce the same
+ * element order regardless of JS engine sort stability assumptions.
+ */
+const idTieBreak = (aId: string | undefined, bId: string | undefined): number => {
+  const x = aId ?? '';
+  const y = bId ?? '';
+  return x < y ? -1 : x > y ? 1 : 0;
 };
 
 const normalizeIdeaValue = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -979,7 +996,10 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     };
   });
 
-  // Filter and sort ideas based on selected filter and tag
+  // Filter and sort ideas based on selected filter and tag.
+  // Each branch pre-computes per-idea sort keys into a keyed array so the
+  // comparator never recomputes Date.parse / Math.pow inside the O(n log n) loop.
+  // Every comparator ends with idTieBreak() for a fully stable ordering.
   const getFilteredIdeas = () => {
     let filtered = [...allIdeas];
 
@@ -988,33 +1008,60 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     }
 
     if (filter === 'trending') {
-      // Restrict to posts created within the last 7 days using a Number.isFinite
-      // guard so ideas with absent/invalid createdAt are excluded, not treated as epoch.
+      // Restrict to posts created within the last 7 days. Number.isFinite guard
+      // ensures ideas with absent/invalid createdAt are excluded, not treated as epoch.
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       filtered = filtered.filter(idea => {
         const ts = idea.createdAt ? new Date(idea.createdAt).getTime() : NaN;
         return Number.isFinite(ts) && ts >= sevenDaysAgo;
       });
-      // Primary: time-decayed score DESC. Tie-breaker: newest first.
-      filtered.sort((a, b) => {
-        const diff = trendingScore(b) - trendingScore(a);
-        return diff !== 0 ? diff : createdAtTs(b) - createdAtTs(a);
+      // Pre-compute score (with 7-day age cap) and timestamp once per idea.
+      const keyed = filtered.map(idea => ({
+        idea,
+        score: trendingScore(idea, 7 * 24),
+        ts: createdAtTs(idea),
+      }));
+      keyed.sort((a, b) => {
+        const diff = b.score - a.score;
+        if (diff !== 0) return diff;
+        if (b.ts !== a.ts) return b.ts - a.ts;
+        return idTieBreak(a.idea.id, b.idea.id);
       });
+      filtered = keyed.map(k => k.idea);
     } else if (filter === 'new') {
       // createdAtTs returns 0 for missing dates — those sink to the bottom.
-      filtered.sort((a, b) => createdAtTs(b) - createdAtTs(a));
+      const keyed = filtered.map(idea => ({ idea, ts: createdAtTs(idea) }));
+      keyed.sort((a, b) => {
+        if (b.ts !== a.ts) return b.ts - a.ts;
+        return idTieBreak(a.idea.id, b.idea.id);
+      });
+      filtered = keyed.map(k => k.idea);
     } else if (filter === 'discussed') {
-      // Primary: comments DESC. Tie-breaker: newest first.
-      filtered.sort((a, b) => {
-        const diff = (b.comments ?? 0) - (a.comments ?? 0);
-        return diff !== 0 ? diff : createdAtTs(b) - createdAtTs(a);
+      const keyed = filtered.map(idea => ({
+        idea,
+        comments: idea.comments ?? 0,
+        ts: createdAtTs(idea),
+      }));
+      keyed.sort((a, b) => {
+        const diff = b.comments - a.comments;
+        if (diff !== 0) return diff;
+        if (b.ts !== a.ts) return b.ts - a.ts;
+        return idTieBreak(a.idea.id, b.idea.id);
       });
+      filtered = keyed.map(k => k.idea);
     } else if (filter === 'upvoted') {
-      // Primary: upvotes DESC. Tie-breaker: newest first.
-      filtered.sort((a, b) => {
-        const diff = (b.upvotes ?? 0) - (a.upvotes ?? 0);
-        return diff !== 0 ? diff : createdAtTs(b) - createdAtTs(a);
+      const keyed = filtered.map(idea => ({
+        idea,
+        upvotes: idea.upvotes ?? 0,
+        ts: createdAtTs(idea),
+      }));
+      keyed.sort((a, b) => {
+        const diff = b.upvotes - a.upvotes;
+        if (diff !== 0) return diff;
+        if (b.ts !== a.ts) return b.ts - a.ts;
+        return idTieBreak(a.idea.id, b.idea.id);
       });
+      filtered = keyed.map(k => k.idea);
     }
 
     return filtered;
@@ -1655,7 +1702,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     Most Upvoted
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs font-medium text-primary/70">
                   {filter === 'trending' && 'Last 7 days · ranked by engagement'}
                   {filter === 'new' && 'Most recently posted'}
                   {filter === 'discussed' && 'Highest comments'}
