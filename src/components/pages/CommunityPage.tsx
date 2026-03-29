@@ -202,6 +202,8 @@ interface LogContext {
   /** Sanitized payload — never include PII beyond what's already public */
   payload?: Record<string, unknown>;
   durationMs?: number;
+  /** Unique per-submission ID for correlating logs, optimistic entry, and DB row */
+  requestId?: string;
 }
 
 const logError = (action: string, error: any, ctx?: LogContext) => {
@@ -236,6 +238,47 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(tid)) as Promise<T>;
 };
+
+/**
+ * Read-after-write helper: fetches the newly inserted row by author + title.
+ * Retries up to `maxAttempts` times with exponential back-off to handle
+ * Supabase propagation delay after a write. Returns null only if all attempts fail.
+ */
+const fetchInsertedRow = async (
+  authorId: string,
+  title: string,
+  maxAttempts = 3,
+  baseDelayMs = 300
+): Promise<Record<string, any> | null> => {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0) {
+      await new Promise(r => setTimeout(r, baseDelayMs * attempt)); // 0ms, 300ms, 600ms
+    }
+    try {
+      const { data } = await supabase
+        .from('community_ideas')
+        .select('*')
+        .eq('author_id', authorId)
+        .eq('title', title)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (data) return data;
+    } catch {
+      // network blip on fetch — continue to next attempt
+    }
+  }
+  return null;
+};
+
+/**
+ * Generates a unique request ID. Uses crypto.randomUUID when available (all
+ * modern browsers), otherwise falls back to a timestamp + random suffix.
+ */
+const generateRequestId = (): string =>
+  typeof crypto?.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 const normalizeIdeaValue = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
 
@@ -352,8 +395,13 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   // Scroll newly posted idea into view and briefly highlight it
   useEffect(() => {
     if (!highlightedIdeaId) return;
-    const el = document.getElementById(`idea-card-${highlightedIdeaId}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    try {
+      const el = document.getElementById(`idea-card-${highlightedIdeaId}`);
+      // Element may not be in the current filtered/paginated view — scroll only if present
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch {
+      // scrollIntoView can throw in detached/hidden DOM or some headless environments
+    }
     const t = setTimeout(() => setHighlightedIdeaId(null), 2500);
     return () => clearTimeout(t);
   }, [highlightedIdeaId]);
@@ -754,7 +802,10 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     }
 
     // ── 3. Optimistic UI insert (instant feedback) ──────────────────────────
-    const optimisticId = `optimistic-${Date.now()}`;
+    // requestId ties the optimistic entry, logs, and post-insert fetch together
+    // so any delayed or duplicate responses can be matched and discarded safely.
+    const requestId = generateRequestId();
+    const optimisticId = `optimistic-${requestId}`;
     const optimisticEntry: CommunityIdea = {
       id: optimisticId,
       title: postTitle,
@@ -809,16 +860,10 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       if (insertError) throw insertError;
 
       // ── 6. Replace optimistic entry with the real DB row ────────────────
-      // Fetch the single inserted row directly instead of refetching the full list.
-      // This eliminates loading flicker and gives us the real ID immediately.
-      const { data: inserted } = await supabase
-        .from('community_ideas')
-        .select('*')
-        .eq('author_id', user.id)
-        .eq('title', postTitle)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      // fetchInsertedRow retries up to 3 times (0ms / 300ms / 600ms) to handle
+      // Supabase read-after-write propagation delay. The optimistic entry stays
+      // visible the entire time so the user never sees a disappearing post.
+      const inserted = await fetchInsertedRow(user.id, postTitle);
 
       if (inserted) {
         const realEntry: CommunityIdea = {
@@ -835,17 +880,22 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
           hasUpvoted: false,
         };
         setSupabaseIdeas(prev => {
-          // Remove the optimistic placeholder + any stray optimistic entries,
-          // deduplicate against the real ID, then prepend the confirmed row.
+          // Strip all optimistic-* entries + deduplicate the real ID,
+          // then prepend the confirmed row. Handles the race where the
+          // real-time subscription already inserted the row via fetchCommunityIdeas.
           const cleaned = prev.filter(
             i => !i.id?.startsWith('optimistic-') && i.id !== inserted.id
           );
           return [realEntry, ...cleaned];
         });
         setHighlightedIdeaId(inserted.id);
+        console.info('[IdeaForge:Community] post confirmed', { requestId, realId: inserted.id });
       } else {
-        // Fallback: real row not yet readable (propagation delay) — full refetch
+        // All retries exhausted — strip optimistic and do a full list refresh.
+        // The real-time subscription will also trigger fetchCommunityIdeas
+        // independently, so the row will appear even if this branch runs.
         setSupabaseIdeas(prev => prev.filter(i => i.id !== optimisticId));
+        console.warn('[IdeaForge:Community] read-after-write: row not found after retries, falling back to full refetch', { requestId });
         fetchCommunityIdeas();
       }
 
@@ -862,6 +912,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       setSupabaseIdeas(prev => prev.filter(i => !i.id?.startsWith('optimistic-')));
 
       logError('post-idea', error, {
+        requestId,
         userId: user.id,
         ideaTitle: postTitle,
         payload: { titleLength: postTitle.length, descriptionLength: postDescription.length, tags: postTags },
