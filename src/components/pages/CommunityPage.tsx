@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
 
@@ -261,6 +262,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
   // Post Idea form state
   const [postFormOpen, setPostFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [postForm, setPostForm] = useState({
     title: '',
     description: '',
@@ -640,42 +642,45 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       return;
     }
 
-    // Use selected analyzed idea if available
-    if (analyzedIdeas.length > 0) {
-      if (!selectedAnalyzedIdeaId) {
-        toast.error('Please select an idea to share');
-        return;
-      }
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-      const selectedIdea = analyzedIdeas.find(idea => idea.id === selectedAnalyzedIdeaId);
-      if (!selectedIdea) {
-        toast.error('Selected idea not found');
-        return;
-      }
-
-      const normalizedTitle = normalizeIdeaValue(selectedIdea.idea_title);
-      const normalizedDescription = normalizeIdeaValue(selectedIdea.idea_description);
-
-      // Check for duplicates in Supabase
-      const { data: existingIdeas } = await supabase
-        .from('community_ideas')
-        .select('id, title, description')
-        .eq('author_id', user.id);
-
-      const isDuplicate = existingIdeas?.some(
-        (idea: any) =>
-          normalizeIdeaValue(idea.title) === normalizedTitle &&
-          normalizeIdeaValue(idea.description) === normalizedDescription
-      );
-
-      if (isDuplicate) {
-        toast.info('You have already shared this idea in the community.');
-        return;
-      }
-
+    try {
       const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
 
-      try {
+      // ── Path A: post from analyzed ideas list ──────────────────────────────
+      if (analyzedIdeas.length > 0) {
+        if (!selectedAnalyzedIdeaId) {
+          toast.error('Please select an idea to share');
+          return;
+        }
+
+        const selectedIdea = analyzedIdeas.find(idea => idea.id === selectedAnalyzedIdeaId);
+        if (!selectedIdea) {
+          toast.error('Selected idea not found');
+          return;
+        }
+
+        const normalizedTitle = normalizeIdeaValue(selectedIdea.idea_title);
+        const normalizedDescription = normalizeIdeaValue(selectedIdea.idea_description);
+
+        // Check for duplicates
+        const { data: existingIdeas } = await supabase
+          .from('community_ideas')
+          .select('id, title, description')
+          .eq('author_id', user.id);
+
+        const isDuplicate = existingIdeas?.some(
+          (idea: any) =>
+            normalizeIdeaValue(idea.title) === normalizedTitle &&
+            normalizeIdeaValue(idea.description) === normalizedDescription
+        );
+
+        if (isDuplicate) {
+          toast.info('You have already shared this idea in the community.');
+          return;
+        }
+
         const { error } = await supabase.from('community_ideas').insert({
           title: selectedIdea.idea_title.trim(),
           description: selectedIdea.idea_description.trim(),
@@ -690,42 +695,36 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         toast.success('Idea posted successfully!');
         setSelectedAnalyzedIdeaId(null);
         setPostFormOpen(false);
-        fetchCommunityIdeas(); // Refresh ideas list
-      } catch (error) {
-        console.error('Error posting idea:', error);
-        toast.error('Failed to post idea. Please try again.');
-      }
-    } else {
-      // Fallback to manual form
-      if (!isPostFormValid) {
-        toast.error('Please fill in all required fields with minimum lengths');
-        return;
-      }
+        fetchCommunityIdeas();
 
-      const normalizedTitle = normalizeIdeaValue(postForm.title);
-      const normalizedDescription = normalizeIdeaValue(postForm.description);
+      // ── Path B: manual form (when user has no analyzed ideas) ──────────────
+      } else {
+        if (!isPostFormValid) {
+          toast.error('Please fill in the title (min 10 chars) and description (min 30 chars)');
+          return;
+        }
 
-      // Check for duplicates in Supabase
-      const { data: existingIdeas } = await supabase
-        .from('community_ideas')
-        .select('id, title, description')
-        .eq('author_id', user.id);
+        const normalizedTitle = normalizeIdeaValue(postForm.title);
+        const normalizedDescription = normalizeIdeaValue(postForm.description);
 
-      const isDuplicate = existingIdeas?.some(
-        (idea: any) =>
-          normalizeIdeaValue(idea.title) === normalizedTitle &&
-          normalizeIdeaValue(idea.description) === normalizedDescription
-      );
+        const { data: existingIdeas } = await supabase
+          .from('community_ideas')
+          .select('id, title, description')
+          .eq('author_id', user.id);
 
-      if (isDuplicate) {
-        toast.info('You have already shared this idea in the community.');
-        return;
-      }
+        const isDuplicate = existingIdeas?.some(
+          (idea: any) =>
+            normalizeIdeaValue(idea.title) === normalizedTitle &&
+            normalizeIdeaValue(idea.description) === normalizedDescription
+        );
 
-      const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
-      const tags = parseTags(postForm.tags);
+        if (isDuplicate) {
+          toast.info('You have already shared this idea in the community.');
+          return;
+        }
 
-      try {
+        const tags = parseTags(postForm.tags);
+
         const { error } = await supabase.from('community_ideas').insert({
           title: postForm.title.trim(),
           description: postForm.description.trim(),
@@ -740,11 +739,19 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         toast.success('Idea posted successfully!');
         setPostForm({ title: '', description: '', tags: '' });
         setPostFormOpen(false);
-        fetchCommunityIdeas(); // Refresh ideas list
-      } catch (error) {
-        console.error('Error posting idea:', error);
+        fetchCommunityIdeas();
+      }
+    } catch (error: any) {
+      console.error('Error posting idea:', error);
+      if (error?.code === '42501' || error?.message?.includes('policy')) {
+        toast.error('Permission denied. Please make sure you are logged in.');
+      } else if (error?.message) {
+        toast.error(`Failed to post idea: ${error.message}`);
+      } else {
         toast.error('Failed to post idea. Please try again.');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -879,13 +886,13 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               </Dialog>
 
               {/* Post Form Dialog */}
-              <Dialog open={postFormOpen} onOpenChange={setPostFormOpen}>
+              <Dialog open={postFormOpen} onOpenChange={open => { setPostFormOpen(open); if (!open) { setSelectedAnalyzedIdeaId(null); setPostForm({ title: '', description: '', tags: '' }); } }}>
                 <DialogContent className="sm:max-w-lg p-0 gap-0 max-h-[90vh] flex flex-col">
                   <DialogHeader className="px-6 pt-6 pb-3 flex-shrink-0">
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
                   </DialogHeader>
 
-                  {/* Scroll area — fills remaining height, scrolls smoothly */}
+                  {/* Scroll area */}
                   <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
                     {isLoadingIdeas ? (
                       <div className="flex flex-col items-center justify-center py-12">
@@ -893,23 +900,69 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                         <p className="mt-4 text-sm text-muted-foreground">Loading your ideas...</p>
                       </div>
                     ) : analyzedIdeas.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <Lightbulb className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No Analyzed Ideas Yet</h3>
-                        <p className="text-muted-foreground mb-6 max-w-sm">
-                          Analyze your first idea to share it with the community and get valuable feedback.
-                        </p>
-                        <Button
-                          onClick={() => {
-                            setPostFormOpen(false);
-                            onNavigate?.('Idea Analyser');
-                          }}
-                          className="gradient-lavender shadow-lavender rounded-[16px] hover:opacity-90"
-                        >
-                          Analyze Your First Idea
-                        </Button>
+                      /* ── Manual form when user has no analyzed ideas ── */
+                      <div className="space-y-4 py-2">
+                        <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                          <Lightbulb className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-amber-700">
+                            You haven't analyzed any ideas yet. You can still post manually, or{' '}
+                            <button
+                              className="underline font-medium"
+                              onClick={() => { setPostFormOpen(false); onNavigate?.('Idea Analyser'); }}
+                            >
+                              analyze an idea first
+                            </button>{' '}
+                            for AI-powered insights.
+                          </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="post-title">
+                            Title <span className="text-muted-foreground text-xs">(min 10 chars)</span>
+                          </Label>
+                          <Input
+                            id="post-title"
+                            placeholder="e.g. AI-powered scheduling tool for freelancers"
+                            value={postForm.title}
+                            onChange={e => setPostForm(f => ({ ...f, title: e.target.value }))}
+                            maxLength={200}
+                          />
+                          {postForm.title.length > 0 && postForm.title.length < 10 && (
+                            <p className="text-xs text-destructive">{10 - postForm.title.length} more characters needed</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="post-description">
+                            Description <span className="text-muted-foreground text-xs">(min 30 chars)</span>
+                          </Label>
+                          <Textarea
+                            id="post-description"
+                            placeholder="Describe your idea, the problem it solves, and your target audience..."
+                            value={postForm.description}
+                            onChange={e => setPostForm(f => ({ ...f, description: e.target.value }))}
+                            className="min-h-[100px] resize-none"
+                            maxLength={2000}
+                          />
+                          {postForm.description.length > 0 && postForm.description.length < 30 && (
+                            <p className="text-xs text-destructive">{30 - postForm.description.length} more characters needed</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="post-tags">
+                            Tags <span className="text-muted-foreground text-xs">(optional, comma-separated)</span>
+                          </Label>
+                          <Input
+                            id="post-tags"
+                            placeholder="e.g. AI, SaaS, HealthTech"
+                            value={postForm.tags}
+                            onChange={e => setPostForm(f => ({ ...f, tags: e.target.value }))}
+                          />
+                        </div>
                       </div>
                     ) : (
+                      /* ── Analyzed ideas selector ── */
                       <div className="space-y-2">
                         <Label>Select an idea to share</Label>
                         <div className="space-y-2 pr-1">
@@ -965,15 +1018,30 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     )}
                   </div>
 
-                  {/* Footer — always visible, never inside scroll area */}
-                  {!isLoadingIdeas && analyzedIdeas.length > 0 && (
-                    <div className="px-6 py-4 border-t border-border">
+                  {/* Footer — always visible */}
+                  {!isLoadingIdeas && (
+                    <div className="px-6 py-4 border-t border-border space-y-2">
+                      {/* Hint when nothing selected */}
+                      {analyzedIdeas.length > 0 && !selectedAnalyzedIdeaId && (
+                        <p className="text-xs text-center text-muted-foreground">
+                          Select an idea above to enable posting
+                        </p>
+                      )}
                       <Button
                         onClick={handleSubmitIdea}
-                        disabled={!selectedAnalyzedIdeaId}
+                        disabled={isSubmitting}
                         className="gradient-lavender shadow-lavender w-full rounded-[16px] hover:opacity-90"
                       >
-                        Share Selected Idea
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Posting...
+                          </>
+                        ) : analyzedIdeas.length > 0 ? (
+                          'Share Selected Idea'
+                        ) : (
+                          'Post Idea'
+                        )}
                       </Button>
                     </div>
                   )}
