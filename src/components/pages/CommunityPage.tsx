@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
-import { TrendingUp, Clock, MessageCircle, Award, Send, Lightbulb, Loader2, Sparkles, MessageSquare, Filter } from 'lucide-react';
+import { TrendingUp, Clock, MessageCircle, Award, Send, Lightbulb, Loader2, Sparkles, MessageSquare, Filter, ThumbsUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '../ui/button';
@@ -962,15 +962,22 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       filtered = filtered.filter(idea => idea.tags.includes(selectedTag));
     }
 
-    // Sort based on filter
     if (filter === 'trending') {
-      filtered.sort((a, b) => b.upvotes - a.upvotes);
+      // Only posts from the last 7 days, ranked by engagement (upvotes + comments)
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      filtered = filtered.filter(idea => {
+        const ts = idea.createdAt ? new Date(idea.createdAt).getTime() : NaN;
+        return Number.isFinite(ts) && ts >= sevenDaysAgo;
+      });
+      filtered.sort((a, b) => (b.upvotes + b.comments) - (a.upvotes + a.comments));
     } else if (filter === 'new') {
       filtered.sort((a, b) =>
         new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       );
     } else if (filter === 'discussed') {
       filtered.sort((a, b) => b.comments - a.comments);
+    } else if (filter === 'upvoted') {
+      filtered.sort((a, b) => b.upvotes - a.upvotes);
     }
 
     return filtered;
@@ -1596,6 +1603,15 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                   >
                     <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
                     Most Discussed
+                  </Button>
+                  <Button
+                    variant={filter === 'upvoted' ? 'default' : 'outline'}
+                    onClick={() => handleFilterChange('upvoted')}
+                    size="sm"
+                    className="rounded-full h-8"
+                  >
+                    <ThumbsUp className="mr-1.5 h-3.5 w-3.5" />
+                    Most Upvoted
                   </Button>
                 </div>
 
