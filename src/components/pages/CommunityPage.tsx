@@ -196,18 +196,45 @@ interface CommunityPageProps {
   onNavigate?: (page: string) => void;
 }
 
-// Structured error logger — swap body for Sentry/DataDog when ready
-const logError = (action: string, error: any) => {
+interface LogContext {
+  userId?: string | null;
+  ideaTitle?: string;
+  /** Sanitized payload — never include PII beyond what's already public */
+  payload?: Record<string, unknown>;
+  durationMs?: number;
+}
+
+const logError = (action: string, error: any, ctx?: LogContext) => {
   console.error('[IdeaForge:Community]', {
     action,
     code: error?.code ?? null,
     message: error?.message ?? String(error),
     hint: error?.hint ?? null,
     details: error?.details ?? null,
+    ...ctx,
     timestamp: new Date().toISOString(),
   });
   // Sentry integration point:
-  // window.__sentry?.captureException?.(error, { extra: { action } });
+  // window.__sentry?.captureException?.(error, { extra: { action, ...ctx } });
+};
+
+/**
+ * Races a promise against a timeout. Throws an error with code='TIMEOUT' if
+ * the promise does not settle within `ms` milliseconds.
+ * Note: the underlying request is NOT cancelled (AbortSignal can be layered
+ * on top when needed), but the caller gets immediate feedback.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+  let tid: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    tid = setTimeout(() => {
+      const err = new Error('Request timed out. Please try again.');
+      (err as any).code = 'TIMEOUT';
+      reject(err);
+    }, ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(tid)) as Promise<T>;
 };
 
 const normalizeIdeaValue = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -296,6 +323,8 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const [supabaseIdeas, setSupabaseIdeas] = useState<CommunityIdea[]>([]);
   const [_isLoadingCommunityIdeas, setIsLoadingCommunityIdeas] = useState(true);
   const [postOptionDialogOpen, setPostOptionDialogOpen] = useState(false);
+  // ID of the most recently posted idea — drives brief highlight + scroll-into-view
+  const [highlightedIdeaId, setHighlightedIdeaId] = useState<string | null>(null);
   
   // Local upvotes for demo ideas (stored in localStorage)
   const [localUpvotes, setLocalUpvotes] = useState<Record<string, { count: number; hasUpvoted: boolean }>>(() => {
@@ -319,6 +348,15 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   useEffect(() => {
     persistCommunityComments(commentStore);
   }, [commentStore]);
+
+  // Scroll newly posted idea into view and briefly highlight it
+  useEffect(() => {
+    if (!highlightedIdeaId) return;
+    const el = document.getElementById(`idea-card-${highlightedIdeaId}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const t = setTimeout(() => setHighlightedIdeaId(null), 2500);
+    return () => clearTimeout(t);
+  }, [highlightedIdeaId]);
 
   // Load comments from Supabase when the panel opens for a DB-backed idea
   useEffect(() => {
@@ -732,13 +770,14 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     };
     setSupabaseIdeas(prev => [optimisticEntry, ...prev]);
     setIsSubmitting(true);
+    const startTime = Date.now();
 
     try {
       // ── 4. Duplicate check (catches race conditions + re-posts) ──────────
-      const { data: existingIdeas, error: fetchError } = await supabase
-        .from('community_ideas')
-        .select('id, title, description')
-        .eq('author_id', user.id);
+      const { data: existingIdeas, error: fetchError } = await withTimeout(
+        supabase.from('community_ideas').select('id, title, description').eq('author_id', user.id) as unknown as Promise<{ data: any; error: any }>,
+        12000
+      );
 
       if (fetchError) throw fetchError;
 
@@ -754,19 +793,62 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         return;
       }
 
-      // ── 5. Insert ────────────────────────────────────────────────────────
-      const { error: insertError } = await supabase.from('community_ideas').insert({
-        title: postTitle,
-        description: postDescription,
-        tags: postTags,
-        author_name: authorName,
-        author_avatar: profile?.avatar || null,
-        author_id: user.id,
-      });
+      // ── 5. Insert with timeout ───────────────────────────────────────────
+      const { error: insertError } = await withTimeout(
+        supabase.from('community_ideas').insert({
+          title: postTitle,
+          description: postDescription,
+          tags: postTags,
+          author_name: authorName,
+          author_avatar: profile?.avatar || null,
+          author_id: user.id,
+        }) as unknown as Promise<{ error: any }>,
+        12000
+      );
 
       if (insertError) throw insertError;
 
-      // ── 6. Success — replace optimistic entry with real DB row ──────────
+      // ── 6. Replace optimistic entry with the real DB row ────────────────
+      // Fetch the single inserted row directly instead of refetching the full list.
+      // This eliminates loading flicker and gives us the real ID immediately.
+      const { data: inserted } = await supabase
+        .from('community_ideas')
+        .select('*')
+        .eq('author_id', user.id)
+        .eq('title', postTitle)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (inserted) {
+        const realEntry: CommunityIdea = {
+          id: inserted.id,
+          title: inserted.title,
+          description: inserted.description,
+          tags: inserted.tags || [],
+          upvotes: inserted.upvotes_count || 0,
+          comments: inserted.comments_count || 0,
+          author: inserted.author_name,
+          authorAvatar: inserted.author_avatar,
+          authorId: inserted.author_id,
+          createdAt: inserted.created_at,
+          hasUpvoted: false,
+        };
+        setSupabaseIdeas(prev => {
+          // Remove the optimistic placeholder + any stray optimistic entries,
+          // deduplicate against the real ID, then prepend the confirmed row.
+          const cleaned = prev.filter(
+            i => !i.id?.startsWith('optimistic-') && i.id !== inserted.id
+          );
+          return [realEntry, ...cleaned];
+        });
+        setHighlightedIdeaId(inserted.id);
+      } else {
+        // Fallback: real row not yet readable (propagation delay) — full refetch
+        setSupabaseIdeas(prev => prev.filter(i => i.id !== optimisticId));
+        fetchCommunityIdeas();
+      }
+
       toast.success('Idea posted to the community!');
       if (isAnalyzedPath) {
         setSelectedAnalyzedIdeaId(null);
@@ -775,29 +857,34 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         setFormErrors({});
       }
       setPostFormOpen(false);
-      fetchCommunityIdeas(); // replaces optimistic entry with the actual DB row
     } catch (error: any) {
-      // ── 7. Rollback optimistic entry on any failure ──────────────────────
-      setSupabaseIdeas(prev => prev.filter(i => i.id !== optimisticId));
+      // ── 7. Rollback: remove optimistic entry + all stale optimistic entries
+      setSupabaseIdeas(prev => prev.filter(i => !i.id?.startsWith('optimistic-')));
 
-      logError('post-idea', error);
+      logError('post-idea', error, {
+        userId: user.id,
+        ideaTitle: postTitle,
+        payload: { titleLength: postTitle.length, descriptionLength: postDescription.length, tags: postTags },
+        durationMs: Date.now() - startTime,
+      });
 
       const isNetwork =
         error instanceof TypeError ||
         error?.message?.toLowerCase().includes('failed to fetch') ||
         error?.message?.toLowerCase().includes('networkerror');
+      const isTimeout = error?.code === 'TIMEOUT';
 
-      if (isNetwork) {
-        // Retry action — ref keeps the callback pointing at the latest handler
+      if (isTimeout) {
+        toast.error('Request timed out. Check your connection.', {
+          action: { label: 'Retry', onClick: () => handleSubmitIdeaRef.current?.() },
+          duration: 8000,
+        });
+      } else if (isNetwork) {
         toast.error('Network error. Check your connection.', {
-          action: {
-            label: 'Retry',
-            onClick: () => handleSubmitIdeaRef.current?.(),
-          },
+          action: { label: 'Retry', onClick: () => handleSubmitIdeaRef.current?.() },
           duration: 8000,
         });
       } else if (error?.code === '23505') {
-        // DB unique constraint — race condition between two tabs / rapid re-submit
         toast.info('You have already shared this idea in the community.');
       } else if (error?.code === '42501' || error?.message?.includes('policy') || error?.message?.includes('JWT')) {
         toast.error('Permission denied. Please log out and log back in.');
@@ -1204,17 +1291,23 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                 ) : (
                   ideas.map((idea, index) => (
                     <motion.div
+                      id={`idea-card-${idea.id || idea.title}`}
                       key={idea.id || idea.title}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
+                      className={
+                        idea.id && idea.id === highlightedIdeaId
+                          ? 'ring-2 ring-primary ring-offset-2 rounded-xl transition-shadow duration-300'
+                          : undefined
+                      }
                     >
                       <IdeaCard
                         {...idea}
                         onCommentClick={() => handleCommentClick(idea)}
                         onUpvote={
-                          idea.id 
-                            ? () => handleUpvote(idea.id!) 
+                          idea.id
+                            ? () => handleUpvote(idea.id!)
                             : () => handleDemoUpvote(idea.title, idea.upvotes)
                         }
                         hasUpvoted={idea.hasUpvoted}
