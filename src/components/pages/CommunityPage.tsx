@@ -398,6 +398,32 @@ const mapRowToIdea = (row: any, hasUpvoted = false): CommunityIdea => ({
   hasUpvoted,
 });
 
+/**
+ * Safely parses an ISO createdAt string to a Unix ms timestamp.
+ * Returns 0 when the value is absent or unparseable so comparisons always
+ * produce a defined numeric result rather than NaN-propagation bugs.
+ */
+const createdAtTs = (idea: CommunityIdea): number => {
+  const ts = idea.createdAt ? new Date(idea.createdAt).getTime() : NaN;
+  return Number.isFinite(ts) ? ts : 0;
+};
+
+/**
+ * Time-decayed engagement score used for the Trending sort.
+ * score = (upvotes + comments) / (ageHours + 2)^1.2
+ *
+ * The +2 offset prevents division-by-zero for brand-new posts and gives them
+ * a small head-start. The ^1.2 gravity is mild — stronger than linear but
+ * gentler than HN's ^1.8, so recent quality posts surface quickly but a
+ * genuinely popular older post isn't immediately buried.
+ */
+const trendingScore = (idea: CommunityIdea): number => {
+  const votes = (idea.upvotes ?? 0) + (idea.comments ?? 0);
+  const ts = idea.createdAt ? new Date(idea.createdAt).getTime() : NaN;
+  const ageHours = Number.isFinite(ts) ? (Date.now() - ts) / 3_600_000 : Infinity;
+  return votes / Math.pow(ageHours + 2, 1.2);
+};
+
 const normalizeIdeaValue = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
 
 const loadCommunityIdeas = (): CommunityIdea[] => {
@@ -957,27 +983,38 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const getFilteredIdeas = () => {
     let filtered = [...allIdeas];
 
-    // Filter by tag if selected
     if (selectedTag) {
       filtered = filtered.filter(idea => idea.tags.includes(selectedTag));
     }
 
     if (filter === 'trending') {
-      // Only posts from the last 7 days, ranked by engagement (upvotes + comments)
+      // Restrict to posts created within the last 7 days using a Number.isFinite
+      // guard so ideas with absent/invalid createdAt are excluded, not treated as epoch.
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       filtered = filtered.filter(idea => {
         const ts = idea.createdAt ? new Date(idea.createdAt).getTime() : NaN;
         return Number.isFinite(ts) && ts >= sevenDaysAgo;
       });
-      filtered.sort((a, b) => (b.upvotes + b.comments) - (a.upvotes + a.comments));
+      // Primary: time-decayed score DESC. Tie-breaker: newest first.
+      filtered.sort((a, b) => {
+        const diff = trendingScore(b) - trendingScore(a);
+        return diff !== 0 ? diff : createdAtTs(b) - createdAtTs(a);
+      });
     } else if (filter === 'new') {
-      filtered.sort((a, b) =>
-        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-      );
+      // createdAtTs returns 0 for missing dates — those sink to the bottom.
+      filtered.sort((a, b) => createdAtTs(b) - createdAtTs(a));
     } else if (filter === 'discussed') {
-      filtered.sort((a, b) => b.comments - a.comments);
+      // Primary: comments DESC. Tie-breaker: newest first.
+      filtered.sort((a, b) => {
+        const diff = (b.comments ?? 0) - (a.comments ?? 0);
+        return diff !== 0 ? diff : createdAtTs(b) - createdAtTs(a);
+      });
     } else if (filter === 'upvoted') {
-      filtered.sort((a, b) => b.upvotes - a.upvotes);
+      // Primary: upvotes DESC. Tie-breaker: newest first.
+      filtered.sort((a, b) => {
+        const diff = (b.upvotes ?? 0) - (a.upvotes ?? 0);
+        return diff !== 0 ? diff : createdAtTs(b) - createdAtTs(a);
+      });
     }
 
     return filtered;
@@ -1582,6 +1619,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     onClick={() => handleFilterChange('trending')}
                     size="sm"
                     className="rounded-full h-8"
+                    title="Last 7 days · ranked by time-decayed engagement"
                   >
                     <TrendingUp className="mr-1.5 h-3.5 w-3.5" />
                     Trending
@@ -1591,6 +1629,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     onClick={() => handleFilterChange('new')}
                     size="sm"
                     className="rounded-full h-8"
+                    title="Most recently posted"
                   >
                     <Clock className="mr-1.5 h-3.5 w-3.5" />
                     New
@@ -1600,6 +1639,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     onClick={() => handleFilterChange('discussed')}
                     size="sm"
                     className="rounded-full h-8"
+                    title="Highest comments"
                   >
                     <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
                     Most Discussed
@@ -1609,11 +1649,18 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     onClick={() => handleFilterChange('upvoted')}
                     size="sm"
                     className="rounded-full h-8"
+                    title="All time · highest upvotes"
                   >
                     <ThumbsUp className="mr-1.5 h-3.5 w-3.5" />
                     Most Upvoted
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {filter === 'trending' && 'Last 7 days · ranked by engagement'}
+                  {filter === 'new' && 'Most recently posted'}
+                  {filter === 'discussed' && 'Highest comments'}
+                  {filter === 'upvoted' && 'All time · highest upvotes'}
+                </p>
 
                 {selectedTag && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
