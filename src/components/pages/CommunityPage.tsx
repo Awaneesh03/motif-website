@@ -212,6 +212,10 @@ interface LogContext {
   route?: string;
   /** How many times this submission has been attempted in the current dialog session */
   attempt?: number;
+  /** Feature area — always 'community-post' for submissions in this file */
+  feature?: string;
+  /** Lifecycle phase within the feature, e.g. 'insert', 'read-after-write', 'rollback' */
+  phase?: string;
 }
 
 const logError = (action: string, error: any, ctx?: LogContext) => {
@@ -280,6 +284,38 @@ const fetchInsertedRow = async (
 };
 
 /**
+ * Idempotency variant of fetchInsertedRow: fetches by (author_id, request_id)
+ * instead of title. Only used when FEATURE_IDEMPOTENCY_KEY is true and the DB
+ * column + unique index exist. Retries with back-off identical to fetchInsertedRow.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fetchInsertedRowByRequestId = async (
+  authorId: string,
+  requestId: string,
+  maxAttempts = 3,
+  baseDelayMs = 300
+): Promise<Record<string, any> | null> => {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0) {
+      await new Promise(r => setTimeout(r, baseDelayMs * attempt));
+    }
+    try {
+      const { data } = await supabase
+        .from('community_ideas')
+        .select('*')
+        .eq('author_id', authorId)
+        .eq('request_id', requestId)
+        .limit(1)
+        .single();
+      if (data) return data;
+    } catch {
+      // network blip — continue
+    }
+  }
+  return null;
+};
+
+/**
  * Generates a unique request ID. Uses crypto.randomUUID when available (all
  * modern browsers), otherwise falls back to a timestamp + random suffix.
  */
@@ -296,8 +332,10 @@ const TAB_ID = generateRequestId();
  * Combines normalised title + first 50 chars of normalised description so two
  * ideas that share a title but differ in body do not falsely match.
  */
-const makeContentHash = (title: string, description: string): string =>
-  `${title.trim().replace(/\s+/g, ' ').toLowerCase()}::${description.trim().replace(/\s+/g, ' ').toLowerCase().slice(0, 50)}`;
+const makeContentHash = (title: string, description: string): string => {
+  const normDesc = description.trim().replace(/\s+/g, ' ').toLowerCase();
+  return `${title.trim().replace(/\s+/g, ' ').toLowerCase()}::${normDesc.slice(0, 50)}::${normDesc.length}`;
+};
 
 /**
  * Feature flag — flip to true AFTER running the DB migration:
@@ -419,6 +457,10 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   // Holds the active Supabase realtime channel so the effect can remove it before
   // recreating — prevents orphaned duplicate channels on React StrictMode double-invoke.
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Set to true by debouncedFetch when it skips because isFetchingRef is set.
+  // Checked in fetchCommunityIdeas finally to trigger a trailing refetch so no
+  // realtime event is silently dropped while a fetch was in-flight.
+  const missedWhileFetchingRef = useRef(false);
 
   // Analyzed ideas from Supabase
   const [analyzedIdeas, setAnalyzedIdeas] = useState<AnalyzedIdea[]>([]);
@@ -510,31 +552,51 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   useEffect(() => {
     fetchCommunityIdeas();
 
+    let destroyed = false;
+
     // Debounced fetch that skips if a fetch is already in-flight.
     // This coalesces burst realtime events (e.g. several upvotes in 300ms)
     // without launching redundant parallel network requests.
+    // When skipped, sets missedWhileFetchingRef so the in-flight fetch triggers
+    // a trailing refetch in its finally block — no event is silently dropped.
     const debouncedFetch = () => {
       if (realtimeFetchDebounceRef.current) clearTimeout(realtimeFetchDebounceRef.current);
       realtimeFetchDebounceRef.current = setTimeout(() => {
-        if (!isFetchingRef.current) fetchCommunityIdeas();
-        // else: a fetch is in progress; its result will be applied when it
-        // completes — the generation counter ensures ordering correctness.
+        if (isFetchingRef.current) {
+          missedWhileFetchingRef.current = true;
+        } else {
+          fetchCommunityIdeas();
+        }
       }, 300);
     };
 
-    // Remove any channel left over from a previous effect run (StrictMode / HMR)
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    // Creates the realtime channel and subscribes. Extracted so the error
+    // handler can re-initialize after a disconnect without duplicating setup.
+    const initChannel = () => {
+      if (destroyed) return;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      channelRef.current = supabase
+        .channel(`community-ideas-${TAB_ID}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'community_ideas' }, debouncedFetch)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'community_upvotes' }, debouncedFetch)
+        .subscribe((status, err) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            console.warn('[IdeaForge:Community] channel disrupted — reinitializing in 2s', {
+              status, feature: 'community-post', phase: 'realtime',
+              ...(err ? { error: String(err) } : {}),
+            });
+            setTimeout(initChannel, 2000);
+          }
+        });
+    };
 
-    channelRef.current = supabase
-      .channel(`community-ideas-${TAB_ID}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_ideas' }, debouncedFetch)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_upvotes' }, debouncedFetch)
-      .subscribe();
+    initChannel();
 
     return () => {
+      destroyed = true;
       if (realtimeFetchDebounceRef.current) {
         clearTimeout(realtimeFetchDebounceRef.current);
         realtimeFetchDebounceRef.current = null;
@@ -632,6 +694,8 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
             toast.success('Your post was delivered!', {
               description: `"${delivered.title}" is now live in the community.`,
             });
+            // Reuse the same highlight + scroll-into-view behavior as a normal post
+            if (delivered.id) setHighlightedIdeaId(delivered.id);
           }
         }
       }
@@ -646,7 +710,10 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         return mappedIdeas.map(incoming => {
           if (!incoming.id || !incoming.updatedAt) return incoming;
           const existing = existingById.get(incoming.id);
-          if (existing?.updatedAt && existing.updatedAt > incoming.updatedAt) {
+          if (
+            existing?.updatedAt &&
+            new Date(existing.updatedAt).getTime() > new Date(incoming.updatedAt).getTime()
+          ) {
             // Local state is newer — keep existing interactive counters
             return { ...incoming, upvotes: existing.upvotes, hasUpvoted: existing.hasUpvoted };
           }
@@ -659,6 +726,13 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     } finally {
       isFetchingRef.current = false;
       if (generation === fetchGenerationRef.current) setIsLoadingCommunityIdeas(false);
+      // A realtime event arrived while this fetch was in-flight and was skipped
+      // to avoid a redundant parallel request. Do a trailing fetch now that we
+      // are clear, so no DB change is silently dropped.
+      if (missedWhileFetchingRef.current) {
+        missedWhileFetchingRef.current = false;
+        fetchCommunityIdeas();
+      }
     }
   };
 
@@ -981,13 +1055,13 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
           return [realEntry, ...cleaned];
         });
         setHighlightedIdeaId(inserted.id);
-        console.info('[IdeaForge:Community] post confirmed', { requestId, realId: inserted.id });
+        console.info('[IdeaForge:Community] post confirmed', { requestId, realId: inserted.id, feature: 'community-post', phase: 'read-after-write' });
       } else {
         // All retries exhausted — strip optimistic and do a full list refresh.
         // The real-time subscription will also trigger fetchCommunityIdeas
         // independently, so the row will appear even if this branch runs.
         setSupabaseIdeas(prev => prev.filter(i => i.id !== optimisticId));
-        console.warn('[IdeaForge:Community] read-after-write: row not found after retries, falling back to full refetch', { requestId });
+        console.warn('[IdeaForge:Community] read-after-write: row not found after retries, falling back to full refetch', { requestId, feature: 'community-post', phase: 'read-after-write' });
         fetchCommunityIdeas();
       }
 
@@ -1012,6 +1086,8 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         ideaTitle: postTitle,
         payload: { titleLength: postTitle.length, descriptionLength: postDescription.length, tags: postTags },
         durationMs: Date.now() - startTime,
+        feature: 'community-post',
+        phase: error?.code === 'TIMEOUT' ? 'insert-timeout' : 'insert',
       });
 
       const isNetwork =
@@ -1041,9 +1117,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       } else if (error?.code === '23505') {
         if (FEATURE_IDEMPOTENCY_KEY) {
           // Idempotent conflict: request_id unique index fired, meaning this exact
-          // request was already processed. Fetch the existing row and display it
-          // as if the insert just succeeded — no data loss, no duplicate.
-          const existing = await fetchInsertedRow(user.id, postTitle);
+          // request was already processed. Fetch the existing row by (author_id, request_id)
+          // so we get the precise row rather than the most-recent by title.
+          const existing = await fetchInsertedRowByRequestId(user.id, requestId);
           if (existing) {
             const realEntry = mapRowToIdea(existing);
             setSupabaseIdeas(prev => {
