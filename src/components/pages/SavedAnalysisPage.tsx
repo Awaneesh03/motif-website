@@ -29,12 +29,21 @@ export interface SavedAnalysisData {
   description: string;
   targetMarket: string;
   score?: number;
+  // Legacy flat fields
   strengths: string[];
   weaknesses: string[];
   recommendations: string[];
   marketSize: string;
   competition: string;
   viability: string;
+  // Structured fields (present for new records)
+  idea_summary?: string;
+  confidence_score?: number;
+  competitors?: Array<{ name: string; threat?: string; opportunity?: string }>;
+  competitive_advantage?: string;
+  market?: Record<string, any>;
+  heuristic_scores?: Record<string, number>;
+  investor_analysis?: Record<string, any>;
 }
 
 // ── Competitor card (same as in IdeaAnalyserPage) ───────────────────────────
@@ -81,17 +90,10 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
       if (!stored) return;
       const data: SavedAnalysisData = JSON.parse(stored);
       setRaw(data);
-      setResult(
-        fromLegacyResult({
-          score: data.score ?? 0,
-          strengths: data.strengths,
-          weaknesses: data.weaknesses,
-          recommendations: data.recommendations,
-          marketSize: data.marketSize,
-          competition: data.competition,
-          viability: data.viability,
-        })
-      );
+      // Pass the full data object so fromLegacyResult can detect structured fields
+      // (competitors array or market object) and route to validateAndSanitise.
+      // Falls back to the legacy flat-string path for old records automatically.
+      setResult(fromLegacyResult({ ...data, score: data.score ?? 0 }));
     } catch {
       // malformed storage — show empty state
     }
@@ -389,21 +391,6 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
             </CardContent>
           </Card>
         </div>
-
-        {/* ── Overall Assessment ────────────────────────────────────────── */}
-        <Card className="border-border/50">
-          <CardHeader className="pb-4 border-b border-border/40">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-              <Shield className="h-5 w-5 text-primary" />
-              Overall Viability Assessment
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {result.viability_analysis.overall_assessment}
-            </p>
-          </CardContent>
-        </Card>
 
         {/* ── Recommendations ───────────────────────────────────────────── */}
         <Card className="border-border/50">

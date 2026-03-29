@@ -31,13 +31,21 @@ interface SavedIdea {
   createdDate: string;
   score?: number;
   shared: boolean;
-  // Full analysis data for "View Analysis"
+  // Legacy flat fields (fallback for old records)
   strengths: string[];
   weaknesses: string[];
   recommendations: string[];
   marketSize: string;
   competition: string;
   viability: string;
+  // Structured fields (populated for new records)
+  ideaSummary?: string;
+  confidenceScore?: number;
+  competitors?: Array<{ name: string; threat?: string; opportunity?: string }>;
+  competitiveAdvantage?: string;
+  market?: Record<string, any>;
+  heuristicScores?: Record<string, number>;
+  investorAnalysis?: Record<string, any>;
 }
 
 interface SavedIdeasPageProps {
@@ -79,25 +87,55 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
         setIdeas([]);
       } else {
         // Transform database data to match SavedIdea interface
-        const transformedIdeas: SavedIdea[] = (data || []).map(analysis => ({
-          id: analysis.id,
-          title: analysis.idea_title,
-          description: analysis.idea_description,
-          // Derive tags from target_market (comma-separated string)
-          tags: analysis.target_market
-            ? analysis.target_market.split(',').map((t: string) => t.trim()).filter(Boolean)
-            : [],
-          targetMarket: analysis.target_market || '',
-          createdDate: analysis.created_at,
-          score: analysis.score,
-          shared: false, // Default to private
-          strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
-          weaknesses: Array.isArray(analysis.weaknesses) ? analysis.weaknesses : [],
-          recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations : [],
-          marketSize: analysis.market_size || '',
-          competition: analysis.competition || '',
-          viability: analysis.viability || '',
-        }));
+        const transformedIdeas: SavedIdea[] = (data || []).map(analysis => {
+          // Parse competition TEXT column (stored as JSON: {"competitors":[...],"competitiveAdvantage":"..."})
+          let competitors: Array<{ name: string; threat?: string; opportunity?: string }> | undefined;
+          let parsedCompetitiveAdvantage: string | undefined;
+          try {
+            if (analysis.competition) {
+              const comp = JSON.parse(analysis.competition);
+              if (Array.isArray(comp.competitors)) competitors = comp.competitors;
+              if (typeof comp.competitiveAdvantage === 'string') parsedCompetitiveAdvantage = comp.competitiveAdvantage;
+            }
+          } catch {
+            // legacy string format — competitors will be undefined, legacy path will handle it
+          }
+
+          // Parse market_size TEXT column (stored as JSON: {"category":"...","tam":"...",...})
+          let market: Record<string, any> | undefined;
+          try {
+            if (analysis.market_size) market = JSON.parse(analysis.market_size);
+          } catch {
+            // legacy string format
+          }
+
+          return {
+            id: analysis.id,
+            title: analysis.idea_title,
+            description: analysis.idea_description,
+            tags: analysis.target_market
+              ? analysis.target_market.split(',').map((t: string) => t.trim()).filter(Boolean)
+              : [],
+            targetMarket: analysis.target_market || '',
+            createdDate: analysis.created_at,
+            score: analysis.score,
+            shared: false,
+            strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
+            weaknesses: Array.isArray(analysis.weaknesses) ? analysis.weaknesses : [],
+            recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations : [],
+            marketSize: analysis.market_size || '',
+            competition: analysis.competition || '',
+            viability: analysis.viability || '',
+            // Structured fields
+            ideaSummary: analysis.idea_summary || undefined,
+            confidenceScore: typeof analysis.confidence_score === 'number' ? analysis.confidence_score : undefined,
+            competitors,
+            competitiveAdvantage: analysis.competitive_advantage || parsedCompetitiveAdvantage,
+            market,
+            heuristicScores: analysis.heuristic_scores || undefined,
+            investorAnalysis: analysis.investor_analysis || undefined,
+          };
+        });
         setIdeas(transformedIdeas);
       }
     } catch (error) {
@@ -134,7 +172,6 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
   };
 
   const handleViewAnalysis = (idea: SavedIdea) => {
-    // Store the idea + analysis data for the dedicated SavedAnalysisPage
     const data = {
       title: idea.title,
       description: idea.description,
@@ -143,9 +180,18 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
       strengths: idea.strengths,
       weaknesses: idea.weaknesses,
       recommendations: idea.recommendations,
+      viability: idea.viability,
+      // Legacy fallback fields (for old records without structured data)
       marketSize: idea.marketSize,
       competition: idea.competition,
-      viability: idea.viability,
+      // Structured fields — when present, fromLegacyResult routes to validateAndSanitise
+      idea_summary: idea.ideaSummary,
+      confidence_score: idea.confidenceScore,
+      competitors: idea.competitors,
+      competitive_advantage: idea.competitiveAdvantage,
+      market: idea.market,
+      heuristic_scores: idea.heuristicScores,
+      investor_analysis: idea.investorAnalysis,
     };
     sessionStorage.setItem(SAVED_ANALYSIS_KEY, JSON.stringify(data));
     onNavigate?.('saved-analysis');
