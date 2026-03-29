@@ -204,6 +204,10 @@ interface LogContext {
   durationMs?: number;
   /** Unique per-submission ID for correlating logs, optimistic entry, and DB row */
   requestId?: string;
+  /** Logical route that triggered the action, e.g. 'community/post-idea' */
+  route?: string;
+  /** How many times this submission has been attempted in the current dialog session */
+  attempt?: number;
 }
 
 const logError = (action: string, error: any, ctx?: LogContext) => {
@@ -356,6 +360,18 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const [formErrors, setFormErrors] = useState<{ title?: string; description?: string }>({});
   // Stable ref so toast retry callbacks always call the latest version of the handler
   const handleSubmitIdeaRef = useRef<(() => Promise<void>) | null>(null);
+  // Increments before every fetchCommunityIdeas call; each call captures its own
+  // generation and bails if a newer fetch has already applied its result.
+  const fetchGenerationRef = useRef(0);
+  // Debounce timer for coalescing rapid realtime events (e.g. burst of upvotes)
+  // into a single refetch. Cleared on unmount.
+  const realtimeFetchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // requestId → { title, authorId } for submissions that timed out but may still
+  // succeed. Checked on every fetchCommunityIdeas to surface "Delivered" toasts.
+  const timedOutSubmissionsRef = useRef<Map<string, { title: string; authorId: string }>>(new Map());
+  // How many times the user has attempted to submit in the current dialog session.
+  // Reset when the dialog closes. Used in logs for debugging retry patterns.
+  const submitAttemptRef = useRef(0);
 
   // Analyzed ideas from Supabase
   const [analyzedIdeas, setAnalyzedIdeas] = useState<AnalyzedIdea[]>([]);
@@ -440,38 +456,32 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     }
   }, [postFormOpen, user]);
 
-  // Fetch community ideas on mount and when user changes
+  // Fetch community ideas on mount and when user changes.
+  // Recreated whenever `user` changes so the closure and channel both see the
+  // current auth state. The subscription is torn down on user-change and unmount.
   useEffect(() => {
     fetchCommunityIdeas();
 
-    // Subscribe to real-time updates
+    // Coalesce rapid realtime events (e.g. a burst of upvotes) into a single
+    // refetch. 300ms window is large enough to absorb sequential DB triggers
+    // without feeling sluggish.
+    const debouncedFetch = () => {
+      if (realtimeFetchDebounceRef.current) clearTimeout(realtimeFetchDebounceRef.current);
+      realtimeFetchDebounceRef.current = setTimeout(fetchCommunityIdeas, 300);
+    };
+
     const ideasChannel = supabase
       .channel('community-ideas-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'community_ideas',
-        },
-        () => {
-          fetchCommunityIdeas();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'community_upvotes',
-        },
-        () => {
-          fetchCommunityIdeas();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_ideas' }, debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_upvotes' }, debouncedFetch)
       .subscribe();
 
     return () => {
+      // Cancel any pending debounced refetch before tearing down the channel
+      if (realtimeFetchDebounceRef.current) {
+        clearTimeout(realtimeFetchDebounceRef.current);
+        realtimeFetchDebounceRef.current = null;
+      }
       supabase.removeChannel(ideasChannel);
     };
   }, [user]);
@@ -505,9 +515,12 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
   // Fetch community ideas from Supabase
   const fetchCommunityIdeas = async () => {
+    // Capture this fetch's generation. If a newer fetch completes first, this
+    // one will find generation !== fetchGenerationRef.current and bail out,
+    // preventing a slower stale response from overwriting fresh data.
+    const generation = ++fetchGenerationRef.current;
     setIsLoadingCommunityIdeas(true);
     try {
-      // Fetch all community ideas
       const { data: ideas, error: ideasError } = await supabase
         .from('community_ideas')
         .select('*')
@@ -515,15 +528,12 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
       if (ideasError) {
         console.error('Error fetching community ideas:', ideasError);
-        // Show more specific error messages
         if (ideasError.code === '42P01') {
           console.warn('⚠️ community_ideas table does not exist. Please run supabase-schema.sql');
         }
-        setSupabaseIdeas([]);
+        if (generation === fetchGenerationRef.current) setSupabaseIdeas([]);
         return;
       }
-
-      console.log(`Loaded ${ideas?.length || 0} community ideas from Supabase`);
 
       // Fetch user's upvotes if logged in
       let userUpvotes: string[] = [];
@@ -537,11 +547,12 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
           console.error('Error fetching user upvotes:', upvotesError);
         } else if (upvotes) {
           userUpvotes = upvotes.map(u => u.idea_id);
-          console.log(`User has ${userUpvotes.length} upvotes`);
         }
       }
 
-      // Map ideas with upvote status
+      // Stale-response guard — discard if a newer fetch has already applied
+      if (generation !== fetchGenerationRef.current) return;
+
       const mappedIdeas: CommunityIdea[] = (ideas || []).map(idea => ({
         id: idea.id,
         title: idea.title,
@@ -556,12 +567,29 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         hasUpvoted: userUpvotes.includes(idea.id),
       }));
 
+      // Late-delivery detection: if a submission timed out but its row now
+      // appears in the data, show a quiet confirmation and stop tracking it.
+      if (timedOutSubmissionsRef.current.size > 0) {
+        for (const [reqId, { title, authorId }] of timedOutSubmissionsRef.current.entries()) {
+          const delivered = mappedIdeas.find(
+            i => i.authorId === authorId &&
+                 normalizeIdeaValue(i.title) === normalizeIdeaValue(title)
+          );
+          if (delivered) {
+            timedOutSubmissionsRef.current.delete(reqId);
+            toast.success('Your post was delivered!', {
+              description: `"${delivered.title}" is now live in the community.`,
+            });
+          }
+        }
+      }
+
       setSupabaseIdeas(mappedIdeas);
     } catch (error) {
       console.error('Error fetching community ideas:', error);
-      setSupabaseIdeas([]);
+      if (generation === fetchGenerationRef.current) setSupabaseIdeas([]);
     } finally {
-      setIsLoadingCommunityIdeas(false);
+      if (generation === fetchGenerationRef.current) setIsLoadingCommunityIdeas(false);
     }
   };
 
@@ -761,6 +789,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       return;
     }
     if (isSubmitting) return;
+    submitAttemptRef.current += 1;
 
     // ── 1. Sync validation (before any state changes) ──────────────────────
     if (analyzedIdeas.length > 0) {
@@ -845,6 +874,12 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       }
 
       // ── 5. Insert with timeout ───────────────────────────────────────────
+      // IDEMPOTENCY KEY — add once the DB schema is ready:
+      //   ALTER TABLE community_ideas ADD COLUMN request_id UUID;
+      //   CREATE UNIQUE INDEX idx_community_ideas_author_request
+      //     ON community_ideas (author_id, request_id);
+      // Then add `request_id: requestId` to the payload below and handle
+      // error code '23505' on the insert as "already posted" (not an error).
       const { error: insertError } = await withTimeout(
         supabase.from('community_ideas').insert({
           title: postTitle,
@@ -913,6 +948,8 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
       logError('post-idea', error, {
         requestId,
+        route: 'community/post-idea',
+        attempt: submitAttemptRef.current,
         userId: user.id,
         ideaTitle: postTitle,
         payload: { titleLength: postTitle.length, descriptionLength: postDescription.length, tags: postTags },
@@ -926,6 +963,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       const isTimeout = error?.code === 'TIMEOUT';
 
       if (isTimeout) {
+        // Register so fetchCommunityIdeas can show "Delivered" if the request
+        // eventually succeeds and the row appears via the realtime subscription.
+        timedOutSubmissionsRef.current.set(requestId, { title: postTitle, authorId: user.id });
         toast.error('Request timed out. Check your connection.', {
           action: { label: 'Retry', onClick: () => handleSubmitIdeaRef.current?.() },
           duration: 8000,
@@ -1084,7 +1124,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
               </Dialog>
 
               {/* Post Form Dialog */}
-              <Dialog open={postFormOpen} onOpenChange={open => { setPostFormOpen(open); if (!open) { setSelectedAnalyzedIdeaId(null); setPostForm({ title: '', description: '', tags: '' }); setFormErrors({}); } }}>
+              <Dialog open={postFormOpen} onOpenChange={open => { setPostFormOpen(open); if (!open) { setSelectedAnalyzedIdeaId(null); setPostForm({ title: '', description: '', tags: '' }); setFormErrors({}); submitAttemptRef.current = 0; } }}>
                 <DialogContent className="sm:max-w-lg p-0 gap-0 max-h-[90vh] flex flex-col">
                   <DialogHeader className="px-6 pt-6 pb-3 flex-shrink-0">
                     <DialogTitle>Share Your Startup Idea</DialogTitle>
