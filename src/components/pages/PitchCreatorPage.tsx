@@ -120,7 +120,11 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     const stored = localStorage.getItem(ACTIVE_PITCH_JOB_KEY);
     if (!stored) return;
 
-    let activeJob: { jobId: string; ideaName?: string } | null = null;
+    let activeJob: {
+      jobId: string;
+      startedAt?: number;
+      formData?: typeof formData;
+    } | null = null;
     try {
       activeJob = JSON.parse(stored);
     } catch {
@@ -137,8 +141,16 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     const localJobKey = ACTIVE_PITCH_JOB_KEY;
 
     currentJobIdRef.current = resumedJobId;
-    pitchStartRef.current = Date.now();
+    // Restore the original start time so the 5-minute wall-clock cap is not
+    // reset to zero on every navigation back. Fall back to Date.now() only if
+    // the stored entry pre-dates this field (backwards compat).
+    pitchStartRef.current = activeJob.startedAt ?? Date.now();
+    // Restore form fields so the user can see what's being generated.
+    if (activeJob.formData) {
+      setFormData(activeJob.formData);
+    }
     setIsGenerating(true);
+    toast.info('Resuming pitch generation…', { duration: 3000 });
 
     const resumePoll = async () => {
       try {
@@ -256,8 +268,15 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
       });
 
       currentJobIdRef.current = jobId;
-      // Persist so polling can resume if user navigates away and comes back
-      localStorage.setItem(ACTIVE_PITCH_JOB_KEY, JSON.stringify({ jobId, ideaName: formData.ideaName }));
+      // Persist so polling can resume if user navigates away and comes back.
+      // startedAt lets the resume path honour the original 5-minute cap instead
+      // of restarting it from zero on every navigation back.
+      // formData lets the UI show what is being generated during resume.
+      localStorage.setItem(ACTIVE_PITCH_JOB_KEY, JSON.stringify({
+        jobId,
+        startedAt: pitchStartRef.current,
+        formData: { ...formData },
+      }));
 
       const doPoll = async () => {
         try {
