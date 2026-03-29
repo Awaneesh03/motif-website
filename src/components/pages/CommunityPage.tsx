@@ -216,9 +216,14 @@ interface LogContext {
   feature?: string;
   /** Lifecycle phase within the feature, e.g. 'insert', 'read-after-write', 'rollback' */
   phase?: string;
+  /** Unique ID for this specific log event — distinct from requestId (one request, many events) */
+  eventId?: string;
+  /** Pre-computed latency bucket — omit here, logError computes it from durationMs */
+  latencyBucket?: never;
 }
 
 const logError = (action: string, error: any, ctx?: LogContext) => {
+  const { latencyBucket: _omit, ...rest } = ctx ?? {};
   console.error('[IdeaForge:Community]', {
     seq: nextSeq(),
     action,
@@ -226,7 +231,8 @@ const logError = (action: string, error: any, ctx?: LogContext) => {
     message: error?.message ?? String(error),
     hint: error?.hint ?? null,
     details: error?.details ?? null,
-    ...ctx,
+    ...rest,
+    ...(rest.durationMs !== undefined ? { latencyBucket: latencyBucket(rest.durationMs) } : {}),
     timestamp: new Date().toISOString(),
   });
   // Sentry integration point:
@@ -335,6 +341,26 @@ const TAB_ID = generateRequestId();
  */
 let _tabLogSeq = 0;
 const nextSeq = () => ++_tabLogSeq;
+
+/**
+ * Stable per-tab jitter salt derived from TAB_ID. Maps the first 8 hex digits
+ * of the UUID to [0, 1) so reconnect backoff jitter is deterministic within a
+ * tab but differs across tabs — preventing coordinated thundering-herd reconnects.
+ */
+const TAB_JITTER_SALT = parseInt(TAB_ID.replace(/-/g, '').slice(0, 8), 16) / 0xffffffff;
+
+/** After a fetch completes, ignore realtime triggers for this long (ms). */
+const REALTIME_COOLDOWN_MS = 500;
+/** If a fetch has been running longer than this, the in-flight lock is considered stale and bypassed. */
+const MAX_FETCH_STALENESS_MS = 15_000;
+
+/** Bucket a latency value for log-based histogramming. */
+const latencyBucket = (ms: number): string => {
+  if (ms < 200) return 'fast';
+  if (ms < 1000) return 'ok';
+  if (ms < 5000) return 'slow';
+  return 'very-slow';
+};
 
 /**
  * Lightweight content fingerprint for late-delivery matching.
@@ -470,6 +496,12 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   // Checked in fetchCommunityIdeas finally to trigger a trailing refetch so no
   // realtime event is silently dropped while a fetch was in-flight.
   const missedWhileFetchingRef = useRef(false);
+  // Wall-clock time when the current/last fetchCommunityIdeas started. Used by
+  // debouncedFetch to detect stale in-flight locks (> MAX_FETCH_STALENESS_MS).
+  const fetchStartTimeRef = useRef<number>(0);
+  // Wall-clock time when the last fetchCommunityIdeas completed (success or error).
+  // debouncedFetch drops realtime triggers within REALTIME_COOLDOWN_MS of this.
+  const lastFetchCompletedAtRef = useRef<number>(0);
 
   // Analyzed ideas from Supabase
   const [analyzedIdeas, setAnalyzedIdeas] = useState<AnalyzedIdea[]>([]);
@@ -566,12 +598,20 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     // Debounced fetch that skips if a fetch is already in-flight.
     // This coalesces burst realtime events (e.g. several upvotes in 300ms)
     // without launching redundant parallel network requests.
-    // When skipped, sets missedWhileFetchingRef so the in-flight fetch triggers
-    // a trailing refetch in its finally block — no event is silently dropped.
+    // Two additional guards:
+    //   Cooldown — drop events within REALTIME_COOLDOWN_MS of a completed fetch
+    //              since the fresh data already covers them.
+    //   Stale-lock bypass — if the in-flight fetch has run > MAX_FETCH_STALENESS_MS
+    //              the lock is considered hung; allow a fresh fetch to proceed.
     const debouncedFetch = () => {
       if (realtimeFetchDebounceRef.current) clearTimeout(realtimeFetchDebounceRef.current);
       realtimeFetchDebounceRef.current = setTimeout(() => {
-        if (isFetchingRef.current) {
+        // Drop redundant triggers that arrive right after a completed fetch
+        if (Date.now() - lastFetchCompletedAtRef.current < REALTIME_COOLDOWN_MS) return;
+        const fetchIsStale =
+          isFetchingRef.current &&
+          Date.now() - fetchStartTimeRef.current > MAX_FETCH_STALENESS_MS;
+        if (isFetchingRef.current && !fetchIsStale) {
           missedWhileFetchingRef.current = true;
         } else {
           fetchCommunityIdeas();
@@ -600,8 +640,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
             reconnectAttempt = 0;
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             const baseDelay = Math.min(1000 * 2 ** reconnectAttempt, 30000);
-            const jitter = Math.random() * 1000;
-            const delayMs = Math.round(baseDelay + jitter);
+            // TAB_JITTER_SALT is stable per-tab so the delay is deterministic
+            // within a tab yet differs across tabs, preventing simultaneous reconnects.
+            const delayMs = Math.round(baseDelay + TAB_JITTER_SALT * 1000);
             reconnectAttempt += 1;
             console.warn('[IdeaForge:Community] channel disrupted — reinitializing', {
               seq: nextSeq(), status, attempt: reconnectAttempt, delayMs,
@@ -662,6 +703,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     // The generation counter still guards result ordering for any concurrent fetches.
     const generation = ++fetchGenerationRef.current;
     isFetchingRef.current = true;
+    fetchStartTimeRef.current = Date.now();
     setIsLoadingCommunityIdeas(true);
     try {
       const { data: ideas, error: ideasError } = await supabase
@@ -719,6 +761,16 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
             timedOutSubmissionsRef.current.delete(reqId);
             toast.success('Your post was delivered!', {
               description: `"${delivered.title}" is now live in the community.`,
+              action: {
+                label: 'View post',
+                onClick: () => {
+                  if (!delivered.id) return;
+                  try {
+                    const el = document.getElementById(`idea-card-${delivered.id}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  } catch { /* detached DOM */ }
+                },
+              },
             });
             // Reuse the same highlight + scroll-into-view behavior as a normal post
             if (delivered.id) setHighlightedIdeaId(delivered.id);
@@ -734,15 +786,23 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
           prev.filter(i => i.id && !i.id.startsWith('optimistic-')).map(i => [i.id!, i])
         );
         return mappedIdeas.map(incoming => {
-          if (!incoming.id || !incoming.updatedAt) return incoming;
+          if (!incoming.id) return incoming;
           const existing = existingById.get(incoming.id);
+          if (!existing) return incoming;
+          // Parse both timestamps explicitly — either value may be absent or
+          // unparseable (e.g. DB returns null for a newly-created row before a
+          // trigger fires). Number.isFinite rejects NaN so we never compare
+          // garbage values and never accidentally suppress a real DB update.
+          const existingTs = existing.updatedAt
+            ? new Date(existing.updatedAt).getTime()
+            : NaN;
+          const incomingTs = incoming.updatedAt
+            ? new Date(incoming.updatedAt).getTime()
+            : NaN;
           // +200ms skew tolerance: server clocks and JS Date parsing can drift by a
           // few milliseconds. Only treat local state as "newer" when the gap is
           // meaningful, so a same-millisecond tick never suppresses a real DB update.
-          if (
-            existing?.updatedAt &&
-            new Date(existing.updatedAt).getTime() > new Date(incoming.updatedAt).getTime() + 200
-          ) {
+          if (Number.isFinite(existingTs) && Number.isFinite(incomingTs) && existingTs > incomingTs + 200) {
             // Local state is meaningfully newer — keep existing interactive counters
             return { ...incoming, upvotes: existing.upvotes, hasUpvoted: existing.hasUpvoted };
           }
@@ -754,6 +814,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       if (generation === fetchGenerationRef.current) setSupabaseIdeas([]);
     } finally {
       isFetchingRef.current = false;
+      lastFetchCompletedAtRef.current = Date.now();
       if (generation === fetchGenerationRef.current) setIsLoadingCommunityIdeas(false);
       // A realtime event arrived while this fetch was in-flight and was skipped
       // to avoid a redundant parallel request. Do a trailing fetch now that we
@@ -1113,6 +1174,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       setSupabaseIdeas(prev => prev.filter(i => !i.id?.startsWith('optimistic-')));
 
       logError('post-idea', error, {
+        eventId: requestId,
         requestId,
         tabId: TAB_ID,
         route: 'community/post-idea',
@@ -1154,7 +1216,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
           // Idempotent conflict: request_id unique index fired, meaning this exact
           // request was already processed. Fetch the existing row by (author_id, request_id)
           // so we get the precise row rather than the most-recent by title.
-          const existing = await fetchInsertedRowByRequestId(user.id, requestId);
+          // The 23505 conflict proves the row exists — use tighter back-off (150ms
+          // base, 3 attempts) since propagation delay here is typically very short.
+          const existing = await fetchInsertedRowByRequestId(user.id, requestId, 3, 150);
           if (existing) {
             const realEntry = mapRowToIdea(existing);
             setSupabaseIdeas(prev => {
