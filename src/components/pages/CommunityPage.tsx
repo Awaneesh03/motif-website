@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TrendingUp, Clock, MessageCircle, Award, Send, Lightbulb, Loader2, Sparkles, MessageSquare, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -196,6 +196,20 @@ interface CommunityPageProps {
   onNavigate?: (page: string) => void;
 }
 
+// Structured error logger — swap body for Sentry/DataDog when ready
+const logError = (action: string, error: any) => {
+  console.error('[IdeaForge:Community]', {
+    action,
+    code: error?.code ?? null,
+    message: error?.message ?? String(error),
+    hint: error?.hint ?? null,
+    details: error?.details ?? null,
+    timestamp: new Date().toISOString(),
+  });
+  // Sentry integration point:
+  // window.__sentry?.captureException?.(error, { extra: { action } });
+};
+
 const normalizeIdeaValue = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
 
 const loadCommunityIdeas = (): CommunityIdea[] => {
@@ -270,6 +284,8 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     tags: '',
   });
   const [formErrors, setFormErrors] = useState<{ title?: string; description?: string }>({});
+  // Stable ref so toast retry callbacks always call the latest version of the handler
+  const handleSubmitIdeaRef = useRef<(() => Promise<void>) | null>(null);
 
   // Analyzed ideas from Supabase
   const [analyzedIdeas, setAnalyzedIdeas] = useState<AnalyzedIdea[]>([]);
@@ -660,7 +676,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     }
     if (isSubmitting) return;
 
-    // ── Sync validation before locking the button ──────────────────────────
+    // ── 1. Sync validation (before any state changes) ──────────────────────
     if (analyzedIdeas.length > 0) {
       if (!selectedAnalyzedIdeaId) {
         toast.error('Please select an idea to share');
@@ -670,111 +686,118 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       if (!validateManualForm()) return;
     }
 
+    // ── 2. Build submission payload synchronously ───────────────────────────
+    const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
+    let postTitle: string;
+    let postDescription: string;
+    let postTags: string[];
+    const isAnalyzedPath = analyzedIdeas.length > 0;
+
+    if (isAnalyzedPath) {
+      const selectedIdea = analyzedIdeas.find(idea => idea.id === selectedAnalyzedIdeaId);
+      if (!selectedIdea) {
+        toast.error('Selected idea not found. Please reselect and try again.');
+        return;
+      }
+      postTitle = selectedIdea.idea_title.trim();
+      postDescription = selectedIdea.idea_description.trim();
+      const derivedTags: string[] = [];
+      if (selectedIdea.target_market) {
+        derivedTags.push(
+          ...selectedIdea.target_market.split(/[,/]/).map(t => t.trim()).filter(Boolean).slice(0, 3)
+        );
+      }
+      postTags = derivedTags.length > 0 ? derivedTags : ['AI', 'Innovation'];
+    } else {
+      postTitle = postForm.title.trim();
+      postDescription = postForm.description.trim();
+      const parsed = parseTags(postForm.tags);
+      postTags = parsed.length > 0 ? parsed : ['General'];
+    }
+
+    // ── 3. Optimistic UI insert (instant feedback) ──────────────────────────
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticEntry: CommunityIdea = {
+      id: optimisticId,
+      title: postTitle,
+      description: postDescription,
+      tags: postTags,
+      upvotes: 0,
+      comments: 0,
+      author: authorName,
+      authorAvatar: profile?.avatar || undefined,
+      authorId: user.id,
+      createdAt: new Date().toISOString(),
+      hasUpvoted: false,
+    };
+    setSupabaseIdeas(prev => [optimisticEntry, ...prev]);
     setIsSubmitting(true);
 
     try {
-      const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
+      // ── 4. Duplicate check (catches race conditions + re-posts) ──────────
+      const { data: existingIdeas, error: fetchError } = await supabase
+        .from('community_ideas')
+        .select('id, title, description')
+        .eq('author_id', user.id);
 
-      // ── Path A: post from analyzed ideas list ──────────────────────────────
-      if (analyzedIdeas.length > 0) {
-        const selectedIdea = analyzedIdeas.find(idea => idea.id === selectedAnalyzedIdeaId);
-        if (!selectedIdea) {
-          toast.error('Selected idea not found. Please reselect and try again.');
-          return;
-        }
+      if (fetchError) throw fetchError;
 
-        const normalizedTitle = normalizeIdeaValue(selectedIdea.idea_title);
-        const normalizedDescription = normalizeIdeaValue(selectedIdea.idea_description);
+      const isDuplicate = existingIdeas?.some(
+        (idea: any) =>
+          normalizeIdeaValue(idea.title) === normalizeIdeaValue(postTitle) &&
+          normalizeIdeaValue(idea.description) === normalizeIdeaValue(postDescription)
+      );
 
-        const { data: existingIdeas, error: fetchError } = await supabase
-          .from('community_ideas')
-          .select('id, title, description')
-          .eq('author_id', user.id);
+      if (isDuplicate) {
+        setSupabaseIdeas(prev => prev.filter(i => i.id !== optimisticId));
+        toast.info('You have already shared this idea in the community.');
+        return;
+      }
 
-        if (fetchError) throw fetchError;
+      // ── 5. Insert ────────────────────────────────────────────────────────
+      const { error: insertError } = await supabase.from('community_ideas').insert({
+        title: postTitle,
+        description: postDescription,
+        tags: postTags,
+        author_name: authorName,
+        author_avatar: profile?.avatar || null,
+        author_id: user.id,
+      });
 
-        const isDuplicate = existingIdeas?.some(
-          (idea: any) =>
-            normalizeIdeaValue(idea.title) === normalizedTitle &&
-            normalizeIdeaValue(idea.description) === normalizedDescription
-        );
+      if (insertError) throw insertError;
 
-        if (isDuplicate) {
-          toast.info('You have already shared this idea in the community.');
-          return;
-        }
-
-        // Derive tags from target_market if available
-        const derivedTags: string[] = [];
-        if (selectedIdea.target_market) {
-          const market = selectedIdea.target_market.trim();
-          if (market) derivedTags.push(...market.split(/[,/]/).map(t => t.trim()).filter(Boolean).slice(0, 3));
-        }
-        if (derivedTags.length === 0) derivedTags.push('AI', 'Innovation');
-
-        const { error } = await supabase.from('community_ideas').insert({
-          title: selectedIdea.idea_title.trim(),
-          description: selectedIdea.idea_description.trim(),
-          tags: derivedTags,
-          author_name: authorName,
-          author_avatar: profile?.avatar || null,
-          author_id: user.id,
-        });
-
-        if (error) throw error;
-
-        toast.success('Idea posted to the community!');
+      // ── 6. Success — replace optimistic entry with real DB row ──────────
+      toast.success('Idea posted to the community!');
+      if (isAnalyzedPath) {
         setSelectedAnalyzedIdeaId(null);
-        setPostFormOpen(false);
-        fetchCommunityIdeas();
-
-      // ── Path B: manual form ────────────────────────────────────────────────
       } else {
-        const normalizedTitle = normalizeIdeaValue(postForm.title);
-        const normalizedDescription = normalizeIdeaValue(postForm.description);
-
-        const { data: existingIdeas, error: fetchError } = await supabase
-          .from('community_ideas')
-          .select('id, title, description')
-          .eq('author_id', user.id);
-
-        if (fetchError) throw fetchError;
-
-        const isDuplicate = existingIdeas?.some(
-          (idea: any) =>
-            normalizeIdeaValue(idea.title) === normalizedTitle &&
-            normalizeIdeaValue(idea.description) === normalizedDescription
-        );
-
-        if (isDuplicate) {
-          toast.info('You have already shared this idea in the community.');
-          return;
-        }
-
-        const tags = parseTags(postForm.tags);
-
-        const { error } = await supabase.from('community_ideas').insert({
-          title: postForm.title.trim(),
-          description: postForm.description.trim(),
-          tags: tags.length > 0 ? tags : ['General'],
-          author_name: authorName,
-          author_avatar: profile?.avatar || null,
-          author_id: user.id,
-        });
-
-        if (error) throw error;
-
-        toast.success('Idea posted to the community!');
         setPostForm({ title: '', description: '', tags: '' });
         setFormErrors({});
-        setPostFormOpen(false);
-        fetchCommunityIdeas();
       }
+      setPostFormOpen(false);
+      fetchCommunityIdeas(); // replaces optimistic entry with the actual DB row
     } catch (error: any) {
-      console.error('Error posting idea:', error);
-      if (error instanceof TypeError || error?.message?.toLowerCase().includes('failed to fetch') || error?.message?.toLowerCase().includes('network')) {
-        toast.error('Network error. Please check your connection and try again.');
+      // ── 7. Rollback optimistic entry on any failure ──────────────────────
+      setSupabaseIdeas(prev => prev.filter(i => i.id !== optimisticId));
+
+      logError('post-idea', error);
+
+      const isNetwork =
+        error instanceof TypeError ||
+        error?.message?.toLowerCase().includes('failed to fetch') ||
+        error?.message?.toLowerCase().includes('networkerror');
+
+      if (isNetwork) {
+        // Retry action — ref keeps the callback pointing at the latest handler
+        toast.error('Network error. Check your connection.', {
+          action: {
+            label: 'Retry',
+            onClick: () => handleSubmitIdeaRef.current?.(),
+          },
+          duration: 8000,
+        });
       } else if (error?.code === '23505') {
+        // DB unique constraint — race condition between two tabs / rapid re-submit
         toast.info('You have already shared this idea in the community.');
       } else if (error?.code === '42501' || error?.message?.includes('policy') || error?.message?.includes('JWT')) {
         toast.error('Permission denied. Please log out and log back in.');
@@ -789,6 +812,8 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       setIsSubmitting(false);
     }
   };
+  // Keep ref current on every render so toast retry always calls the latest closure
+  handleSubmitIdeaRef.current = handleSubmitIdea;
 
   const handleCommentClick = (idea: any) => {
     setSelectedIdea(idea);
