@@ -60,9 +60,12 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
   const currentJobIdRef = useRef<string | null>(null);
   const pollFnRef = useRef<(() => Promise<void>) | null>(null);
   const pitchStartRef = useRef<number>(0);
+  // Used by the "View" toast action to reliably scroll to the slides list after modal opens
+  const slideListRef = useRef<HTMLDivElement>(null);
 
-  // localStorage key for active pitch job — survives navigation and tab switches
+  // localStorage keys — both scoped to user ID so different users don't share data
   const ACTIVE_PITCH_JOB_KEY = `motif-active-pitch-job-${user?.id ?? 'anon'}`;
+  const PITCH_CACHE_KEY = `motif-pitch-v2-${user?.id ?? 'anon'}`;
 
   // Saved ideas state
   const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>([]);
@@ -161,16 +164,22 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
           pollIntervalRef.current = null;
           pollFnRef.current = null;
           localStorage.removeItem(localJobKey);
-          setGeneratedSlides({
-            slides: status.result.slides.map(slide => ({
-              ...slide,
-              icon: inferIconFromTitle(slide.title),
-            })),
-            speakerNotes: status.result.speakerNotes,
-          });
+          const resumedSlides = status.result.slides.map(slide => ({
+            ...slide,
+            icon: inferIconFromTitle(slide.title),
+          }));
+          setGeneratedSlides({ slides: resumedSlides });
           setIsGenerating(false);
           setShowPitchModal(true);
           toast.success('Pitch deck generated!');
+          try {
+            localStorage.setItem(PITCH_CACHE_KEY, JSON.stringify({ slides: resumedSlides, generatedAt: Date.now() }));
+          } catch { /* storage quota — non-fatal */ }
+          console.info('[PitchCreator:analytics]', {
+            event: 'pitch.completed',
+            generationMs: Date.now() - pitchStartRef.current,
+            slideCount: resumedSlides.length,
+          });
 
         } else if (status.status === 'FAILED') {
           clearInterval(pollIntervalRef.current!);
@@ -211,6 +220,37 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     pollIntervalRef.current = setInterval(resumePoll, 2500);
   }, [user?.id]); // only re-run when user changes (intentional — closes over ACTIVE_PITCH_JOB_KEY derived from user.id)
 
+  // Restore last completed pitch from cache. Skipped if there is an active background job
+  // being resumed (both can't coexist meaningfully at the same time).
+  useEffect(() => {
+    if (!user?.id) return;
+    if (localStorage.getItem(ACTIVE_PITCH_JOB_KEY)) return;
+
+    const stored = localStorage.getItem(PITCH_CACHE_KEY);
+    if (!stored) return;
+    try {
+      const cached = JSON.parse(stored);
+      const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+      if (!cached?.slides?.length || Date.now() - (cached.generatedAt ?? 0) > TTL_MS) {
+        localStorage.removeItem(PITCH_CACHE_KEY);
+        return;
+      }
+      setGeneratedSlides({ slides: cached.slides });
+      toast.info('Your last pitch is ready.', {
+        action: {
+          label: 'View',
+          onClick: () => {
+            setShowPitchModal(true);
+            setTimeout(() => slideListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+          },
+        },
+        duration: 5000,
+      });
+    } catch {
+      localStorage.removeItem(PITCH_CACHE_KEY);
+    }
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Pre-fill form when user selects a saved idea
   const handleSelectIdea = (ideaId: string) => {
     const idea = savedIdeas.find(i => i.id === ideaId);
@@ -233,12 +273,17 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
 
   const inferIconFromTitle = (title: string): string => {
     const lower = title.toLowerCase();
+    if (lower.includes('introduction') || lower.includes('startup')) return 'intro';
     if (lower.includes('problem')) return 'problem';
     if (lower.includes('solution')) return 'solution';
     if (lower.includes('market')) return 'market';
-    if (lower.includes('product')) return 'product';
-    if (lower.includes('business') || lower.includes('model') || lower.includes('revenue')) return 'business';
-    if (lower.includes('ask') || lower.includes('investment') || lower.includes('funding')) return 'ask';
+    if (lower.includes('product') || lower.includes('overview')) return 'product';
+    if (lower.includes('business') || lower.includes('model') || lower.includes('revenue') || lower.includes('financials')) return 'business';
+    if (lower.includes('traction') || lower.includes('roadmap')) return 'traction';
+    if (lower.includes('competi')) return 'competitive';
+    if (lower.includes('go-to') || lower.includes('gtm') || lower.includes('market strategy')) return 'gtm';
+    if (lower.includes('team')) return 'team';
+    if (lower.includes('vision') || lower.includes('closing')) return 'vision';
     return 'product';
   };
 
@@ -293,13 +338,23 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
                 ...slide,
                 icon: inferIconFromTitle(slide.title),
               })),
-              speakerNotes: status.result.speakerNotes,
             };
 
             setGeneratedSlides(pitchData);
             setIsGenerating(false);
             setShowPitchModal(true);
             toast.success('Pitch deck generated!');
+
+            // Cache result for restore on next visit
+            try {
+              localStorage.setItem(PITCH_CACHE_KEY, JSON.stringify({ slides: pitchData.slides, generatedAt: Date.now() }));
+            } catch { /* storage quota — non-fatal */ }
+
+            console.info('[PitchCreator:analytics]', {
+              event: 'pitch.completed',
+              generationMs: Date.now() - pitchStartRef.current,
+              slideCount: pitchData.slides.length,
+            });
 
             // Save to Supabase (non-blocking, fire-and-forget)
             if (user?.id) {
@@ -338,6 +393,11 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
             localStorage.removeItem(ACTIVE_PITCH_JOB_KEY);
             setIsGenerating(false);
             toast.error(status.errorMessage || 'Pitch generation failed. Please try again.');
+            console.warn('[PitchCreator:analytics]', {
+              event: 'pitch.failed',
+              generationMs: Date.now() - pitchStartRef.current,
+              error: status.errorMessage,
+            });
 
           } else {
             // PENDING / PROCESSING — enforce 5-minute wall-clock cap (immune to tab throttling)
@@ -378,12 +438,18 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
   const isFormValid = isIdeaNameValid && isProblemValid && isSolutionValid;
 
   const slideIcons: Record<string, any> = {
+    intro: Presentation,
     problem: Target,
     solution: Lightbulb,
     market: TrendingUp,
     product: Sparkles,
     business: Presentation,
-    ask: Target,
+    traction: TrendingUp,
+    competitive: Target,
+    gtm: TrendingUp,
+    financials: TrendingUp,
+    team: CheckCircle,
+    vision: Sparkles,
   };
 
   // --- PDF Download ---
@@ -427,68 +493,95 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     );
 
     // ── Slide pages ─────────────────────────────────────────────────
+    const FOOTER_H = 12;
+    const SAFE_BOTTOM = pageH - FOOTER_H - 6;
+    const TEXT_W = pageW - margin * 2 - 12;
+    const LINE_H = 7;            // mm per wrapped line of bullet text
+    const LINE_GAP = 5;          // mm between bullets
+    const MAX_LINES_PER_PAGE = 9; // hard cap on rendered text lines per page
+
     generatedSlides.slides.forEach((slide: any, index: number) => {
-      doc.addPage();
+      const points: string[] = slide.points ?? [];
+      let nextIdx = 0;          // index of next bullet to render
+      let isContinuation = false;
 
-      // Header bar
-      doc.setFillColor(201, 167, 235);
-      doc.rect(0, 0, pageW, 16, 'F');
+      // Each loop iteration = one PDF page for this slide.
+      // Normal case: all bullets fit, loop runs once.
+      // Overflow case: remaining bullets spill to a continuation page.
+      do {
+        doc.addPage();
 
-      // Slide counter (top-right)
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text(
-        `${index + 1} / ${generatedSlides.slides.length}`,
-        pageW - margin,
-        10,
-        { align: 'right' }
-      );
+        // Header bar
+        doc.setFillColor(201, 167, 235);
+        doc.rect(0, 0, pageW, 18, 'F');
 
-      // Slide title
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(40, 20, 60);
-      doc.text(slide.title, margin, 34);
+        // Slide counter (top-right, inside header)
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text(
+          `${index + 1} / ${generatedSlides.slides.length}`,
+          pageW - margin, 12, { align: 'right' }
+        );
 
-      // Divider
-      doc.setDrawColor(201, 167, 235);
-      doc.setLineWidth(0.6);
-      doc.line(margin, 39, pageW - margin, 39);
+        // Slide title — append "(cont.)" on overflow continuation pages
+        doc.setFontSize(24);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(40, 20, 60);
+        doc.text(isContinuation ? `${slide.title} (cont.)` : slide.title, margin, 36);
 
-      // Content text
-      let y = 52;
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(70, 50, 100);
-      if (slide.content) {
-        const contentLines = doc.splitTextToSize(slide.content, pageW - margin * 2);
-        doc.text(contentLines, margin, y);
-        y += contentLines.length * 6 + 8;
-      }
+        // Divider
+        doc.setDrawColor(201, 167, 235);
+        doc.setLineWidth(0.5);
+        doc.line(margin, 42, pageW - margin, 42);
 
-      // Bullet points
-      if (slide.bulletPoints?.length) {
-        slide.bulletPoints.forEach((point: string) => {
-          if (y > pageH - 22) return;
-          // Bullet dot
+        // Bullet points
+        let y = 56;
+        let linesOnPage = 0;      // running count of rendered text lines on this page
+        const pageStart = nextIdx; // first bullet index on this page
+
+        for (let pi = nextIdx; pi < points.length; pi++) {
+          const bLines: string[] = doc.splitTextToSize(points[pi], TEXT_W);
+          const blockH = bLines.length * LINE_H + LINE_GAP;
+          const wouldOverflow =
+            y + blockH > SAFE_BOTTOM ||
+            linesOnPage + bLines.length > MAX_LINES_PER_PAGE;
+
+          if (wouldOverflow) {
+            // Overflow: if this is the very first bullet on a fresh page, force-render it
+            // to prevent an infinite loop. Shouldn't occur with 12-word bullets in practice.
+            if (pi === pageStart) {
+              doc.setFillColor(150, 90, 210);
+              doc.circle(margin + 3, y - 2.5, 1.6, 'F');
+              doc.setTextColor(55, 35, 85);
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'normal');
+              doc.text(bLines, margin + 10, y);
+              nextIdx = pi + 1;
+            }
+            break; // remaining bullets spill to the next page
+          }
+
           doc.setFillColor(150, 90, 210);
-          doc.circle(margin + 2.5, y - 2, 1.5, 'F');
-          // Bullet text
-          doc.setTextColor(60, 40, 90);
-          doc.setFontSize(10);
-          const bLines = doc.splitTextToSize(point, pageW - margin * 2 - 10);
-          doc.text(bLines, margin + 8, y);
-          y += bLines.length * 5.5 + 4;
-        });
-      }
+          doc.circle(margin + 3, y - 2.5, 1.6, 'F');
+          doc.setTextColor(55, 35, 85);
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'normal');
+          doc.text(bLines, margin + 10, y);
+          y += blockH;
+          linesOnPage += bLines.length;
+          nextIdx = pi + 1;
+        }
 
-      // Footer strip
-      doc.setFillColor(240, 230, 250);
-      doc.rect(0, pageH - 10, pageW, 10, 'F');
-      doc.setFontSize(7);
-      doc.setTextColor(130, 100, 180);
-      doc.text('Motif — Your AI-Powered Startup Companion', pageW / 2, pageH - 3.5, { align: 'center' });
+        // Footer strip
+        doc.setFillColor(240, 230, 250);
+        doc.rect(0, pageH - FOOTER_H, pageW, FOOTER_H, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(130, 100, 180);
+        doc.text('Motif — Your AI-Powered Startup Companion', pageW / 2, pageH - 4, { align: 'center' });
+
+        isContinuation = true;
+      } while (nextIdx < points.length);
     });
 
     const filename = `${formData.ideaName.replace(/[^a-z0-9]/gi, '_').substring(0, 50)}_Pitch_Deck.pdf`;
@@ -696,7 +789,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
                           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                           className="mr-2 h-4 w-4 rounded-full border-2 border-white border-t-transparent"
                         />
-                        Generating Pitch...
+                        Generating investor-ready pitch…
                       </>
                     ) : (
                       <>
@@ -740,7 +833,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
                   <div className="flex items-start gap-3">
                     <FileText className="text-primary h-5 w-5 flex-shrink-0 mt-0.5" />
                     <p className="text-muted-foreground text-sm text-left">
-                      AI generates a 10-slide deck. Download as a styled PDF ready to share with investors.
+                      AI generates a 12-slide investor-ready deck. Download as a styled PDF ready to share.
                     </p>
                   </div>
                 </CardContent>
@@ -816,16 +909,16 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
             </DialogDescription>
           </DialogHeader>
           {generatedSlides && (
-            <div className="space-y-4 py-4">
+            <div ref={slideListRef} className="space-y-4 py-4">
               {/* Slides Preview */}
               {generatedSlides.slides.map((slide: any, index: number) => {
                 const IconComponent = slideIcons[slide.icon] ?? Sparkles;
                 return (
                   <motion.div
                     key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.08 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.06, duration: 0.3, ease: 'easeOut' }}
                   >
                     <Card className="glass-surface border-border/50">
                       <CardContent className="p-5">
@@ -835,15 +928,14 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
                           </div>
                           <div className="flex-1">
                             <Badge variant="outline" className="mb-2 text-xs">
-                              Slide {index + 1}
+                              Slide {index + 1} of {generatedSlides.slides.length}
                             </Badge>
-                            <h4 className="mb-1.5 text-sm font-semibold">{slide.title}</h4>
-                            <p className="text-muted-foreground text-sm">{slide.content}</p>
-                            {slide.bulletPoints?.length > 0 && (
-                              <ul className="mt-2 space-y-1">
-                                {slide.bulletPoints.map((point: string, i: number) => (
+                            <h4 className="mb-2 text-sm font-semibold">{slide.title}</h4>
+                            {slide.points?.length > 0 && (
+                              <ul className="space-y-1.5">
+                                {slide.points.map((point: string, i: number) => (
                                   <li key={i} className="text-muted-foreground text-sm flex gap-2">
-                                    <span className="text-primary flex-shrink-0">–</span>
+                                    <span className="text-primary flex-shrink-0 font-medium">·</span>
                                     <span>{point}</span>
                                   </li>
                                 ))}
@@ -875,7 +967,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
                         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                         className="mr-2 h-4 w-4 rounded-full border-2 border-current border-t-transparent"
                       />
-                      Regenerating...
+                      Regenerating…
                     </>
                   ) : (
                     <>

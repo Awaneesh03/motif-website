@@ -23,6 +23,10 @@ export interface Idea {
   industry?: string;
 }
 
+/** Normalise a title for dedup: trim → lowercase → collapse whitespace. */
+const normalizeTitle = (title: string | undefined | null): string =>
+  (title ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+
 // Get ideas for the logged-in user from idea_analyses table
 export const getUserIdeas = async (userId: string): Promise<Idea[]> => {
   try {
@@ -40,7 +44,7 @@ export const getUserIdeas = async (userId: string): Promise<Idea[]> => {
     }
 
     // Transform data - map idea_analyses columns to Idea interface
-    const ideas = (data || []).map((idea: any) => ({
+    const mapped = (data || []).map((idea: any) => ({
       id: idea.id,
       title: idea.idea_title || 'Untitled',
       name: idea.idea_title || 'Untitled',
@@ -57,7 +61,21 @@ export const getUserIdeas = async (userId: string): Promise<Idea[]> => {
       problem: idea.idea_description,
       solution: idea.idea_description,
       industry: idea.target_market,
+      // Prefer DB-level normalized_idea (post-migration); fall back to client-side normalization
+      _normalizedKey: (idea.normalized_idea as string | undefined) || normalizeTitle(idea.idea_title),
     }));
+
+    // Deduplicate: rows are already ordered newest-first, so the first occurrence wins.
+    const seen = new Set<string>();
+    const ideas: Idea[] = [];
+    for (const idea of mapped) {
+      const key = idea._normalizedKey || idea.id;
+      if (!seen.has(key)) {
+        seen.add(key);
+        const { _normalizedKey, ...rest } = idea;
+        ideas.push(rest);
+      }
+    }
     return ideas;
   } catch (error) {
     console.error('Error fetching user ideas:', error);

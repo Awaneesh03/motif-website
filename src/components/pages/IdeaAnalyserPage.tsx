@@ -677,29 +677,47 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
             }
 
             // Frontend fallback save (backend also saves; this catches cold-start DB failures)
-            // We save the legacy shape to Supabase for backward compat
             if (status.legacyResult) {
               try {
                 const truncatedTitle = ideaTitle.substring(0, 100);
+                const normalizedTitle = truncatedTitle.trim().toLowerCase().replace(/\s+/g, ' ');
+                // Check by normalized_idea (backend rows) OR exact title (legacy rows)
                 const { data: existing } = await supabase
                   .from('idea_analyses').select('id')
-                  .eq('user_id', user.id).eq('idea_title', truncatedTitle)
-                  .order('created_at', { ascending: false }).limit(1);
+                  .eq('user_id', user.id)
+                  .or(`normalized_idea.eq.${normalizedTitle},idea_title.eq.${truncatedTitle}`)
+                  .limit(1);
 
                 if (!existing || existing.length === 0) {
-                  const ld = status.legacyResult;
+                  // Cast to any: IdeaAnalysisResult only declares legacy fields, but
+                  // pollAnalysisStatus enriches the object with structured fields at runtime.
+                  const ld = status.legacyResult as any;
+                  // Build structured JSON fields from new-format result
+                  const competitionJson = (ld.competitors || ld.competitiveAdvantage)
+                    ? JSON.stringify({ competitors: ld.competitors ?? [], competitiveAdvantage: ld.competitiveAdvantage ?? '' })
+                    : (ld.competition ?? null);
+                  const marketSizeJson = ld.market
+                    ? JSON.stringify(ld.market)
+                    : (ld.marketSize ?? null);
+
                   await supabase.from('idea_analyses').insert({
                     user_id: user.id,
                     idea_title: truncatedTitle,
+                    normalized_idea: normalizedTitle,
                     idea_description: ideaDescription.substring(0, 10000),
                     target_market: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
                     score: ld.score,
                     strengths: ld.strengths,
                     weaknesses: ld.weaknesses,
                     recommendations: ld.recommendations,
-                    market_size: ld.marketSize,
-                    competition: ld.competition,
+                    market_size: marketSizeJson,
+                    competition: competitionJson,
                     viability: ld.viability,
+                    idea_summary: ld.ideaSummary ?? null,
+                    confidence_score: ld.confidenceScore ?? null,
+                    competitive_advantage: ld.competitiveAdvantage ?? null,
+                    heuristic_scores: ld.heuristicScores ?? null,
+                    investor_analysis: ld.investorAnalysis ?? null,
                   });
                 }
               } catch (saveErr) {

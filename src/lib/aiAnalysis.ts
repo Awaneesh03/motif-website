@@ -152,8 +152,7 @@ export interface StartPitchResult {
 
 export interface PitchSlide {
   title: string;
-  content: string;
-  bulletPoints: string[];
+  points: string[];
 }
 
 export interface PitchJobStatusResult {
@@ -161,7 +160,6 @@ export interface PitchJobStatusResult {
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
   result?: {
     slides: PitchSlide[];
-    speakerNotes: string;
   };
   errorMessage?: string;
   createdAt: string;
@@ -189,6 +187,22 @@ export async function startPitch(request: {
  */
 export async function pollPitchStatus(jobId: string): Promise<PitchJobStatusResult> {
   return apiClient.get<PitchJobStatusResult>(`/api/pitch/status/${jobId}`);
+}
+
+// ── Recent activity ───────────────────────────────────────────────────────────
+
+export interface RecentAnalysis {
+  id: string;
+  title: string;
+  updatedAt: string;
+}
+
+/**
+ * Fetch up to 10 most recently analyzed ideas for the logged-in user.
+ * Ordered by last-analyzed time (updated_at DESC).
+ */
+export async function getRecentAnalyses(): Promise<RecentAnalysis[]> {
+  return apiClient.get<RecentAnalysis[]>('/api/ideas/recent');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

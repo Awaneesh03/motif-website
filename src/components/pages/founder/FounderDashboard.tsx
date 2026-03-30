@@ -13,6 +13,7 @@ import {
   Info,
   RefreshCw,
   Loader2,
+  Activity,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -31,6 +32,7 @@ import { getFounderMetrics, type FounderMetrics } from '@/lib/metricsService';
 import { useFounderDemoMode } from '@/hooks/useDemoMode';
 import { demoFounderStartups } from '@/lib/demoData';
 import { apiClient } from '@/lib/api-client';
+import { getRecentAnalyses, type RecentAnalysis } from '@/lib/aiAnalysis';
 
 export function FounderDashboard() {
   const { user, profile } = useUser();
@@ -38,6 +40,7 @@ export function FounderDashboard() {
   const [currentTip, setCurrentTip] = useState(0);
   const [myStartups, setMyStartups] = useState<Idea[]>([]);
   const [recentActivity, setRecentActivity] = useState<Notification[]>([]);
+  const [recentAnalyses, setRecentAnalyses] = useState<RecentAnalysis[]>([]);
   const [metrics, setMetrics] = useState<FounderMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,15 +105,17 @@ export function FounderDashboard() {
 
         try {
           // Fetch all data in parallel
-          const [ideas, notifications, founderMetrics] = await Promise.all([
+          const [ideas, notifications, founderMetrics, analyses] = await Promise.all([
             getUserIdeas(user.id),
             getUserNotifications(user.id, 10),
             getFounderMetrics(user.id),
+            getRecentAnalyses().catch(() => [] as RecentAnalysis[]),
           ]);
 
           setMyStartups(ideas);
           setRecentActivity(notifications);
           setMetrics(founderMetrics);
+          setRecentAnalyses(analyses);
         } catch (err) {
           console.error('Error loading founder dashboard data:', err);
           setError('Failed to load dashboard data. Please refresh the page.');
@@ -201,6 +206,20 @@ export function FounderDashboard() {
     } finally {
       setSubmittingId(null);
     }
+  };
+
+  const formatRelativeTime = (iso: string): string => {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const sec = Math.floor(diffMs / 1000);
+    const min = Math.floor(sec / 60);
+    const hr  = Math.floor(min / 60);
+    const day = Math.floor(hr / 24);
+    if (sec < 60)  return 'Just now';
+    if (min < 60)  return `${min} min ago`;
+    if (hr  < 24)  return `${hr} hour${hr > 1 ? 's' : ''} ago`;
+    if (day === 1) return 'Yesterday';
+    if (day <  7)  return `${day} days ago`;
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -540,6 +559,72 @@ export function FounderDashboard() {
                           );
                         })}
                       </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Recent Analyses */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+              >
+                <Card className="glass-surface border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-primary" />
+                      Recent Activity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <div className="space-y-3">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex items-center gap-3 animate-pulse">
+                            <div className="h-8 w-8 rounded-lg bg-muted flex-shrink-0" />
+                            <div className="flex-1 space-y-1.5">
+                              <div className="h-3 w-3/5 rounded bg-muted" />
+                              <div className="h-3 w-1/4 rounded bg-muted" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : recentAnalyses.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <Activity className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">No recent activity yet</p>
+                        <p className="text-xs mt-1">Analyze an idea to see it here</p>
+                      </div>
+                    ) : (
+                      <ul className="space-y-1">
+                        {recentAnalyses.map((item, index) => (
+                          <motion.li
+                            key={item.id}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                          >
+                            <button
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-muted/60 cursor-pointer group"
+                              onClick={() => navigate('/saved-ideas')}
+                            >
+                              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <Lightbulb className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                                  {item.title}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatRelativeTime(item.updatedAt)}
+                                </p>
+                              </div>
+                              <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            </button>
+                          </motion.li>
+                        ))}
+                      </ul>
                     )}
                   </CardContent>
                 </Card>

@@ -136,7 +136,35 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
             investorAnalysis: analysis.investor_analysis || undefined,
           };
         });
-        setIdeas(transformedIdeas);
+
+        // Deduplicate by normalized_idea (DB column) or normalized title (legacy rows).
+        // Sort so backend-saved rows (non-null normalized_idea = complete data) always win
+        // over frontend-fallback rows (null normalized_idea = potentially incomplete),
+        // regardless of creation timestamp.
+        const normalizeKey = (s: string | undefined | null) =>
+          (s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+        const rawData = data! as any[];
+        // Build index pairs and sort: rows with normalized_idea first
+        const indexed = rawData.map((raw, i) => ({ raw, idea: transformedIdeas[i] }));
+        indexed.sort((a, b) => {
+          const aHas = a.raw.normalized_idea ? 0 : 1;
+          const bHas = b.raw.normalized_idea ? 0 : 1;
+          return aHas - bHas; // complete rows first
+        });
+        const seen = new Set<string>();
+        const deduped: SavedIdea[] = [];
+        for (const { raw, idea } of indexed) {
+          const key = raw.normalized_idea
+            ? (raw.normalized_idea as string)
+            : normalizeKey(raw.idea_title);
+          if (!seen.has(key)) {
+            seen.add(key);
+            deduped.push(idea);
+          }
+        }
+        // Restore date-descending order for display
+        deduped.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
+        setIdeas(deduped);
       }
     } catch (error) {
       console.error('Error:', error);
