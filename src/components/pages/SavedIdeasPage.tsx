@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { Search, BarChart3, Trash2, Filter, Lightbulb, Loader2 } from 'lucide-react';
+import { Search, BarChart3, Trash2, Filter, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { supabase } from '../../lib/supabase';
@@ -341,16 +341,23 @@ export function SavedIdeasPage({ onNavigate }: SavedIdeasPageProps) {
 
           {/* Ideas Grid */}
           {isLoading ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex h-64 items-center justify-center"
-            >
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-muted-foreground font-medium">Unlocking your vault...</p>
-              </div>
-            </motion.div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-pulse">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="rounded-2xl border border-border/50 bg-card p-6 space-y-4">
+                  <div className="h-5 w-3/4 rounded-lg bg-muted" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-full rounded bg-muted" />
+                    <div className="h-3 w-5/6 rounded bg-muted" />
+                    <div className="h-3 w-4/6 rounded bg-muted" />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="h-5 w-16 rounded-full bg-muted" />
+                    <div className="h-5 w-20 rounded-full bg-muted" />
+                  </div>
+                  <div className="h-8 w-full rounded-xl bg-muted mt-2" />
+                </div>
+              ))}
+            </div>
           ) : filteredIdeas.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}

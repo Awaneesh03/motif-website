@@ -600,11 +600,13 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       const normalizedMarket = selectedMarkets.join(', ').trim().replace(/\s+/g, ' ').toLowerCase();
 
       if (!forceReanalyze) {
-        // ── Supabase cache check ──────────────────────────────────────────────
+        // ── Supabase cache check — read only, no writes ───────────────────────
         const { data: existingAnalyses, error: existingError } = await supabase
           .from('idea_analyses')
-          .select('id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability')
-          .eq('user_id', user.id);
+          .select('id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability, idea_summary, confidence_score, competitive_advantage, heuristic_scores, investor_analysis')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(50);
 
         if (!existingError && existingAnalyses && existingAnalyses.length > 0) {
           const match = existingAnalyses.find(a =>
@@ -613,7 +615,21 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
             normalizeIdeaValue(a.target_market || '') === normalizedMarket
           );
           if (match) {
-            // Convert cached Supabase row (legacy shape) to SafeAnalysisResult
+            // Parse structured JSON fields before converting to SafeAnalysisResult
+            let cachedCompetitors: any[] | undefined;
+            let cachedCompetitiveAdvantage: string | undefined;
+            try {
+              if (match.competition) {
+                const comp = JSON.parse(match.competition);
+                if (Array.isArray(comp.competitors)) cachedCompetitors = comp.competitors;
+                if (typeof comp.competitiveAdvantage === 'string') cachedCompetitiveAdvantage = comp.competitiveAdvantage;
+              }
+            } catch { /* legacy string */ }
+            let cachedMarket: Record<string, any> | undefined;
+            try {
+              if (match.market_size) cachedMarket = JSON.parse(match.market_size);
+            } catch { /* legacy string */ }
+
             const legacyCached = {
               score: match.score ?? 0,
               strengths: Array.isArray(match.strengths) ? match.strengths : [],
@@ -622,26 +638,23 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               marketSize: match.market_size || '',
               competition: match.competition || '',
               viability: match.viability || '',
+              // Structured fields — detected by fromLegacyResult to route to validateAndSanitise
+              competitors: cachedCompetitors,
+              competitiveAdvantage: cachedCompetitiveAdvantage || match.competitive_advantage,
+              market: cachedMarket,
+              ideaSummary: match.idea_summary || undefined,
+              confidenceScore: match.confidence_score || undefined,
+              heuristicScores: match.heuristic_scores || undefined,
+              investorAnalysis: match.investor_analysis || undefined,
             };
-            setAnalysisResult(fromLegacyResult(legacyCached));
+            setAnalysisResult(fromLegacyResult(legacyCached as any));
             setIsAnalyzing(false);
             toast.success('Loaded your saved analysis from the vault.');
             return;
           }
         }
-      } else {
-        // ── Force re-analyze: delete cached rows for this idea ────────────────
-        const { data: existingAnalyses } = await supabase
-          .from('idea_analyses').select('id, idea_title').eq('user_id', user.id);
-        if (existingAnalyses) {
-          const matchingIds = existingAnalyses
-            .filter(a => normalizeIdeaValue(a.idea_title) === normalizedTitle)
-            .map(a => a.id);
-          if (matchingIds.length > 0) {
-            await supabase.from('idea_analyses').delete().in('id', matchingIds);
-          }
-        }
       }
+      // Force re-analyze path: skip cache — backend upsert will overwrite the existing row.
 
       // ── Start async job — returns immediately with a jobId ────────────────
       const { jobId } = await startAnalysis({
@@ -676,55 +689,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               console.warn('[IdeaAnalyser] Validator flagged fields:', safeData._flags);
             }
 
-            // Frontend fallback save (backend also saves; this catches cold-start DB failures)
-            if (status.legacyResult) {
-              try {
-                const truncatedTitle = ideaTitle.substring(0, 100);
-                const normalizedTitle = truncatedTitle.trim().toLowerCase().replace(/\s+/g, ' ');
-                // Check by normalized_idea (backend rows) OR exact title (legacy rows)
-                const { data: existing } = await supabase
-                  .from('idea_analyses').select('id')
-                  .eq('user_id', user.id)
-                  .or(`normalized_idea.eq.${normalizedTitle},idea_title.eq.${truncatedTitle}`)
-                  .limit(1);
-
-                if (!existing || existing.length === 0) {
-                  // Cast to any: IdeaAnalysisResult only declares legacy fields, but
-                  // pollAnalysisStatus enriches the object with structured fields at runtime.
-                  const ld = status.legacyResult as any;
-                  // Build structured JSON fields from new-format result
-                  const competitionJson = (ld.competitors || ld.competitiveAdvantage)
-                    ? JSON.stringify({ competitors: ld.competitors ?? [], competitiveAdvantage: ld.competitiveAdvantage ?? '' })
-                    : (ld.competition ?? null);
-                  const marketSizeJson = ld.market
-                    ? JSON.stringify(ld.market)
-                    : (ld.marketSize ?? null);
-
-                  await supabase.from('idea_analyses').insert({
-                    user_id: user.id,
-                    idea_title: truncatedTitle,
-                    normalized_idea: normalizedTitle,
-                    idea_description: ideaDescription.substring(0, 10000),
-                    target_market: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
-                    score: ld.score,
-                    strengths: ld.strengths,
-                    weaknesses: ld.weaknesses,
-                    recommendations: ld.recommendations,
-                    market_size: marketSizeJson,
-                    competition: competitionJson,
-                    viability: ld.viability,
-                    idea_summary: ld.ideaSummary ?? null,
-                    confidence_score: ld.confidenceScore ?? null,
-                    competitive_advantage: ld.competitiveAdvantage ?? null,
-                    heuristic_scores: ld.heuristicScores ?? null,
-                    investor_analysis: ld.investorAnalysis ?? null,
-                  });
-                }
-              } catch (saveErr) {
-                console.warn('[IdeaAnalyser] Frontend save failed (non-fatal):', saveErr);
-              }
-            }
-
+            // Backend is the sole source of truth — no frontend save.
             setIsAnalyzing(false);
             toast.success('Analysis complete!');
 

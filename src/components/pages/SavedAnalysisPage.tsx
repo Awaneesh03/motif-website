@@ -5,16 +5,15 @@ import {
   ArrowLeft,
   Shield,
   BarChart3,
-  Users,
-  CheckCircle,
   AlertCircle,
-  Lightbulb,
-  DollarSign,
+  RefreshCw,
   TrendingUp,
   TrendingDown,
   HelpCircle,
-  RefreshCw,
-  Loader2,
+  CheckCircle,
+  DollarSign,
+  Lightbulb,
+  Users,
 } from 'lucide-react';
 
 import { Button } from '../ui/button';
@@ -23,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { fromLegacyResult } from '../../lib/analysisValidator';
 import type { SafeAnalysisResult, Competitor } from '../../lib/analysisValidator';
 import { supabase } from '../../lib/supabase';
+import { useUser } from '../../contexts/UserContext';
 
 // ── Storage key written by SavedIdeasPage ────────────────────────────────────
 export const SAVED_ANALYSIS_KEY = 'motif-saved-analysis-view';
@@ -86,9 +86,11 @@ interface SavedAnalysisPageProps {
 export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const { user } = useUser();
   const [raw, setRaw] = useState<SavedAnalysisData | null>(null);
   const [result, setResult] = useState<SafeAnalysisResult | null>(null);
   const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const goBack = () => {
     if (onNavigate) {
@@ -109,16 +111,21 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
   useEffect(() => {
     if (id) {
       // Route /idea/:id — fetch the idea directly from Supabase
+      // user_id filter enforces ownership: returns nothing if idea belongs to another user
+      if (!user) return;
       setIsFetching(true);
+      setFetchError(null);
       supabase
         .from('idea_analyses')
         .select('*')
         .eq('id', id)
+        .eq('user_id', user.id)
         .single()
         .then(({ data: analysis, error }) => {
           setIsFetching(false);
           if (error || !analysis) {
             console.error('[IdeaDetail] Fetch failed:', error);
+            setFetchError('Failed to load analysis. It may not exist or you may not have access.');
             return;
           }
           console.log('[IdeaDetail] Loaded analysis:', analysis);
@@ -175,16 +182,62 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
         // malformed storage — show empty state
       }
     }
-  }, [id]);
+  }, [id, user]);
 
   // ── Empty / error state ──────────────────────────────────────────────────
 
   if (isFetching) {
     return (
+      <div className="min-h-screen bg-background">
+        {/* Skeleton header */}
+        <div className="border-b border-border bg-gradient-to-r from-[#C9A7EB]/10 to-transparent">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pt-4 pb-6 animate-pulse">
+            <div className="h-8 w-24 rounded-lg bg-muted mb-5" />
+            <div className="h-7 w-2/3 rounded-lg bg-muted mb-3" />
+            <div className="h-4 w-full max-w-lg rounded bg-muted mb-2" />
+            <div className="h-4 w-2/5 rounded bg-muted" />
+          </div>
+        </div>
+        {/* Skeleton body */}
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-pulse">
+          <div className="rounded-2xl border bg-card p-8 flex gap-8">
+            <div className="flex-1 space-y-3">
+              <div className="h-5 w-40 rounded bg-muted" />
+              <div className="h-4 w-full rounded bg-muted" />
+              <div className="h-4 w-5/6 rounded bg-muted" />
+            </div>
+            <div className="h-28 w-32 rounded-2xl bg-muted flex-shrink-0" />
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="rounded-2xl border bg-card p-6 h-32 bg-muted/30" />
+            <div className="rounded-2xl border bg-card p-6 h-32 bg-muted/30" />
+          </div>
+          <div className="rounded-2xl border bg-card p-6 space-y-3">
+            <div className="h-4 w-40 rounded bg-muted" />
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="h-3 w-36 rounded bg-muted flex-shrink-0" />
+                <div className="flex-1 h-2 rounded-full bg-muted" />
+                <div className="h-3 w-10 rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="text-sm text-muted-foreground">Loading analysis…</p>
+        <div className="text-center space-y-4 max-w-sm">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+          <h2 className="text-lg font-semibold">Failed to load analysis</h2>
+          <p className="text-sm text-muted-foreground">{fetchError}</p>
+          <Button variant="outline" onClick={goBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Vault
+          </Button>
         </div>
       </div>
     );
