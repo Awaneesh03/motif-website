@@ -115,20 +115,39 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
       if (!user) return;
       setIsFetching(true);
       setFetchError(null);
-      supabase
-        .from('idea_analyses')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single()
-        .then(({ data: analysis, error }) => {
-          setIsFetching(false);
-          if (error || !analysis) {
-            console.error('[IdeaDetail] Fetch failed:', error);
-            setFetchError('Failed to load analysis. It may not exist or you may not have access.');
-            return;
+
+      const fetchWithRetry = async (attemptsLeft: number): Promise<void> => {
+        const { data: analysis, error } = await supabase
+          .from('idea_analyses')
+          .select('*')
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (error || !analysis) {
+          // PGRST116 = 0 rows (not found or belongs to another user) — don't retry
+          const isNotFound = error?.code === 'PGRST116' || !analysis;
+          const isNetwork = !error?.code && (
+            error?.message?.toLowerCase().includes('fetch') ||
+            error?.message?.toLowerCase().includes('network') ||
+            !navigator.onLine
+          );
+
+          if (!isNotFound && attemptsLeft > 0) {
+            await new Promise(r => setTimeout(r, 250));
+            return fetchWithRetry(attemptsLeft - 1);
           }
-          console.log('[IdeaDetail] Loaded analysis:', analysis);
+
+          setIsFetching(false);
+          if (isNotFound) {
+            setFetchError('This idea does not exist.');
+          } else if (isNetwork) {
+            setFetchError('Network error. Please check your connection and try again.');
+          } else {
+            setFetchError('Failed to load analysis. Please try again.');
+          }
+          return;
+        }
 
           // Parse competition (TEXT JSON) → competitors array
           let competitors: Array<{ name: string; threat?: string; opportunity?: string }> | undefined;
@@ -167,9 +186,12 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
             investor_analysis: analysis.investor_analysis || undefined,
           };
 
-          setRaw(data);
-          setResult(fromLegacyResult({ ...data, score: data.score ?? 0 }));
-        });
+        setIsFetching(false);
+        setRaw(data);
+        setResult(fromLegacyResult({ ...data, score: data.score ?? 0 }));
+      };
+
+      fetchWithRetry(2);
     } else {
       // Route /saved-analysis — read from sessionStorage (existing flow)
       try {
@@ -228,16 +250,27 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
   }
 
   if (fetchError) {
+    const isNotFound = fetchError.includes('does not exist');
+    const isNetwork = fetchError.includes('Network error');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4 max-w-sm">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-          <h2 className="text-lg font-semibold">Failed to load analysis</h2>
+        <div className="text-center space-y-4 max-w-sm px-4">
+          <AlertCircle className={`h-12 w-12 mx-auto ${isNetwork ? 'text-orange-500' : 'text-destructive'}`} />
+          <h2 className="text-lg font-semibold">
+            {isNotFound ? 'Idea not found' : isNetwork ? 'Connection problem' : 'Something went wrong'}
+          </h2>
           <p className="text-sm text-muted-foreground">{fetchError}</p>
-          <Button variant="outline" onClick={goBack}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Vault
-          </Button>
+          <div className="flex gap-2 justify-center">
+            {isNetwork && (
+              <Button variant="default" onClick={() => window.location.reload()}>
+                Try again
+              </Button>
+            )}
+            <Button variant="outline" onClick={goBack}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Vault
+            </Button>
+          </div>
         </div>
       </div>
     );

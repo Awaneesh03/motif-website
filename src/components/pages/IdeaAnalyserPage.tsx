@@ -25,6 +25,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 
+import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
 
@@ -107,6 +108,7 @@ function truncateText(text: string, limit: number): string {
 
 export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const { user, profile, displayName } = useUser();
+  const navigate = useNavigate();
   
   // Storage key is user-specific — prevents one user seeing another user's data
   const FORM_STORAGE_KEY = `motif-idea-analyser-form-${user?.id ?? 'anon'}`;
@@ -313,9 +315,13 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
           pollIntervalRef.current = null;
           pollFnRef.current = null;
           localStorage.removeItem(localJobKey);
-          setAnalysisResult(status.safeResult);
           setIsAnalyzing(false);
           toast.success('Analysis complete!');
+          if (status.analysisId) {
+            navigate(`/idea/${status.analysisId}`);
+            return;
+          }
+          setAnalysisResult(status.safeResult);
 
         } else if (status.status === 'FAILED') {
           clearInterval(pollIntervalRef.current!);
@@ -681,17 +687,18 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
             pollFnRef.current = null;
             localStorage.removeItem(ACTIVE_JOB_KEY);
 
-            const safeData = status.safeResult;
-            setAnalysisResult(safeData);
-
-            // Log any hallucination flags for observability
-            if (safeData._flags.length > 0) {
-              console.warn('[IdeaAnalyser] Validator flagged fields:', safeData._flags);
-            }
-
-            // Backend is the sole source of truth — no frontend save.
             setIsAnalyzing(false);
             toast.success('Analysis complete!');
+
+            // Navigate to the detail page when the backend persisted the row.
+            // Falls back to inline display when analysisId is absent (e.g. validation
+            // skipped the save because a required field was missing from the AI response).
+            if (status.analysisId) {
+              navigate(`/idea/${status.analysisId}`);
+              return;
+            }
+            // Inline fallback — show result on this page if no id available
+            setAnalysisResult(status.safeResult);
 
           } else if (status.status === 'FAILED') {
             clearInterval(pollIntervalRef.current!);

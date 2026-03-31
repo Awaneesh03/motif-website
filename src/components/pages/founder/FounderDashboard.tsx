@@ -112,7 +112,6 @@ export function FounderDashboard() {
             getRecentAnalyses().catch(() => [] as RecentAnalysis[]),
           ]);
 
-          console.log('[Dashboard] Recent activity data:', analyses);
           setMyStartups(ideas);
           setRecentActivity(notifications);
           setMetrics(founderMetrics);

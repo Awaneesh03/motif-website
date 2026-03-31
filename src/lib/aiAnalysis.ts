@@ -16,6 +16,8 @@ export interface IdeaAnalysisRequest {
 
 /** @deprecated Use SafeAnalysisResult for new code. Kept for Supabase cache compat. */
 export interface IdeaAnalysisResult {
+  /** DB row id — set when the backend successfully persisted the analysis. */
+  analysisId?: string;
   score: number;
   strengths: string[];
   weaknesses: string[];
@@ -82,6 +84,7 @@ export async function pollAnalysisStatus(jobId: string): Promise<JobStatusResult
     const rawScore = r.score;
     // Preserve all fields (legacy + new structured) — fromLegacyResult will detect the format
     raw.result = {
+      analysisId: r.analysisId || undefined,
       score: rawScore != null ? Math.min(100, Math.max(0, rawScore)) : 0,
       strengths: r.strengths || [],
       weaknesses: r.weaknesses || [],
@@ -110,9 +113,11 @@ export async function pollAnalysisStatus(jobId: string): Promise<JobStatusResult
 export interface SafeJobStatusResult {
   jobId: string;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  /** DB row id — set when the analysis was successfully persisted. Use to navigate to /idea/:id. */
+  analysisId?: string;
   /** Validated & sanitised result — only present when status = COMPLETED */
   safeResult?: SafeAnalysisResult;
-  /** Legacy result preserved for Supabase cache writes */
+  /** Legacy result preserved for Supabase cache reads */
   legacyResult?: IdeaAnalysisResult;
   errorMessage?: string;
   createdAt: string;
@@ -131,6 +136,7 @@ export async function pollAnalysisStatusSafe(jobId: string): Promise<SafeJobStat
   };
 
   if (raw.status === 'COMPLETED' && raw.result) {
+    base.analysisId = raw.result.analysisId || undefined;
     base.legacyResult = raw.result;
 
     // fromLegacyResult auto-detects new vs legacy format:
