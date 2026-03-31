@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Shield,
@@ -13,6 +14,7 @@ import {
   TrendingDown,
   HelpCircle,
   RefreshCw,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '../ui/button';
@@ -20,6 +22,7 @@ import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { fromLegacyResult } from '../../lib/analysisValidator';
 import type { SafeAnalysisResult, Competitor } from '../../lib/analysisValidator';
+import { supabase } from '../../lib/supabase';
 
 // ── Storage key written by SavedIdeasPage ────────────────────────────────────
 export const SAVED_ANALYSIS_KEY = 'motif-saved-analysis-view';
@@ -81,25 +84,111 @@ interface SavedAnalysisPageProps {
 }
 
 export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const [raw, setRaw] = useState<SavedAnalysisData | null>(null);
   const [result, setResult] = useState<SafeAnalysisResult | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
+
+  const goBack = () => {
+    if (onNavigate) {
+      onNavigate('saved-ideas');
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const goToAnalyser = () => {
+    if (onNavigate) {
+      onNavigate('Idea Analyser');
+    } else {
+      navigate('/idea-analyser');
+    }
+  };
 
   useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem(SAVED_ANALYSIS_KEY);
-      if (!stored) return;
-      const data: SavedAnalysisData = JSON.parse(stored);
-      setRaw(data);
-      // Pass the full data object so fromLegacyResult can detect structured fields
-      // (competitors array or market object) and route to validateAndSanitise.
-      // Falls back to the legacy flat-string path for old records automatically.
-      setResult(fromLegacyResult({ ...data, score: data.score ?? 0 }));
-    } catch {
-      // malformed storage — show empty state
+    if (id) {
+      // Route /idea/:id — fetch the idea directly from Supabase
+      setIsFetching(true);
+      supabase
+        .from('idea_analyses')
+        .select('*')
+        .eq('id', id)
+        .single()
+        .then(({ data: analysis, error }) => {
+          setIsFetching(false);
+          if (error || !analysis) {
+            console.error('[IdeaDetail] Fetch failed:', error);
+            return;
+          }
+          console.log('[IdeaDetail] Loaded analysis:', analysis);
+
+          // Parse competition (TEXT JSON) → competitors array
+          let competitors: Array<{ name: string; threat?: string; opportunity?: string }> | undefined;
+          let parsedCompetitiveAdvantage: string | undefined;
+          try {
+            if (analysis.competition) {
+              const comp = JSON.parse(analysis.competition);
+              if (Array.isArray(comp.competitors)) competitors = comp.competitors;
+              if (typeof comp.competitiveAdvantage === 'string') parsedCompetitiveAdvantage = comp.competitiveAdvantage;
+            }
+          } catch { /* legacy string format */ }
+
+          // Parse market_size (TEXT JSON) → market object
+          let market: Record<string, any> | undefined;
+          try {
+            if (analysis.market_size) market = JSON.parse(analysis.market_size);
+          } catch { /* legacy string format */ }
+
+          const data: SavedAnalysisData = {
+            title: analysis.idea_title,
+            description: analysis.idea_description,
+            targetMarket: analysis.target_market || '',
+            score: analysis.score,
+            strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
+            weaknesses: Array.isArray(analysis.weaknesses) ? analysis.weaknesses : [],
+            recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations : [],
+            marketSize: analysis.market_size || '',
+            competition: analysis.competition || '',
+            viability: analysis.viability || '',
+            idea_summary: analysis.idea_summary || undefined,
+            confidence_score: typeof analysis.confidence_score === 'number' ? analysis.confidence_score : undefined,
+            competitors,
+            competitive_advantage: analysis.competitive_advantage || parsedCompetitiveAdvantage,
+            market,
+            heuristic_scores: analysis.heuristic_scores || undefined,
+            investor_analysis: analysis.investor_analysis || undefined,
+          };
+
+          setRaw(data);
+          setResult(fromLegacyResult({ ...data, score: data.score ?? 0 }));
+        });
+    } else {
+      // Route /saved-analysis — read from sessionStorage (existing flow)
+      try {
+        const stored = sessionStorage.getItem(SAVED_ANALYSIS_KEY);
+        if (!stored) return;
+        const data: SavedAnalysisData = JSON.parse(stored);
+        setRaw(data);
+        setResult(fromLegacyResult({ ...data, score: data.score ?? 0 }));
+      } catch {
+        // malformed storage — show empty state
+      }
     }
-  }, []);
+  }, [id]);
 
   // ── Empty / error state ──────────────────────────────────────────────────
+
+  if (isFetching) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading analysis…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!raw || !result) {
     return (
@@ -108,7 +197,7 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
           <h2 className="text-lg font-semibold">No analysis to display</h2>
           <p className="text-sm text-muted-foreground">Go to your vault and click "View Analysis" on a saved idea.</p>
-          <Button variant="outline" onClick={() => onNavigate?.('saved-ideas')}>
+          <Button variant="outline" onClick={goBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Vault
           </Button>
@@ -129,7 +218,7 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onNavigate?.('saved-ideas')}
+              onClick={goBack}
               className="rounded-lg -ml-2 text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="mr-1.5 h-4 w-4" />
@@ -159,7 +248,7 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
               variant="outline"
               size="sm"
               className="rounded-xl flex-shrink-0"
-              onClick={() => onNavigate?.('Idea Analyser')}
+              onClick={goToAnalyser}
             >
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
               Re-Analyze
@@ -488,7 +577,7 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
               </div>
               <Button
                 className="gradient-lavender rounded-xl"
-                onClick={() => onNavigate?.('Idea Analyser')}
+                onClick={goToAnalyser}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Re-Analyze Idea

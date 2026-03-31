@@ -434,6 +434,14 @@ function AppContent() {
                       }
                     />
                     <Route
+                      path="/idea/:id"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                          <SavedAnalysisPage onNavigate={handleNavigate} />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="/notifications"
                       element={
                         <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN]}>

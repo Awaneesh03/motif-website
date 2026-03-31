@@ -112,6 +112,7 @@ export function FounderDashboard() {
             getRecentAnalyses().catch(() => [] as RecentAnalysis[]),
           ]);
 
+          console.log('[Dashboard] Recent activity data:', analyses);
           setMyStartups(ideas);
           setRecentActivity(notifications);
           setMetrics(founderMetrics);
@@ -607,7 +608,7 @@ export function FounderDashboard() {
                           >
                             <button
                               className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-muted/60 cursor-pointer group"
-                              onClick={() => navigate('/saved-ideas')}
+                              onClick={() => navigate(`/idea/${item.id}`)}
                             >
                               <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                                 <Lightbulb className="h-4 w-4 text-primary" />
