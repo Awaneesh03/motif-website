@@ -64,7 +64,8 @@ function _isDuplicate(userId: string, type: ActivityType, title: string): boolea
  * Fire-and-forget activity log. Never throws — safe to call anywhere.
  *
  * - Resolves the user from the live Supabase session (no stale context).
- * - Skips duplicate events within a 10-second window per user+type+title.
+ * - Two-layer dedup: in-memory (instant, same session) + DB check (cross-session).
+ *   Both use a 10-second window keyed on `type:title`.
  * - title is optional; omit to use the default label from ACTIVITY_META.
  *
  * Returns the inserted row id on success, null on skip or failure.
@@ -82,14 +83,40 @@ export async function logActivity(
     }
 
     const resolvedTitle = title?.trim() || ACTIVITY_META[type].label;
+    const dedupKey = `${type}:${resolvedTitle}`;
 
+    // ── Layer 1: in-memory dedup (instant, no network) ───────────────────────
     if (_isDuplicate(user.id, type, resolvedTitle)) {
-      return null; // silently deduplicated
+      return null;
     }
 
+    // ── Layer 2: DB dedup (cross-session / cross-device) ─────────────────────
+    const tenSecondsAgo = new Date(Date.now() - 10_000).toISOString();
+    const { data: existing, error: checkError } = await supabase
+      .from('user_activity')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('dedup_key', dedupKey)
+      .gte('created_at', tenSecondsAgo)
+      .limit(1);
+
+    if (checkError) {
+      console.warn('[activityService] dedup check failed:', checkError.message);
+      // Continue to insert — a failed check is not a reason to drop the event
+    } else if (existing && existing.length > 0) {
+      return null; // DB duplicate within window
+    }
+
+    // ── Insert ────────────────────────────────────────────────────────────────
     const { data, error } = await supabase
       .from('user_activity')
-      .insert({ user_id: user.id, type, title: resolvedTitle, metadata: metadata ?? null })
+      .insert({
+        user_id:   user.id,
+        type,
+        title:     resolvedTitle,
+        metadata:  metadata ?? null,
+        dedup_key: dedupKey,
+      })
       .select('id')
       .single();
 
