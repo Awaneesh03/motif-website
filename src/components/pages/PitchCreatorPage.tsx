@@ -345,6 +345,8 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
             setIsGenerating(false);
             setShowPitchModal(true);
             toast.success('Pitch deck generated!');
+            void logActivity('pitch_created', formData.ideaName || 'Pitch deck',
+              { slideCount: pitchData.slides.length });
 
             // Cache result for restore on next visit
             try {
@@ -381,8 +383,6 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
                       idea_id: ideaData.id,
                       title: formData.ideaName,
                     });
-                    void logActivity(user.id, 'pitch_created', formData.ideaName || 'Pitch deck',
-                      { ideaId: ideaData.id, slideCount: pitchData.slides.length });
                   }
                 } catch { /* non-fatal */ }
               };

@@ -318,10 +318,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
           localStorage.removeItem(localJobKey);
           setIsAnalyzing(false);
           toast.success('Analysis complete!');
-          if (user?.id) {
-            void logActivity(user.id, 'idea_analyzed', ideaTitle || 'Untitled idea',
-              status.analysisId ? { analysisId: status.analysisId } : undefined);
-          }
+          void logActivity('idea_analyzed', ideaTitle || 'Untitled idea',
+            status.analysisId ? { analysisId: status.analysisId } : undefined);
           if (status.analysisId) {
             navigate(`/idea/${status.analysisId}`);
             return;
@@ -694,10 +692,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
             setIsAnalyzing(false);
             toast.success('Analysis complete!');
-            if (user?.id) {
-              void logActivity(user.id, 'idea_analyzed', ideaTitle || 'Untitled idea',
-                status.analysisId ? { analysisId: status.analysisId } : undefined);
-            }
+            void logActivity('idea_analyzed', ideaTitle || 'Untitled idea',
+              status.analysisId ? { analysisId: status.analysisId } : undefined);
 
             // Navigate to the detail page when the backend persisted the row.
             // Falls back to inline display when analysisId is absent (e.g. validation

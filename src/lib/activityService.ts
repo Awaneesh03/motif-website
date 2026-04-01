@@ -34,18 +34,25 @@ export const ACTIVITY_META: Record<ActivityType, { icon: string; color: string }
 
 /**
  * Fire-and-forget activity log. Never throws — safe to call anywhere.
+ * Always resolves the user from the live Supabase session so stale
+ * context values can never cause an RLS mismatch.
  * Returns the inserted row id on success, null on failure.
  */
 export async function logActivity(
-  userId: string,
   type: ActivityType,
   title: string,
   metadata?: Record<string, unknown>,
 ): Promise<string | null> {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn('[activityService] no authenticated user — skipping log');
+      return null;
+    }
+
     const { data, error } = await supabase
       .from('user_activity')
-      .insert({ user_id: userId, type, title, metadata: metadata ?? null })
+      .insert({ user_id: user.id, type, title, metadata: metadata ?? null })
       .select('id')
       .single();
 
