@@ -121,6 +121,8 @@ export async function logActivity(
       .single();
 
     if (error) {
+      // 23505 = unique_violation: a concurrent insert beat us to it — treat as success
+      if (error.code === '23505') return null;
       console.warn('[activityService] insert failed:', error.message);
       return null;
     }
