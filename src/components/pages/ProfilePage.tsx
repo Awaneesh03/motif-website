@@ -83,7 +83,7 @@ function calculateProfileCompletion(profile: any, userIdeas: any[]): ProfileComp
 
   const steps = [
     { key: 'basicInfo', label: 'Basic info', check: () => profile?.name && profile?.email },
-    { key: 'background', label: 'Founder background', check: () => profile?.about && profile?.about.length > 20 },
+    { key: 'background', label: 'Founder background', check: () => !!profile?.about },
     { key: 'linkedin', label: 'LinkedIn profile', check: () => profile?.linkedin },
     { key: 'startupGoals', label: 'Startup goals', check: () => Array.isArray(profile?.startup_goals) && profile?.startup_goals?.length > 0 },
     { key: 'ideaAdded', label: 'Startup idea basics', check: () => safeUserIdeas.length > 0 },
@@ -117,11 +117,11 @@ function calculateInvestorReadiness(profile: any, userIdeas: any[]): InvestorRea
   let score = 0;
 
   try {
-    if (profile?.about && profile?.about?.length > 50) {
+    if (profile?.about) {
       score += 15;
       strengths.push('Strong founder background');
     } else {
-      improvements.push('Add detailed founder background');
+      improvements.push('Add your founder background');
     }
 
     if (profile?.linkedin) {
@@ -793,12 +793,12 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="about">About</Label>
+              <Label htmlFor="about">Founder Background</Label>
               <Textarea
                 id="about"
                 value={editForm.about}
                 onChange={e => setEditForm({ ...editForm, about: e.target.value })}
-                placeholder="Tell us about yourself..."
+                placeholder="Tell your story, experience, and why you're building this..."
                 rows={4}
               />
             </div>
