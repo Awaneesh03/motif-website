@@ -110,63 +110,155 @@ function calculateProfileCompletion(profile: any, userIdeas: any[]): ProfileComp
   return { percentage, completedSteps, pendingSteps };
 }
 
+// ── Scoring helpers ──────────────────────────────────────────────────────────
+
+function isValidLinkedIn(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.hostname === 'linkedin.com' || u.hostname === 'www.linkedin.com';
+  } catch {
+    return false;
+  }
+}
+
+function getAboutScore(text: string | undefined | null): { pts: number; label: string } {
+  const len = (text ?? '').trim().length;
+  if (len >= 200) return { pts: 15, label: 'Strong founder background' };
+  if (len >= 80)  return { pts: 10, label: 'Good founder background' };
+  if (len >= 20)  return { pts: 5,  label: 'Brief founder background' };
+  return { pts: 0, label: '' };
+}
+
+function isRecentlyActive(ideas: any[]): boolean {
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  return ideas.some(i => new Date(i?.created_at ?? 0).getTime() > thirtyDaysAgo);
+}
+
+// ── Main scoring function (100 pts total) ────────────────────────────────────
+// Founder Profile: 40 pts | Startup Clarity: 30 pts | Activity: 30 pts
+
 function calculateInvestorReadiness(profile: any, userIdeas: any[]): InvestorReadiness {
-  const safeUserIdeas = Array.isArray(userIdeas) ? userIdeas : [];
+  const safeIdeas = Array.isArray(userIdeas) ? userIdeas : [];
   const strengths: string[] = [];
   const improvements: string[] = [];
   let score = 0;
 
   try {
-    if (profile?.about) {
-      score += 15;
-      strengths.push('Strong founder background');
+    // ── 1. Founder Profile (40 pts) ─────────────────────────────────────────
+
+    // name (5 pts)
+    if (profile?.name?.trim()) {
+      score += 5;
+    } else {
+      improvements.push('Add your name');
+    }
+
+    // about (0 / 5 / 10 / 15 pts)
+    const aboutResult = getAboutScore(profile?.about);
+    score += aboutResult.pts;
+    if (aboutResult.pts >= 10) {
+      strengths.push(aboutResult.label);
+    } else if (aboutResult.pts === 5) {
+      improvements.push('Expand your founder background (aim for 80+ chars)');
     } else {
       improvements.push('Add your founder background');
     }
 
-    if (profile?.linkedin) {
-      score += 10;
-      strengths.push('LinkedIn profile connected');
-    } else {
-      improvements.push('Connect LinkedIn profile');
-    }
-
-    if (Array.isArray(profile?.startup_goals) && profile?.startup_goals?.length >= 2) {
-      score += 10;
-      strengths.push('Clear startup goals defined');
-    } else {
-      improvements.push('Define startup goals');
-    }
-
-    if (safeUserIdeas.length > 0) {
-      score += 20;
-      strengths.push('Ideas documented');
-
-      if (safeUserIdeas.length >= 3) {
-        score += 15;
-        strengths.push('Multiple ideas explored');
+    // linkedin (5 pts exists, +5 if valid URL = 10 pts)
+    const li = (profile?.linkedin ?? '').trim();
+    if (li) {
+      score += 5;
+      if (isValidLinkedIn(li)) {
+        score += 5;
+        strengths.push('LinkedIn profile verified');
+      } else {
+        improvements.push('Use your full LinkedIn URL (linkedin.com/in/...)');
       }
     } else {
-      improvements.push('Add and analyze startup ideas');
+      improvements.push('Connect your LinkedIn profile');
     }
 
-    if (safeUserIdeas.some(idea => idea?.user_validation)) {
-      score += 30;
-      strengths.push('Ideas validated with users');
-    } else if (safeUserIdeas.length > 0) {
-      improvements.push('Validate ideas with potential users');
+    // education (5 pts)
+    if (profile?.education?.trim()) {
+      score += 5;
+      strengths.push('Education background listed');
+    } else {
+      improvements.push('Add your education');
     }
+
+    // location (5 pts)
+    if (profile?.location?.trim()) {
+      score += 5;
+    } else {
+      improvements.push('Add your location');
+    }
+
+    // ── 2. Startup Clarity (30 pts) ─────────────────────────────────────────
+
+    // startup_goals (0 / 5 / 10 pts)
+    const goalCount = Array.isArray(profile?.startup_goals) ? profile.startup_goals.length : 0;
+    if (goalCount >= 2) {
+      score += 10;
+      strengths.push('Clear startup goals defined');
+    } else if (goalCount === 1) {
+      score += 5;
+      improvements.push('Add more startup goals (aim for 2+)');
+    } else {
+      improvements.push('Define your startup goals');
+    }
+
+    // ideas analyzed (0 / 5 / 10 / 15 pts)
+    if (safeIdeas.length >= 10) {
+      score += 15;
+      strengths.push('Extensive idea portfolio');
+    } else if (safeIdeas.length >= 4) {
+      score += 10;
+      strengths.push('Multiple ideas explored');
+    } else if (safeIdeas.length >= 1) {
+      score += 5;
+      improvements.push('Analyze more startup ideas (aim for 4+)');
+    } else {
+      improvements.push('Add and analyze your first startup idea');
+    }
+
+    // ── 3. Activity (30 pts) ────────────────────────────────────────────────
+
+    // recent activity — any idea in last 30 days (10 pts)
+    if (isRecentlyActive(safeIdeas)) {
+      score += 10;
+      strengths.push('Recently active');
+    } else if (safeIdeas.length > 0) {
+      improvements.push('Stay active — analyze ideas regularly');
+    }
+
+    // multiple ideas (10 pts)
+    if (safeIdeas.length >= 3) {
+      score += 10;
+    }
+
+    // consistent usage — 3+ ideas over time (10 pts)
+    if (safeIdeas.length >= 3) {
+      const dates = safeIdeas.map(i => new Date(i?.created_at ?? 0).getTime()).sort();
+      const spanDays = (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24);
+      if (spanDays >= 7) {
+        score += 10;
+        strengths.push('Consistent platform usage');
+      }
+    }
+
   } catch (error) {
     console.error('Error calculating investor readiness:', error);
   }
 
-  let level: InvestorReadiness['level'] = 'Not Ready';
-  if (score >= 80) level = 'Ready';
-  else if (score >= 60) level = 'Nearly Ready';
-  else if (score >= 40) level = 'In Progress';
-  else if (score >= 20) level = 'Getting Started';
+  const clamped = Math.min(100, Math.max(0, score));
 
-  return { score, level, strengths, improvements };
+  let level: InvestorReadiness['level'] = 'Not Ready';
+  if (clamped >= 80) level = 'Ready';
+  else if (clamped >= 60) level = 'Nearly Ready';
+  else if (clamped >= 40) level = 'In Progress';
+  else if (clamped >= 20) level = 'Getting Started';
+
+  return { score: clamped, level, strengths, improvements };
 }
 
 // ============================================================================
