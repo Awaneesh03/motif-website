@@ -21,6 +21,7 @@ import {
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
 import { getQualification, saveQualification } from '../../lib/fundingService';
+import { logActivity } from '../../lib/activityService';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
@@ -312,6 +313,10 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
       if (error) throw error;
 
       toast.success('Qualification request submitted. We will follow up by email.');
+      if (user?.id) {
+        void logActivity(user.id, 'funding_submitted', 'Funding qualification submitted',
+          { stage: qualificationForm.stage, fundingAmount: qualificationForm.fundingAmount });
+      }
       setQualificationForm({
         name: '',
         email: '',

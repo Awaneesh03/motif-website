@@ -36,6 +36,7 @@ import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
+import { getRecentActivity, type ActivityEvent, ACTIVITY_META } from '../../lib/activityService';
 
 interface ProfilePageProps {
   onNavigate?: (page: string) => void;
@@ -273,7 +274,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
   const [currentRenderState, setCurrentRenderState] = useState<RenderState>('auth_loading');
   const [userIdeas, setUserIdeas] = useState<any[]>([]);
   const [, setUserCases] = useState<any[]>([]);
-  const [activityTimeline, setActivityTimeline] = useState<any[]>([]);
+  const [activityTimeline, setActivityTimeline] = useState<ActivityEvent[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [profileCreationAttempted, setProfileCreationAttempted] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
@@ -451,33 +452,9 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
         setUserCases([]);
       }
 
-      // Build timeline
-      const timeline: any[] = [];
-      if (Array.isArray(ideas)) {
-        ideas.forEach(idea => {
-          timeline.push({
-            type: 'idea',
-            title: 'Idea analyzed',
-            description: idea?.idea_title || 'Untitled idea',
-            date: idea?.created_at || new Date().toISOString(),
-            icon: 'lightbulb',
-          });
-        });
-      }
-      if (Array.isArray(cases)) {
-        cases.forEach(caseItem => {
-          timeline.push({
-            type: 'case',
-            title: 'Case study completed',
-            description: caseItem?.case_id || 'Case study',
-            date: caseItem?.attempted_at || new Date().toISOString(),
-            icon: 'book',
-          });
-        });
-      }
-
-      timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setActivityTimeline(timeline.slice(0, 5));
+      // Load activity feed from user_activity table
+      const activity = await getRecentActivity(authUser.id, 20);
+      setActivityTimeline(activity);
     } catch (error) {
       console.error('Error loading user data:', error);
       // Continue with empty data
@@ -1305,19 +1282,26 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {activityTimeline.map((activity, index) => (
-                          <div key={index} className="flex items-start gap-3">
-                            <div className="bg-primary/10 mt-1 rounded-full p-2">
-                              {activity.icon === 'lightbulb' && <Lightbulb className="text-primary h-4 w-4" />}
-                              {activity.icon === 'book' && <BookOpen className="text-primary h-4 w-4" />}
+                        {activityTimeline.map((activity) => {
+                          const meta = ACTIVITY_META[activity.type] ?? ACTIVITY_META['idea_analyzed'];
+                          const Icon =
+                            activity.type === 'pitch_created'     ? Target :
+                            activity.type === 'funding_submitted' ? Sparkles :
+                            activity.type === 'case_viewed'       ? BookOpen :
+                            activity.type === 'community_action'  ? Users :
+                            Lightbulb;
+                          return (
+                            <div key={activity.id} className="flex items-start gap-3">
+                              <div className="bg-primary/10 mt-1 rounded-full p-2">
+                                <Icon className={`h-4 w-4 ${meta.color}`} />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium">{activity.title}</p>
+                                <p className="text-muted-foreground text-xs mt-1">{formatDate(activity.created_at)}</p>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <p className="font-medium">{activity.title}</p>
-                              <p className="text-muted-foreground text-sm">{activity.description}</p>
-                              <p className="text-muted-foreground text-xs mt-1">{formatDate(activity.date)}</p>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>

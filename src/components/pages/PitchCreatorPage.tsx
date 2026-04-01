@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { supabase } from '../../lib/supabase';
 import { useUser } from '../../contexts/UserContext';
+import { logActivity } from '../../lib/activityService';
 import { startPitch, pollPitchStatus } from '../../lib/aiAnalysis';
 
 interface SavedIdea {
@@ -380,6 +381,8 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
                       idea_id: ideaData.id,
                       title: formData.ideaName,
                     });
+                    void logActivity(user.id, 'pitch_created', formData.ideaName || 'Pitch deck',
+                      { ideaId: ideaData.id, slideCount: pitchData.slides.length });
                   }
                 } catch { /* non-fatal */ }
               };
