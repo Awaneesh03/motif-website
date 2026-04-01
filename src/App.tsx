@@ -52,6 +52,10 @@ import AdminCaseStudyForm from './components/pages/admin/AdminCaseStudyForm';
 // Founder Pages
 import SubmitStartupPage from './components/pages/SubmitStartupPage';
 import { StartupDetailPage } from './components/pages/StartupDetailPage';
+import { FundingDashboardPage } from './components/pages/founder/FundingDashboardPage';
+
+// VC Pipeline
+import VCPipelinePage from './components/pages/vc/VCPipelinePage';
 
 function AppContent() {
   const [isDark, setIsDark] = useState(false);
@@ -95,6 +99,8 @@ function AppContent() {
       'Pitch Creator': '/pitch-creator',
       'Dashboard': '/dashboard',
       'Get Funded': '/get-funded',
+      'Funding Dashboard': '/dashboard/funding',
+      'VC Pipeline': '/vc/pipeline',
       'saved-ideas': '/saved-ideas',
       'saved-analysis': '/saved-analysis',
       'Notifications': '/notifications'
@@ -266,6 +272,14 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/vc/pipeline"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.VC, UserRole.SUPER_ADMIN, UserRole.ADMIN]}>
+                <VCPipelinePage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* MAIN APP ROUTES (Founder + Public) */}
@@ -414,6 +428,14 @@ function AppContent() {
                       element={
                         <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
                           <VCConnectionPage onNavigate={handleNavigate} />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dashboard/funding"
+                      element={
+                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                          <FundingDashboardPage />
                         </ProtectedRoute>
                       }
                     />
