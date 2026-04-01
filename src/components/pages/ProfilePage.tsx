@@ -514,42 +514,23 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     if (!authUser) return;
 
     try {
-      // Only update specific fields that exist in the database schema
-      const updateData = {
-        name: editForm.name,
-        email: editForm.email,
-        linkedin: editForm.linkedin,
-        startup_goals: selectedGoals,
-      };
-
-      // Add optional fields only if the database schema has them
-      // Try to update with all fields first
       const { error } = await supabase
         .from('profiles')
         .update({
-          ...updateData,
+          name: editForm.name,
+          email: editForm.email,
           about: editForm.about,
+          linkedin: editForm.linkedin,
           role: editForm.role,
           location: editForm.location,
           education: editForm.education,
+          startup_goals: selectedGoals,
         })
         .eq('id', authUser.id);
 
-      // If error is about missing columns, try again with just core fields
-      if (error) {
-        console.warn('Full update failed, trying with core fields only:', error);
+      if (error) throw error;
 
-        const { error: retryError } = await supabase
-          .from('profiles')
-          .update(updateData)
-          .eq('id', authUser.id);
-
-        if (retryError) throw retryError;
-
-        toast.warning('Profile updated (some fields may not be supported by database)');
-      } else {
-        toast.success('Profile updated successfully!');
-      }
+      toast.success('Profile updated successfully!');
 
       // Update local profile state with all values
       const updatedProfile = {
