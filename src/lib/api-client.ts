@@ -127,10 +127,10 @@ class ApiClient {
   /**
    * GET request
    */
-  async get<T>(endpoint: string): Promise<T> {
+  async get<T>(endpoint: string, timeoutMs?: number): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'GET',
-    });
+    }, timeoutMs);
   }
 
   /**

@@ -1,5 +1,5 @@
-import { motion } from 'motion/react';
-import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import {
   Target,
@@ -11,13 +11,16 @@ import {
   ArrowRight,
   MessageCircle,
   FileText,
+  Upload,
   Loader2,
   RefreshCw,
   TrendingUp,
+  Clock,
 } from 'lucide-react';
 
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
+import { getQualification, saveQualification } from '../../lib/fundingService';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
@@ -31,6 +34,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '../ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import {
   Accordion,
   AccordionContent,
@@ -62,6 +75,18 @@ const STARTUP_STAGES = [
   { value: 'scale', label: 'Scale / Expansion' },
 ];
 
+const formatRelativeDate = (isoString: string): string => {
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  const diffMins  = Math.floor(diffMs / 60_000);
+  const diffHours = Math.floor(diffMs / 3_600_000);
+  const diffDays  = Math.floor(diffMs / 86_400_000);
+  if (diffMins  < 1)  return 'just now';
+  if (diffMins  < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays  === 1) return 'yesterday';
+  return `${diffDays} days ago`;
+};
+
 interface UserIdea {
   id: string;
   idea_title: string;
@@ -92,8 +117,37 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   const [fundingStep, setFundingStep] = useState(1);
   const [selectedIdea, setSelectedIdea] = useState<UserIdea | null>(null);
   const [pitchFile, setPitchFile] = useState<File | null>(null);
+  const [pitchOption, setPitchOption] = useState<'ai' | 'upload' | null>(null);
 
-  // Founder Qualification Form State (Step 3)
+  // ── Funding Qualification Form State (Step 2 — persisted per user) ──────────
+  const [fundingQualForm, setFundingQualForm] = useState({
+    fullName: '',
+    email: '',
+    experienceLevel: '',
+    linkedinUrl: '',
+    previousStartups: '',
+  });
+  const [isLoadingQualification, setIsLoadingQualification] = useState(false);
+  const [isSavingQualification, setIsSavingQualification] = useState(false);
+  const [qualificationSaved, setQualificationSaved] = useState(false);
+  const [qualFetchError, setQualFetchError] = useState<string | null>(null);
+  const [qualUpdatedAt, setQualUpdatedAt] = useState<string | null>(null);
+  const [qualErrors, setQualErrors] = useState({ fullName: '', email: '', experienceLevel: '' });
+
+  // ── Final submit guard ────────────────────────────────────────────────────
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ── Unmount / modal-close guard for in-flight fetches (Part 2) ───────────
+  const fetchCancelledRef = useRef(false);
+
+  // ── Scroll-to-top ref — attached to the DialogContent scrollable div ─────
+  const modalScrollRef = useRef<HTMLDivElement>(null);
+
+  // ── Unsaved-changes tracking (Part 5) ────────────────────────────────────
+  const [qualFormDirty, setQualFormDirty] = useState(false);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+
+  // ── Founder Qualification Form State (Step 4 — per submission) ───────────
   const [founderQualificationForm, setFounderQualificationForm] = useState({
     startupStage: '',
     // Basic fields
@@ -151,6 +205,78 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
       setUserIdeas([]);
     } finally {
       setIsLoadingIdeas(false);
+    }
+  };
+
+  // Fetch + pre-fill qualification when the user enters Step 2
+  useEffect(() => {
+    if (fundingStep === 2 && fundingModalOpen && user) {
+      fetchAndPrefillQualification();
+    }
+  }, [fundingStep, fundingModalOpen, user]);
+
+  // Scroll the modal back to the top whenever the active step changes
+  useEffect(() => {
+    if (fundingModalOpen) {
+      modalScrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [fundingStep, fundingModalOpen]);
+
+  // ── Keyboard handler: Enter → click the primary action button ────────────
+  // Skip when: modal closed, step 5 (success), submitting, saving,
+  //            or the focused element is a textarea or button (let native behaviour win).
+  useEffect(() => {
+    if (!fundingModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'TEXTAREA' || tag === 'BUTTON') return;
+      if (fundingStep === 5 || isSubmitting || isSavingQualification) return;
+      // Click the primary Next/Submit button (it carries the data-primary-action attr)
+      const btn = document.querySelector<HTMLButtonElement>('[data-primary-action]');
+      btn?.click();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [fundingModalOpen, fundingStep, isSubmitting, isSavingQualification]);
+
+  const fetchAndPrefillQualification = async () => {
+    // Reset the cancel flag — this is a fresh intentional fetch
+    fetchCancelledRef.current = false;
+    setIsLoadingQualification(true);
+    setQualFetchError(null);
+    try {
+      const data = await getQualification();
+      // Modal may have closed while the request was in flight — bail out
+      // so we don't overwrite the post-close state reset with stale data.
+      if (fetchCancelledRef.current) return;
+      if (data.found) {
+        setFundingQualForm({
+          fullName: data.fullName || '',
+          email: data.email || '',
+          experienceLevel: data.experienceLevel || '',
+          linkedinUrl: data.linkedinUrl || '',
+          previousStartups: data.previousStartups || '',
+        });
+        setQualUpdatedAt(data.updatedAt || null);
+        setQualificationSaved(true);
+      } else {
+        setFundingQualForm(prev => ({ ...prev, email: user?.email || '' }));
+        setQualUpdatedAt(null);
+        setQualificationSaved(false);
+      }
+      // Mark clean — the form now matches the server state
+      setQualFormDirty(false);
+    } catch (err: any) {
+      if (fetchCancelledRef.current) return;
+      const isTimeout = err?.name === 'AbortError' || err?.message?.includes('timed out');
+      setQualFetchError(
+        isTimeout
+          ? 'Request timed out. Check your connection and try again.'
+          : 'Failed to load your profile. Check your connection and try again.'
+      );
+    } finally {
+      if (!fetchCancelledRef.current) setIsLoadingQualification(false);
     }
   };
 
@@ -317,11 +443,29 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
 
       {/* Raise Funding Modal */}
       <Dialog open={fundingModalOpen} onOpenChange={(open: boolean) => {
+        if (!open) {
+          // If user is mid-edit on the qualification form and hasn't saved yet,
+          // show a confirmation dialog instead of closing immediately (Part 5).
+          if (fundingStep === 2 && qualFormDirty && !isSavingQualification) {
+            setCloseConfirmOpen(true);
+            return; // keep modal open — confirmation dialog will decide
+          }
+        }
         setFundingModalOpen(open);
         if (!open) {
+          // Cancel any in-flight fetch so it won't clobber the reset (Part 2)
+          fetchCancelledRef.current = true;
           setFundingStep(1);
           setSelectedIdea(null);
           setPitchFile(null);
+          setPitchOption(null);
+          setFundingQualForm({ fullName: '', email: '', experienceLevel: '', linkedinUrl: '', previousStartups: '' });
+          setQualificationSaved(false);
+          setQualFetchError(null);
+          setQualUpdatedAt(null);
+          setQualErrors({ fullName: '', email: '', experienceLevel: '' });
+          setQualFormDirty(false);
+          setIsSubmitting(false);
           setFounderQualificationForm({
             startupStage: '',
             companyName: '',
@@ -345,19 +489,72 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
         }
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="pb-6">
-            <DialogTitle className="text-2xl flex items-center justify-between">
-              Raise Funding
-              <span className="text-sm font-normal text-muted-foreground">
-                Step {fundingStep} of 3
-              </span>
+          {/* Scroll anchor — scrolled into view on every step change */}
+          <div ref={modalScrollRef} />
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-2xl">
+              {fundingStep === 5 ? 'Request Submitted' : 'Raise Funding'}
             </DialogTitle>
-            <DialogDescription className="text-base">
-              {fundingStep === 1 && 'Choose a validated idea to raise funding for.'}
-              {fundingStep === 2 && 'Upload your pitch deck for investor review.'}
-              {fundingStep === 3 && 'Tell us more about your startup to match you with the right VCs.'}
+            <DialogDescription className="sr-only">
+              {fundingStep < 5
+                ? 'Complete the steps below to submit your funding request to our VC network.'
+                : 'Your funding request has been submitted successfully.'}
             </DialogDescription>
           </DialogHeader>
+
+          {/* ── Stepper ─────────────────────────────────────────────────── */}
+          {fundingStep < 5 && (
+            <div className="relative flex items-start justify-between pb-6 pt-2 px-1">
+              {/* Track — background (always full width) */}
+              <div className="absolute top-4 left-5 right-5 h-[2px] bg-border" />
+              {/* Track — filled (advances with step) */}
+              <div
+                className="absolute top-4 left-5 h-[2px] bg-primary transition-all duration-500 ease-in-out"
+                style={{ width: `calc(${((fundingStep - 1) / 3) * 100}% - 2.5rem)` }}
+              />
+              {([
+                { n: 1, label: 'Select Idea' },
+                { n: 2, label: 'Qualification' },
+                { n: 3, label: 'Pitch Deck' },
+                { n: 4, label: 'Submit' },
+              ] as const).map(({ n, label }) => {
+                const isComplete = fundingStep > n;
+                const isActive   = fundingStep === n;
+                return (
+                  <div key={n} className="relative z-10 flex flex-col items-center gap-2">
+                    <div
+                      className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 ${
+                        isComplete
+                          ? 'bg-primary text-primary-foreground'
+                          : isActive
+                          ? 'bg-primary text-primary-foreground shadow-[0_0_0_4px] shadow-primary/20'
+                          : 'bg-background border-2 border-border text-muted-foreground'
+                      }`}
+                    >
+                      {isComplete ? <CheckCircle className="h-3.5 w-3.5" /> : n}
+                    </div>
+                    <span
+                      className={`text-[10px] font-medium text-center leading-tight w-14 hidden sm:block ${
+                        isActive ? 'text-foreground' : isComplete ? 'text-primary' : 'text-muted-foreground'
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── Animated step content ───────────────────────────────────── */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={fundingStep}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+            >
 
           {/* Step 1: Select Validated Idea */}
           {fundingStep === 1 && (
@@ -498,63 +695,310 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
             </div>
           )}
 
-          {/* Step 2: Upload Pitch Material */}
+          {/* Step 2: Founder Qualification (persisted profile) */}
           {fundingStep === 2 && (
             <div className="space-y-6 py-4">
-              <div className="border-2 border-dashed border-border rounded-lg p-12 text-center hover:border-primary/50 transition-colors">
-                <input
-                  type="file"
-                  id="pitch-upload"
-                  className="hidden"
-                  accept=".pdf,.ppt,.pptx,.doc,.docx"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setPitchFile(file);
-                  }}
-                />
-                
-                <Label htmlFor="pitch-upload" className="cursor-pointer text-primary underline">
-                  Click to upload your pitch deck
-                </Label>
-              </div>
-
-              {pitchFile && (
-                <Card className="border-primary/20 bg-primary/5">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold">{pitchFile.name}</p>
-                      <p className="text-muted-foreground text-sm">{Math.round(pitchFile.size / 1024)} KB</p>
+              {/* Loading state */}
+              {isLoadingQualification ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-muted-foreground text-sm">Loading your profile...</p>
+                </div>
+              ) : qualFetchError ? (
+                /* Fetch error — show retry instead of silent empty form */
+                <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
+                  <AlertCircle className="h-10 w-10 text-destructive" />
+                  <div>
+                    <p className="font-medium text-foreground mb-1">Could not load your profile</p>
+                    <p className="text-sm text-muted-foreground">{qualFetchError}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={fetchAndPrefillQualification}
+                    className="rounded-xl"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Try again
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {/* "Saved info loaded" banner with last-updated timestamp */}
+                  {qualificationSaved && (
+                    <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-green-800 dark:text-green-200">Saved info loaded</p>
+                          <p className="text-sm text-green-700 dark:text-green-300">
+                            Your previous qualification details have been pre-filled. Review and update as needed.
+                          </p>
+                          {qualUpdatedAt && (
+                            <p className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 mt-1">
+                              <Clock className="h-3 w-3" />
+                              Last updated: {formatRelativeDate(qualUpdatedAt)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => setPitchFile(null)}>
-                      Remove
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                  )}
 
-              <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Pitch Deck Guidelines
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1 ml-6 list-disc">
-                  <li>Keep it to 10-12 slides focused on problem, solution, and traction.</li>
-                  <li>Include key metrics, team, and fundraising ask.</li>
-                  <li>Export as PDF or PPT for easier review.</li>
-                </ul>
-              </div>
+                  {/* Full Name + Email */}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="qual-full-name">Full Name <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="qual-full-name"
+                        value={fundingQualForm.fullName}
+                        onChange={e => {
+                          setFundingQualForm({ ...fundingQualForm, fullName: e.target.value });
+                          setQualFormDirty(true);
+                          if (qualErrors.fullName) setQualErrors(prev => ({ ...prev, fullName: '' }));
+                        }}
+                        placeholder="Jane Founder"
+                        className={`rounded-xl ${qualErrors.fullName ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                      />
+                      {qualErrors.fullName && (
+                        <p className="text-destructive text-xs">{qualErrors.fullName}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="qual-email-step2">Email <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="qual-email-step2"
+                        type="email"
+                        value={fundingQualForm.email}
+                        onChange={e => {
+                          setFundingQualForm({ ...fundingQualForm, email: e.target.value });
+                          setQualFormDirty(true);
+                          if (qualErrors.email) setQualErrors(prev => ({ ...prev, email: '' }));
+                        }}
+                        placeholder="jane@startup.com"
+                        className={`rounded-xl ${qualErrors.email ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                      />
+                      {qualErrors.email && (
+                        <p className="text-destructive text-xs">{qualErrors.email}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Experience Level */}
+                  <div className="space-y-1">
+                    <Label htmlFor="experience-level">Founder Experience <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={fundingQualForm.experienceLevel}
+                      onValueChange={value => {
+                        setFundingQualForm({ ...fundingQualForm, experienceLevel: value });
+                        setQualFormDirty(true);
+                        if (qualErrors.experienceLevel) setQualErrors(prev => ({ ...prev, experienceLevel: '' }));
+                      }}
+                    >
+                      <SelectTrigger
+                        id="experience-level"
+                        className={`h-11 rounded-xl ${qualErrors.experienceLevel ? 'border-destructive' : ''}`}
+                      >
+                        <SelectValue placeholder="Select your experience level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="first_time">First-time founder</SelectItem>
+                        <SelectItem value="1_2_startups">1–2 previous startups</SelectItem>
+                        <SelectItem value="3_plus">3+ previous startups</SelectItem>
+                        <SelectItem value="serial">Serial entrepreneur (exited before)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {qualErrors.experienceLevel && (
+                      <p className="text-destructive text-xs">{qualErrors.experienceLevel}</p>
+                    )}
+                  </div>
+
+                  {/* LinkedIn + Previous Startups */}
+                  <div className="space-y-1">
+                    <Label htmlFor="linkedin-url">LinkedIn Profile URL</Label>
+                    <Input
+                      id="linkedin-url"
+                      value={fundingQualForm.linkedinUrl}
+                      onChange={e => { setFundingQualForm({ ...fundingQualForm, linkedinUrl: e.target.value }); setQualFormDirty(true); }}
+                      placeholder="https://linkedin.com/in/yourprofile"
+                      className="rounded-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="previous-startups">Previous Startup Experience</Label>
+                    <Textarea
+                      id="previous-startups"
+                      value={fundingQualForm.previousStartups}
+                      onChange={e => { setFundingQualForm({ ...fundingQualForm, previousStartups: e.target.value }); setQualFormDirty(true); }}
+                      placeholder="Briefly describe any previous startups you've built, even if they didn't succeed..."
+                      className="rounded-xl min-h-[80px]"
+                    />
+                  </div>
+
+                  {/* Inline saving indicator */}
+                  {isSavingQualification && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Saving your details…
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
-          {/* Step 3: Founder Qualification Form */}
+          {/* Step 3: Pitch Deck */}
           {fundingStep === 3 && (
+            <div className="space-y-5 py-4">
+              <p className="text-sm text-muted-foreground">
+                How would you like to share your pitch with investors?
+              </p>
+
+              {/* Option cards */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => { setPitchOption('ai'); setPitchFile(null); }}
+                  className={`relative flex flex-col gap-3 rounded-xl border-2 p-4 text-left transition-all duration-200 cursor-pointer ${
+                    pitchOption === 'ai'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/40 hover:bg-muted/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                      pitchOption === 'ai' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    }`}>
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">AI-generated pitch</p>
+                      <p className="text-xs text-muted-foreground">From Pitch Generator</p>
+                    </div>
+                  </div>
+                  {pitchOption === 'ai' && (
+                    <CheckCircle className="absolute top-3 right-3 h-4 w-4 text-primary" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPitchOption('upload')}
+                  className={`relative flex flex-col gap-3 rounded-xl border-2 p-4 text-left transition-all duration-200 cursor-pointer ${
+                    pitchOption === 'upload'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/40 hover:bg-muted/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                      pitchOption === 'upload' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    }`}>
+                      <Upload className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">Upload your own</p>
+                      <p className="text-xs text-muted-foreground">PDF, PPT, PPTX, DOC</p>
+                    </div>
+                  </div>
+                  {pitchOption === 'upload' && (
+                    <CheckCircle className="absolute top-3 right-3 h-4 w-4 text-primary" />
+                  )}
+                </button>
+              </div>
+
+              {/* AI pitch confirmation */}
+              {pitchOption === 'ai' && (
+                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">AI-generated pitch selected</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Your most recent pitch from the Pitch Generator will be shared with investors.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* File upload zone */}
+              {pitchOption === 'upload' && (
+                <div className="space-y-3">
+                  {!pitchFile ? (
+                    <label
+                      htmlFor="pitch-upload"
+                      className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border p-8 cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-all duration-200"
+                    >
+                      <input
+                        type="file"
+                        id="pitch-upload"
+                        className="hidden"
+                        accept=".pdf,.ppt,.pptx,.doc,.docx"
+                        onChange={(e) => setPitchFile(e.target.files?.[0] || null)}
+                      />
+                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium">
+                          Drop your file here or <span className="text-primary">browse</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">PDF, PPT, PPTX, DOC — up to 50 MB</p>
+                      </div>
+                    </label>
+                  ) : (
+                    <Card className="border-primary/20 bg-primary/5">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <FileText className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{pitchFile.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(pitchFile.size / 1024).toFixed(0)} KB
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPitchFile(null)}
+                          className="flex-shrink-0"
+                        >
+                          Remove
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* Guidelines — shown before a selection is made */}
+              {!pitchOption && (
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm">
+                    <AlertCircle className="h-4 w-4" />
+                    Pitch Deck Guidelines
+                  </h4>
+                  <ul className="text-sm text-muted-foreground space-y-1 ml-6 list-disc">
+                    <li>Keep it to 10–12 slides focused on problem, solution, and traction.</li>
+                    <li>Include key metrics, team, and fundraising ask.</li>
+                    <li>Export as PDF or PPT for easier review.</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 4: Founder Qualification Form (per-submission details) */}
+          {fundingStep === 4 && (
             <div className="space-y-6 py-4">
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-foreground">
-                      Pitch deck uploaded: {pitchFile?.name}
+                      {pitchOption === 'ai'
+                        ? 'AI-generated pitch selected'
+                        : `Pitch deck uploaded: ${pitchFile?.name}`}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Now tell us more about your startup to help VCs evaluate your opportunity
@@ -861,19 +1305,93 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
             </div>
           )}
 
+          {/* Step 5: Success screen */}
+          {fundingStep === 5 && (
+            <div className="flex flex-col items-center text-center py-10 gap-6">
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 15 }}
+                className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center"
+              >
+                <CheckCircle className="h-10 w-10 text-primary" />
+              </motion.div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold">Funding request submitted!</h3>
+                <p className="text-muted-foreground max-w-sm mx-auto leading-relaxed text-sm">
+                  We'll review your submission and connect you with the right VCs within
+                  5–7 business days. Keep an eye on your inbox.
+                </p>
+              </div>
+              <Button
+                className="gradient-lavender text-white px-8 rounded-xl"
+                onClick={() => {
+                  fetchCancelledRef.current = true;
+                  setFundingModalOpen(false);
+                  setFundingStep(1);
+                  setSelectedIdea(null);
+                  setPitchFile(null);
+                  setPitchOption(null);
+                  setFundingQualForm({ fullName: '', email: '', experienceLevel: '', linkedinUrl: '', previousStartups: '' });
+                  setQualificationSaved(false);
+                  setQualFetchError(null);
+                  setQualUpdatedAt(null);
+                  setQualErrors({ fullName: '', email: '', experienceLevel: '' });
+                  setQualFormDirty(false);
+                  setIsSubmitting(false);
+                  setFounderQualificationForm({
+                    startupStage: '', companyName: '', websiteUrl: '',
+                    monthlyRevenue: '', revenueGrowthRate: '', customerCount: '',
+                    avgRevenuePerCustomer: '', grossMargin: '', burnRate: '',
+                    runway: '', teamSize: '', fundingRaised: '', fundingAsk: '',
+                    useOfFunds: '', industry: '', businessModel: '',
+                    competitiveAdvantage: '', keyMetrics: '',
+                  });
+                  onNavigate?.('Dashboard');
+                }}
+              >
+                Back to Dashboard
+              </Button>
+            </div>
+          )}
+
+            </motion.div>
+          </AnimatePresence>
+
+          {fundingStep < 5 && (
           <DialogFooter className="pt-6 gap-3">
-            {(fundingStep === 2 || fundingStep === 3) && (
-              <Button variant="outline" onClick={() => setFundingStep(fundingStep - 1)} className="px-6">
+            {fundingStep > 1 && (
+              <Button
+                variant="outline"
+                onClick={() => setFundingStep(fundingStep - 1)}
+                disabled={isSubmitting || isSavingQualification}
+                className="px-6"
+              >
                 Back
               </Button>
             )}
             <Button
               variant="outline"
+              disabled={isSubmitting}
               onClick={() => {
+                // Same dirty-check as onOpenChange — Cancel also warns mid-edit (Part 5)
+                if (fundingStep === 2 && qualFormDirty && !isSavingQualification) {
+                  setCloseConfirmOpen(true);
+                  return;
+                }
+                fetchCancelledRef.current = true;
                 setFundingModalOpen(false);
                 setFundingStep(1);
                 setSelectedIdea(null);
                 setPitchFile(null);
+                setPitchOption(null);
+                setFundingQualForm({ fullName: '', email: '', experienceLevel: '', linkedinUrl: '', previousStartups: '' });
+                setQualificationSaved(false);
+                setQualFetchError(null);
+                setQualUpdatedAt(null);
+                setQualErrors({ fullName: '', email: '', experienceLevel: '' });
+                setQualFormDirty(false);
+                setIsSubmitting(false);
                 setFounderQualificationForm({
                   startupStage: '',
                   companyName: '',
@@ -901,36 +1419,109 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
             </Button>
             <Button
               onClick={async () => {
-                if (fundingStep === 1 && selectedIdea) {
+                // ── Step 1 → Step 2 ──────────────────────────────────────────
+                if (fundingStep === 1) {
+                  if (!selectedIdea) return;
                   setFundingStep(2);
-                } else if (fundingStep === 2 && pitchFile) {
-                  setFundingStep(3);
+
+                // ── Step 2 → Step 3 (validate + save) ───────────────────────
+                } else if (fundingStep === 2) {
+                  // Inline validation
+                  const errors = { fullName: '', email: '', experienceLevel: '' };
+                  if (!fundingQualForm.fullName.trim()) {
+                    errors.fullName = 'Full name is required';
+                  }
+                  if (!fundingQualForm.email.trim()) {
+                    errors.email = 'Email is required';
+                  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fundingQualForm.email)) {
+                    errors.email = 'Please enter a valid email address';
+                  }
+                  if (!fundingQualForm.experienceLevel) {
+                    errors.experienceLevel = 'Please select your experience level';
+                  }
+                  if (errors.fullName || errors.email || errors.experienceLevel) {
+                    setQualErrors(errors);
+                    // Scroll to the first invalid field (Part 6)
+                    const firstErrorId = errors.fullName
+                      ? 'qual-full-name'
+                      : errors.email
+                      ? 'qual-email-step2'
+                      : 'experience-level';
+                    setTimeout(() => {
+                      document
+                        .getElementById(firstErrorId)
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 50);
+                    return;
+                  }
+                  setQualErrors({ fullName: '', email: '', experienceLevel: '' });
+
+                  // Save then advance — optimistic: move immediately on success
+                  setIsSavingQualification(true);
+                  try {
+                    await saveQualification(fundingQualForm);
+                    setQualificationSaved(true);
+                    setQualFormDirty(false); // form now matches server — no unsaved changes
+                    setFundingStep(3);
+                  } catch {
+                    toast.error('Failed to save your profile. Please try again.');
+                  } finally {
+                    setIsSavingQualification(false);
+                  }
+
+                // ── Step 3 → Step 4 (guard: qualification must be saved) ─────
                 } else if (fundingStep === 3) {
+                  if (!qualificationSaved) {
+                    setFundingStep(2);
+                    toast.error('Please complete your qualification profile first.');
+                    return;
+                  }
+                  if (!pitchOption || (pitchOption === 'upload' && !pitchFile)) return;
+                  setFundingStep(4);
+
+                // ── Step 4: Final submit ──────────────────────────────────────
+                } else if (fundingStep === 4) {
+                  // Prevent double-submit
+                  if (isSubmitting) return;
+
+                  // Defensive: ensure prior steps are complete (Part 3)
+                  if (!selectedIdea) {
+                    setFundingStep(1);
+                    toast.error('Please select an idea first.');
+                    return;
+                  }
+                  if (!pitchFile) {
+                    setFundingStep(3);
+                    toast.error('Please upload your pitch deck first.');
+                    return;
+                  }
+
                   // Validate required fields
-                  const isBasicValid = founderQualificationForm.startupStage && 
-                    founderQualificationForm.companyName && 
-                    founderQualificationForm.industry && 
+                  const isBasicValid =
+                    founderQualificationForm.startupStage &&
+                    founderQualificationForm.companyName &&
+                    founderQualificationForm.industry &&
                     founderQualificationForm.teamSize &&
                     founderQualificationForm.fundingAsk;
-                  
-                  // Additional validation for revenue generating stage
-                  const isRevenueValid = founderQualificationForm.startupStage !== 'revenue_generating' || 
-                    (founderQualificationForm.monthlyRevenue && 
-                     founderQualificationForm.revenueGrowthRate && 
-                     founderQualificationForm.customerCount &&
-                     founderQualificationForm.businessModel &&
-                     founderQualificationForm.useOfFunds);
-                  
+
+                  const isRevenueValid =
+                    founderQualificationForm.startupStage !== 'revenue_generating' ||
+                    (founderQualificationForm.monthlyRevenue &&
+                      founderQualificationForm.revenueGrowthRate &&
+                      founderQualificationForm.customerCount &&
+                      founderQualificationForm.businessModel &&
+                      founderQualificationForm.useOfFunds);
+
                   if (!isBasicValid) {
                     toast.error('Please fill in all required fields');
                     return;
                   }
-                  
                   if (!isRevenueValid) {
                     toast.error('Please fill in all required revenue metrics');
                     return;
                   }
 
+                  setIsSubmitting(true);
                   try {
                     const { error } = await supabase.from('vc_form_submissions').insert({
                       user_id: user?.id || null,
@@ -939,57 +1530,110 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                         ideaId: selectedIdea?.id,
                         ideaTitle: selectedIdea?.idea_title,
                         ideaScore: selectedIdea?.score,
-                        pitchFileName: pitchFile?.name,
-                        pitchFileSize: pitchFile?.size,
+                        pitchType: pitchOption,
+                        pitchFileName: pitchOption === 'upload' ? pitchFile?.name : 'ai-generated',
+                        pitchFileSize: pitchOption === 'upload' ? pitchFile?.size : null,
                         founderQualification: founderQualificationForm,
+                        founderProfile: fundingQualForm,
                         createdAt: new Date().toISOString(),
                       },
                     });
                     if (error) throw error;
-                    toast.success('Funding request submitted successfully! We will review and connect you with relevant VCs.');
-                    setFundingModalOpen(false);
-                    setFundingStep(1);
-                    setSelectedIdea(null);
-                    setPitchFile(null);
-                    setFounderQualificationForm({
-                      startupStage: '',
-                      companyName: '',
-                      websiteUrl: '',
-                      monthlyRevenue: '',
-                      revenueGrowthRate: '',
-                      customerCount: '',
-                      avgRevenuePerCustomer: '',
-                      grossMargin: '',
-                      burnRate: '',
-                      runway: '',
-                      teamSize: '',
-                      fundingRaised: '',
-                      fundingAsk: '',
-                      useOfFunds: '',
-                      industry: '',
-                      businessModel: '',
-                      competitiveAdvantage: '',
-                      keyMetrics: '',
-                    });
-                  } catch (error) {
-                    console.error('Funding request submission failed:', error);
+                    // Show in-modal success screen
+                    setFundingStep(5);
+                  } catch (err) {
+                    console.error('Funding request submission failed:', err);
                     toast.error('Failed to submit your request. Please try again.');
+                  } finally {
+                    setIsSubmitting(false);
                   }
                 }
               }}
               disabled={
-                (fundingStep === 1 && !selectedIdea) || 
-                (fundingStep === 2 && !pitchFile) ||
-                (fundingStep === 3 && !founderQualificationForm.startupStage)
+                (fundingStep === 1 && !selectedIdea) ||
+                (fundingStep === 2 && (
+                  isSavingQualification ||
+                  isLoadingQualification ||
+                  !!qualFetchError
+                )) ||
+                (fundingStep === 3 && (!pitchOption || (pitchOption === 'upload' && !pitchFile))) ||
+                (fundingStep === 4 && (!founderQualificationForm.startupStage || isSubmitting))
               }
               className="gradient-lavender text-white px-8"
+              data-primary-action
             >
-              {fundingStep === 1 ? 'Next' : fundingStep === 2 ? 'Next' : 'Submit Request'}
-              <ArrowRight className="ml-2 h-4 w-4" />
+              {isSavingQualification ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>
+              ) : isSubmitting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
+              ) : fundingStep < 4 ? (
+                <>Next <ArrowRight className="ml-2 h-4 w-4" /></>
+              ) : (
+                <>Submit Request <ArrowRight className="ml-2 h-4 w-4" /></>
+              )}
             </Button>
           </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
+
+      {/* Unsaved qualification changes — confirm discard */}
+      <AlertDialog open={closeConfirmOpen} onOpenChange={setCloseConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes to your qualification profile. If you close now, those changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCloseConfirmOpen(false)}>
+              Keep Editing
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                setCloseConfirmOpen(false);
+                fetchCancelledRef.current = true;
+                setFundingModalOpen(false);
+                setFundingStep(1);
+                setSelectedIdea(null);
+                setPitchFile(null);
+                setPitchOption(null);
+                setFundingQualForm({ fullName: '', email: '', experienceLevel: '', linkedinUrl: '', previousStartups: '' });
+                setQualificationSaved(false);
+                setQualFetchError(null);
+                setQualUpdatedAt(null);
+                setQualErrors({ fullName: '', email: '', experienceLevel: '' });
+                setQualFormDirty(false);
+                setIsSubmitting(false);
+                setFounderQualificationForm({
+                  startupStage: '',
+                  companyName: '',
+                  websiteUrl: '',
+                  monthlyRevenue: '',
+                  revenueGrowthRate: '',
+                  customerCount: '',
+                  avgRevenuePerCustomer: '',
+                  grossMargin: '',
+                  burnRate: '',
+                  runway: '',
+                  teamSize: '',
+                  fundingRaised: '',
+                  fundingAsk: '',
+                  useOfFunds: '',
+                  industry: '',
+                  businessModel: '',
+                  competitiveAdvantage: '',
+                  keyMetrics: '',
+                });
+              }}
+            >
+              Discard &amp; Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Problem We Solve */}
       <section className="bg-background py-12 md:py-16">
