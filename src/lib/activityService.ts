@@ -19,40 +19,77 @@ export interface ActivityEvent {
   created_at: string;
 }
 
-// ── Icon + label map ──────────────────────────────────────────────────────────
+// ── Activity metadata (icon, color, default label) ────────────────────────────
 
-export const ACTIVITY_META: Record<ActivityType, { icon: string; color: string }> = {
-  idea_analyzed:     { icon: 'lightbulb', color: 'text-yellow-500' },
-  pitch_created:     { icon: 'presentation', color: 'text-blue-500' },
-  funding_submitted: { icon: 'banknote', color: 'text-green-500' },
-  case_viewed:       { icon: 'book', color: 'text-purple-500' },
-  community_action:  { icon: 'users', color: 'text-pink-500' },
-  profile_updated:   { icon: 'user', color: 'text-muted-foreground' },
+export const ACTIVITY_META: Record<ActivityType, { icon: string; color: string; label: string }> = {
+  idea_analyzed:     { icon: 'lightbulb',     color: 'text-yellow-500',        label: 'Idea analyzed' },
+  pitch_created:     { icon: 'presentation',  color: 'text-blue-500',          label: 'Pitch deck generated' },
+  funding_submitted: { icon: 'banknote',      color: 'text-green-500',         label: 'Funding submitted' },
+  case_viewed:       { icon: 'book',          color: 'text-purple-500',        label: 'Case study viewed' },
+  community_action:  { icon: 'users',         color: 'text-pink-500',          label: 'Community interaction' },
+  profile_updated:   { icon: 'user',          color: 'text-muted-foreground',  label: 'Profile updated' },
 };
+
+// ── Dedup cache ───────────────────────────────────────────────────────────────
+// Prevents the same event from being logged twice within a short window
+// (e.g. double-click, React StrictMode double-invoke, rapid navigation).
+// Module-level Map — survives re-renders, cleared on page reload.
+
+const DEDUP_WINDOW_MS = 10_000; // 10 seconds
+const _recentKeys = new Map<string, number>(); // `userId:type:title` → logged timestamp
+
+function _isDuplicate(userId: string, type: ActivityType, title: string): boolean {
+  const key = `${userId}:${type}:${title}`;
+  const last = _recentKeys.get(key);
+  const now = Date.now();
+
+  if (last !== undefined && now - last < DEDUP_WINDOW_MS) {
+    return true; // already logged within the window — skip
+  }
+
+  // Record this attempt and evict stale entries to cap memory usage
+  _recentKeys.set(key, now);
+  if (_recentKeys.size > 200) {
+    const cutoff = now - DEDUP_WINDOW_MS;
+    for (const [k, ts] of _recentKeys) {
+      if (ts < cutoff) _recentKeys.delete(k);
+    }
+  }
+  return false;
+}
 
 // ── Core helper ───────────────────────────────────────────────────────────────
 
 /**
  * Fire-and-forget activity log. Never throws — safe to call anywhere.
- * Always resolves the user from the live Supabase session so stale
- * context values can never cause an RLS mismatch.
- * Returns the inserted row id on success, null on failure.
+ *
+ * - Resolves the user from the live Supabase session (no stale context).
+ * - Skips duplicate events within a 10-second window per user+type+title.
+ * - title is optional; omit to use the default label from ACTIVITY_META.
+ *
+ * Returns the inserted row id on success, null on skip or failure.
  */
 export async function logActivity(
   type: ActivityType,
-  title: string,
+  title?: string,
   metadata?: Record<string, unknown>,
 ): Promise<string | null> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       console.warn('[activityService] no authenticated user — skipping log');
       return null;
     }
 
+    const resolvedTitle = title?.trim() || ACTIVITY_META[type].label;
+
+    if (_isDuplicate(user.id, type, resolvedTitle)) {
+      return null; // silently deduplicated
+    }
+
     const { data, error } = await supabase
       .from('user_activity')
-      .insert({ user_id: user.id, type, title, metadata: metadata ?? null })
+      .insert({ user_id: user.id, type, title: resolvedTitle, metadata: metadata ?? null })
       .select('id')
       .single();
 
@@ -60,6 +97,7 @@ export async function logActivity(
       console.warn('[activityService] insert failed:', error.message);
       return null;
     }
+
     return data?.id ?? null;
   } catch (e) {
     console.warn('[activityService] unexpected error:', e);

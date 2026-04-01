@@ -313,7 +313,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
       if (error) throw error;
 
       toast.success('Qualification request submitted. We will follow up by email.');
-      void logActivity('funding_submitted', 'Funding qualification submitted',
+      void logActivity('funding_submitted', undefined,
         { stage: qualificationForm.stage, fundingAmount: qualificationForm.fundingAmount });
       setQualificationForm({
         name: '',
