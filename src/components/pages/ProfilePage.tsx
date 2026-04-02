@@ -9,7 +9,6 @@ import {
   Shield,
   Trash2,
   Target,
-  TrendingUp,
   AlertCircle,
   Award,
   Clock,
@@ -37,6 +36,7 @@ import { Badge } from '../ui/badge';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
 import { getRecentActivity, type ActivityEvent, ACTIVITY_META } from '../../lib/activityService';
+import { useFounderScore } from '../../hooks/useFounderScore';
 
 interface ProfilePageProps {
   onNavigate?: (page: string) => void;
@@ -67,13 +67,6 @@ interface ProfileCompletion {
   percentage: number;
   completedSteps: string[];
   pendingSteps: string[];
-}
-
-interface InvestorReadiness {
-  score: number;
-  level: 'Not Ready' | 'Getting Started' | 'In Progress' | 'Nearly Ready' | 'Ready';
-  strengths: string[];
-  improvements: string[];
 }
 
 // ============================================================================
@@ -109,157 +102,6 @@ function calculateProfileCompletion(profile: any, userIdeas: any[]): ProfileComp
   const percentage = Math.round((completedSteps.length / steps.length) * 100);
 
   return { percentage, completedSteps, pendingSteps };
-}
-
-// ── Scoring helpers ──────────────────────────────────────────────────────────
-
-function isValidLinkedIn(url: string): boolean {
-  try {
-    const u = new URL(url);
-    return u.hostname === 'linkedin.com' || u.hostname === 'www.linkedin.com';
-  } catch {
-    return false;
-  }
-}
-
-function getAboutScore(text: string | undefined | null): { pts: number; label: string } {
-  const len = (text ?? '').trim().length;
-  if (len >= 200) return { pts: 15, label: 'Strong founder background' };
-  if (len >= 80)  return { pts: 10, label: 'Good founder background' };
-  if (len >= 20)  return { pts: 5,  label: 'Brief founder background' };
-  return { pts: 0, label: '' };
-}
-
-function isRecentlyActive(ideas: any[]): boolean {
-  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  return ideas.some(i => new Date(i?.created_at ?? 0).getTime() > thirtyDaysAgo);
-}
-
-// ── Main scoring function (100 pts total) ────────────────────────────────────
-// Founder Profile: 40 pts | Startup Clarity: 30 pts | Activity: 30 pts
-
-function calculateInvestorReadiness(profile: any, userIdeas: any[]): InvestorReadiness {
-  const safeIdeas = Array.isArray(userIdeas) ? userIdeas : [];
-  const strengths: string[] = [];
-  const improvements: string[] = [];
-  let score = 0;
-
-  try {
-    // ── 1. Founder Profile (40 pts) ─────────────────────────────────────────
-
-    // name (5 pts)
-    if (profile?.name?.trim()) {
-      score += 5;
-    } else {
-      improvements.push('Add your name');
-    }
-
-    // about (0 / 5 / 10 / 15 pts)
-    const aboutResult = getAboutScore(profile?.about);
-    score += aboutResult.pts;
-    if (aboutResult.pts >= 10) {
-      strengths.push(aboutResult.label);
-    } else if (aboutResult.pts === 5) {
-      improvements.push('Expand your founder background (aim for 80+ chars)');
-    } else {
-      improvements.push('Add your founder background');
-    }
-
-    // linkedin (5 pts exists, +5 if valid URL = 10 pts)
-    const li = (profile?.linkedin ?? '').trim();
-    if (li) {
-      score += 5;
-      if (isValidLinkedIn(li)) {
-        score += 5;
-        strengths.push('LinkedIn profile verified');
-      } else {
-        improvements.push('Use your full LinkedIn URL (linkedin.com/in/...)');
-      }
-    } else {
-      improvements.push('Connect your LinkedIn profile');
-    }
-
-    // education (5 pts)
-    if (profile?.education?.trim()) {
-      score += 5;
-      strengths.push('Education background listed');
-    } else {
-      improvements.push('Add your education');
-    }
-
-    // location (5 pts)
-    if (profile?.location?.trim()) {
-      score += 5;
-    } else {
-      improvements.push('Add your location');
-    }
-
-    // ── 2. Startup Clarity (30 pts) ─────────────────────────────────────────
-
-    // startup_goals (0 / 5 / 10 pts)
-    const goalCount = Array.isArray(profile?.startup_goals) ? profile.startup_goals.length : 0;
-    if (goalCount >= 2) {
-      score += 10;
-      strengths.push('Clear startup goals defined');
-    } else if (goalCount === 1) {
-      score += 5;
-      improvements.push('Add more startup goals (aim for 2+)');
-    } else {
-      improvements.push('Define your startup goals');
-    }
-
-    // ideas analyzed (0 / 5 / 10 / 15 pts)
-    if (safeIdeas.length >= 10) {
-      score += 15;
-      strengths.push('Extensive idea portfolio');
-    } else if (safeIdeas.length >= 4) {
-      score += 10;
-      strengths.push('Multiple ideas explored');
-    } else if (safeIdeas.length >= 1) {
-      score += 5;
-      improvements.push('Analyze more startup ideas (aim for 4+)');
-    } else {
-      improvements.push('Add and analyze your first startup idea');
-    }
-
-    // ── 3. Activity (30 pts) ────────────────────────────────────────────────
-
-    // recent activity — any idea in last 30 days (10 pts)
-    if (isRecentlyActive(safeIdeas)) {
-      score += 10;
-      strengths.push('Recently active');
-    } else if (safeIdeas.length > 0) {
-      improvements.push('Stay active — analyze ideas regularly');
-    }
-
-    // multiple ideas (10 pts)
-    if (safeIdeas.length >= 3) {
-      score += 10;
-    }
-
-    // consistent usage — 3+ ideas over time (10 pts)
-    if (safeIdeas.length >= 3) {
-      const dates = safeIdeas.map(i => new Date(i?.created_at ?? 0).getTime()).sort();
-      const spanDays = (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24);
-      if (spanDays >= 7) {
-        score += 10;
-        strengths.push('Consistent platform usage');
-      }
-    }
-
-  } catch (error) {
-    console.error('Error calculating investor readiness:', error);
-  }
-
-  const clamped = Math.min(100, Math.max(0, score));
-
-  let level: InvestorReadiness['level'] = 'Not Ready';
-  if (clamped >= 80) level = 'Ready';
-  else if (clamped >= 60) level = 'Nearly Ready';
-  else if (clamped >= 40) level = 'In Progress';
-  else if (clamped >= 20) level = 'Getting Started';
-
-  return { score: clamped, level, strengths, improvements };
 }
 
 // ============================================================================
@@ -515,10 +357,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     [displayProfile, userIdeas]
   );
 
-  const investorReadiness = useMemo(
-    () => calculateInvestorReadiness(displayProfile, userIdeas),
-    [displayProfile, userIdeas]
-  );
+  const { data: founderScore, loading: scoreLoading } = useFounderScore();
 
   // ============================================================================
   // HELPER: Safe display name (never empty)
@@ -1224,49 +1063,59 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                   </Card>
                 </div>
 
-                {/* Investor Readiness */}
+                {/* Founder Score */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Award className="h-5 w-5" />
-                      Investor Readiness
+                      Founder Score
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                        <p className="text-2xl font-bold">{investorReadiness.score}/100</p>
-                        <p className="text-muted-foreground text-sm">{investorReadiness.level}</p>
+                  <CardContent className="space-y-5">
+                    {scoreLoading ? (
+                      <div className="space-y-3 animate-pulse">
+                        <div className="h-8 bg-muted rounded w-1/4" />
+                        <div className="h-2 bg-muted rounded" />
+                        <div className="space-y-2">
+                          {[...Array(4)].map((_, i) => <div key={i} className="h-4 bg-muted rounded" />)}
+                        </div>
                       </div>
-                      <Progress value={investorReadiness.score} className="h-2 w-full sm:w-48" />
-                    </div>
+                    ) : founderScore ? (
+                      <>
+                        {/* Score + level */}
+                        <div className="flex items-end justify-between">
+                          <div>
+                            <p className="text-4xl font-bold">{founderScore.score}<span className="text-lg text-muted-foreground font-normal">/100</span></p>
+                            <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                              founderScore.level === 'Investor Ready' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' :
+                              founderScore.level === 'Strong'         ? 'bg-green-100  text-green-700  dark:bg-green-900/40  dark:text-green-300'  :
+                              founderScore.level === 'Active'         ? 'bg-blue-100   text-blue-700   dark:bg-blue-900/40   dark:text-blue-300'   :
+                                                                        'bg-muted       text-muted-foreground'
+                            }`}>{founderScore.level}</span>
+                          </div>
+                          <Progress value={founderScore.score} className="h-2 w-32" />
+                        </div>
 
-                    {investorReadiness.strengths.length > 0 && (
-                      <div>
-                        <p className="mb-2 text-sm font-medium">Strengths:</p>
-                        <div className="space-y-1">
-                          {investorReadiness.strengths.map(strength => (
-                            <div key={strength} className="flex items-center gap-2">
-                              <CheckCircle2 className="text-primary h-4 w-4" />
-                              <span className="text-sm">{strength}</span>
+                        {/* Breakdown bars */}
+                        <div className="space-y-3">
+                          {([
+                            { label: 'Profile Quality', value: founderScore.breakdown.profile,     max: 40 },
+                            { label: 'Activity',         value: founderScore.breakdown.activity,    max: 30 },
+                            { label: 'Consistency',      value: founderScore.breakdown.consistency, max: 20 },
+                            { label: 'Engagement',       value: founderScore.breakdown.engagement,  max: 10 },
+                          ] as const).map(({ label, value, max }) => (
+                            <div key={label}>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="text-muted-foreground">{label}</span>
+                                <span className="font-medium">{value}<span className="text-muted-foreground">/{max}</span></span>
+                              </div>
+                              <Progress value={(value / max) * 100} className="h-1.5" />
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
-
-                    {investorReadiness.improvements.length > 0 && (
-                      <div>
-                        <p className="mb-2 text-sm font-medium">Areas to Improve:</p>
-                        <div className="space-y-1">
-                          {investorReadiness.improvements.map(improvement => (
-                            <div key={improvement} className="flex items-center gap-2">
-                              <TrendingUp className="text-muted-foreground h-4 w-4" />
-                              <span className="text-muted-foreground text-sm">{improvement}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Score unavailable — complete your profile to see results.</p>
                     )}
                   </CardContent>
                 </Card>
