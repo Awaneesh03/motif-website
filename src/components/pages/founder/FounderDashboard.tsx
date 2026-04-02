@@ -177,10 +177,28 @@ export function FounderDashboard() {
             table: 'user_activity',
             filter: `user_id=eq.${userId}`,
           },
-          async () => {
+          async (payload) => {
             try {
-              const activity = await getRecentActivity(userId, 10);
-              setActivityEvents(activity);
+              const row = payload.new as Record<string, unknown>;
+              // Validate minimum fields — fall back to full refetch if malformed
+              if (!row?.id || !row?.type || !row?.title || !row?.created_at) {
+                const activity = await getRecentActivity(userId, 10);
+                setActivityEvents(activity);
+                return;
+              }
+              const newEvent: ActivityEvent = {
+                id:         row.id as string,
+                user_id:    userId,
+                type:       row.type as ActivityEvent['type'],
+                title:      row.title as string,
+                metadata:   (row.metadata as Record<string, unknown>) ?? null,
+                created_at: row.created_at as string,
+              };
+              setActivityEvents(prev => {
+                // Dedupe by id — Supabase can deliver duplicates on reconnect
+                if (prev.some(e => e.id === newEvent.id)) return prev;
+                return [newEvent, ...prev].slice(0, 10);
+              });
             } catch (err) {
               console.error('Error updating activity feed:', err);
             }
@@ -681,24 +699,18 @@ export function FounderDashboard() {
                     ) : (
                       <ul className="space-y-1">
                         {activityEvents.map((event, index) => {
-                          const colorMap: Record<string, string> = {
-                            idea_analyzed:     'bg-yellow-500/10 text-yellow-500',
-                            pitch_created:     'bg-blue-500/10 text-blue-500',
-                            funding_submitted: 'bg-green-500/10 text-green-500',
-                            case_viewed:       'bg-purple-500/10 text-purple-500',
-                            community_action:  'bg-pink-500/10 text-pink-500',
-                            profile_updated:   'bg-muted text-muted-foreground',
+                          type ActivityStyle = { color: string; icon: React.ElementType };
+                          const styleMap: Record<ActivityEvent['type'] | 'unknown', ActivityStyle> = {
+                            idea_analyzed:     { color: 'bg-yellow-500/10 text-yellow-500', icon: Lightbulb },
+                            pitch_created:     { color: 'bg-blue-500/10 text-blue-500',     icon: Send },
+                            funding_submitted: { color: 'bg-green-500/10 text-green-500',   icon: CheckCircle2 },
+                            case_viewed:       { color: 'bg-purple-500/10 text-purple-500', icon: BookOpen },
+                            community_action:  { color: 'bg-pink-500/10 text-pink-500',     icon: Users },
+                            profile_updated:   { color: 'bg-muted text-muted-foreground',   icon: Activity },
+                            unknown:           { color: 'bg-muted text-muted-foreground',   icon: Activity },
                           };
-                          const iconMap: Record<string, React.ElementType> = {
-                            idea_analyzed:     Lightbulb,
-                            pitch_created:     Send,
-                            funding_submitted: CheckCircle2,
-                            case_viewed:       BookOpen,
-                            community_action:  Users,
-                            profile_updated:   Activity,
-                          };
-                          const colorClass = colorMap[event.type] ?? 'bg-muted text-muted-foreground';
-                          const Icon = iconMap[event.type] ?? Activity;
+                          const { color: colorClass, icon: Icon } =
+                            styleMap[event.type] ?? styleMap.unknown;
                           return (
                             <motion.li
                               key={event.id}
