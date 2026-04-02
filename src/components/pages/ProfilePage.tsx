@@ -121,7 +121,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
   const [profileCreationAttempted, setProfileCreationAttempted] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [stats, setStats] = useState({
-    connections: 0,
+    ideasShared: 0,
     ideasSaved: 0,
     caseStudiesSaved: 0,
   });
@@ -222,7 +222,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
         location: '',
         education: '',
         startup_goals: [],
-        connections: 0,
         ideasSaved: 0,
         caseStudiesSaved: 0,
         profileCompleted: false,
@@ -294,6 +293,13 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
         setUserCases([]);
       }
 
+      // Load community ideas count
+      const { count: communityCount } = await supabase
+        .from('community_ideas')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_id', authUser.id);
+      setStats(prev => ({ ...prev, ideasShared: communityCount ?? 0 }));
+
       // Load activity feed from user_activity table
       const activity = await getRecentActivity(authUser.id, 20);
       setActivityTimeline(activity);
@@ -343,7 +349,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       location: '',
       education: '',
       startup_goals: [],
-      connections: 0,
       ideasSaved: 0,
       caseStudiesSaved: 0,
     };
@@ -1054,8 +1059,8 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-muted-foreground text-sm">Connections</p>
-                          <p className="text-3xl font-bold">{stats.connections}</p>
+                          <p className="text-muted-foreground text-sm">Ideas Shared</p>
+                          <p className="text-3xl font-bold">{stats.ideasShared}</p>
                         </div>
                         <Users className="text-primary h-10 w-10" />
                       </div>
