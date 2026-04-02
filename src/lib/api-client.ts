@@ -88,6 +88,36 @@ class ApiClient {
   }
 
   /**
+   * POST request that does NOT require authentication.
+   * Use for public endpoints like /api/contact.
+   */
+  async publicPost<T>(endpoint: string, body: unknown, timeoutMs = 10_000): Promise<T> {
+    const url = `${BACKEND_URL}${endpoint}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+        throw new Error(errorData.message || 'Request failed');
+      }
+      return response.json() as Promise<T>;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again.');
+      }
+      throw error;
+    }
+  }
+
+  /**
    * POST request
    */
   async post<T>(endpoint: string, body: any, timeoutMs?: number): Promise<T> {

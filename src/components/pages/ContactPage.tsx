@@ -1,9 +1,9 @@
 import { motion } from 'motion/react';
 import { useState } from 'react';
-import { Mail, MessageSquare, Twitter, AlertCircle } from 'lucide-react';
+import { Mail, AlertCircle, Instagram, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { supabase } from '../../lib/supabase';
+import { apiClient } from '../../lib/api-client';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -23,14 +23,11 @@ interface ValidationErrors {
 }
 
 export function ContactPage() {
-  const [submitted, setSubmitted] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    name: '',
-    email: '',
-    message: '',
-  });
-  const [errors, setErrors] = useState<ValidationErrors>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted]   = useState(false);
+  const [loading,   setLoading]     = useState(false);
+  const [formData,  setFormData]    = useState<FormData>({ name: '', email: '', message: '' });
+  const [errors,    setErrors]      = useState<ValidationErrors>({});
+  const [touched,   setTouched]     = useState<Record<string, boolean>>({});
 
   const validateEmail = (email: string): string | undefined => {
     if (!email) return 'Email is required';
@@ -53,85 +50,58 @@ export function ContactPage() {
 
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
-
-    const nameError = validateName(formData.name);
-    if (nameError) newErrors.name = nameError;
-
-    const emailError = validateEmail(formData.email);
-    if (emailError) newErrors.email = emailError;
-
+    const nameError    = validateName(formData.name);
+    const emailError   = validateEmail(formData.email);
     const messageError = validateMessage(formData.message);
+    if (nameError)    newErrors.name    = nameError;
+    if (emailError)   newErrors.email   = emailError;
     if (messageError) newErrors.message = messageError;
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleBlur = (field: keyof FormData) => {
     setTouched({ ...touched, [field]: true });
-
     const newErrors = { ...errors };
-
-    if (field === 'name') {
-      const error = validateName(formData.name);
-      if (error) {
-        newErrors.name = error;
-      } else {
-        delete newErrors.name;
-      }
+    const validators: Record<keyof FormData, (v: string) => string | undefined> = {
+      name:    validateName,
+      email:   validateEmail,
+      message: validateMessage,
+    };
+    const err = validators[field](formData[field]);
+    if (err) {
+      newErrors[field] = err;
+    } else {
+      delete newErrors[field];
     }
-
-    if (field === 'email') {
-      const error = validateEmail(formData.email);
-      if (error) {
-        newErrors.email = error;
-      } else {
-        delete newErrors.email;
-      }
-    }
-
-    if (field === 'message') {
-      const error = validateMessage(formData.message);
-      if (error) {
-        newErrors.message = error;
-      } else {
-        delete newErrors.message;
-      }
-    }
-
     setErrors(newErrors);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    setTouched({
-      name: true,
-      email: true,
-      message: true,
-    });
-
+    setTouched({ name: true, email: true, message: true });
     if (!validateForm()) {
       toast.error('Please fix the errors before submitting');
       return;
     }
 
+    setLoading(true);
     try {
-      const { error } = await supabase.from('contact_submissions').insert({
-        name: formData.name.trim(),
-        email: formData.email.trim(),
+      await apiClient.publicPost('/api/contact', {
+        name:    formData.name.trim(),
+        email:   formData.email.trim(),
         message: formData.message.trim(),
       });
-      if (error) throw error;
-
       setSubmitted(true);
       setFormData({ name: '', email: '', message: '' });
       setErrors({});
       setTouched({});
-      toast.success('Message sent successfully!');
+      toast.success('Message sent! We\'ll get back to you within 24 hours.');
     } catch (error) {
-      console.error('Failed to submit contact form:', error);
-      toast.error('Failed to send message. Please try again.');
+      const msg = error instanceof Error ? error.message : 'Failed to send message';
+      toast.error(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -178,6 +148,7 @@ export function ContactPage() {
                           onBlur={() => handleBlur('name')}
                           className="rounded-xl"
                           aria-invalid={touched.name && !!errors.name}
+                          disabled={loading}
                         />
                         {touched.name && errors.name && (
                           <motion.div
@@ -190,6 +161,7 @@ export function ContactPage() {
                           </motion.div>
                         )}
                       </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
                         <Input
@@ -201,6 +173,7 @@ export function ContactPage() {
                           onBlur={() => handleBlur('email')}
                           className="rounded-xl"
                           aria-invalid={touched.email && !!errors.email}
+                          disabled={loading}
                         />
                         {touched.email && errors.email && (
                           <motion.div
@@ -213,6 +186,7 @@ export function ContactPage() {
                           </motion.div>
                         )}
                       </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="message">Message</Label>
                         <Textarea
@@ -224,6 +198,7 @@ export function ContactPage() {
                           onBlur={() => handleBlur('message')}
                           className="rounded-xl"
                           aria-invalid={touched.message && !!errors.message}
+                          disabled={loading}
                         />
                         {touched.message && errors.message && (
                           <motion.div
@@ -236,11 +211,20 @@ export function ContactPage() {
                           </motion.div>
                         )}
                       </div>
+
                       <Button
                         type="submit"
-                        className="gradient-lavender shadow-lavender h-12 w-full rounded-[16px] hover:opacity-90"
+                        disabled={loading}
+                        className="gradient-lavender shadow-lavender h-12 w-full rounded-[16px] hover:opacity-90 disabled:opacity-60"
                       >
-                        Send Message
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending…
+                          </>
+                        ) : (
+                          'Send Message'
+                        )}
                       </Button>
                     </form>
                   ) : (
@@ -275,8 +259,7 @@ export function ContactPage() {
               <div>
                 <h2 className="mb-6">Other Ways to Connect</h2>
                 <p className="text-muted-foreground mb-8">
-                  Prefer to reach out directly? We're active on multiple channels and always happy
-                  to chat.
+                  Prefer to reach out directly? We're always happy to chat.
                 </p>
               </div>
 
@@ -293,10 +276,10 @@ export function ContactPage() {
                           For general inquiries and support
                         </p>
                         <a
-                          href="mailto:hello@motif.com"
+                          href="mailto:teammotif.ai@gmail.com"
                           className="text-primary hover:underline"
                         >
-                          hello@motif.com
+                          teammotif.ai@gmail.com
                         </a>
                       </div>
                     </div>
@@ -307,32 +290,20 @@ export function ContactPage() {
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       <div className="from-primary/10 to-secondary/10 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br">
-                        <MessageSquare className="text-primary h-6 w-6" />
+                        <Instagram className="text-primary h-6 w-6" />
                       </div>
                       <div>
-                        <h4 className="mb-1">Discord Community</h4>
+                        <h4 className="mb-1">Instagram</h4>
                         <p className="text-muted-foreground mb-2">
-                          Join our active founder community
+                          Follow us for updates and behind the scenes
                         </p>
-                        <a href="https://discord.gg/motif" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                          discord.gg/motif
-                        </a>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-border/50 transition-shadow hover:shadow-lg">
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="from-primary/10 to-secondary/10 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br">
-                        <Twitter className="text-primary h-6 w-6" />
-                      </div>
-                      <div>
-                        <h4 className="mb-1">Twitter</h4>
-                        <p className="text-muted-foreground mb-2">Follow us for updates and tips</p>
-                        <a href="https://twitter.com/motif" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                          @motif
+                        <a
+                          href="https://instagram.com/official_motif"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          @official_motif
                         </a>
                       </div>
                     </div>
@@ -341,8 +312,8 @@ export function ContactPage() {
               </div>
 
               <div className="bg-muted/50 rounded-2xl p-6">
-                <h4 className="mb-3">Office Hours</h4>
-                <p className="text-muted-foreground mb-2">Monday - Friday: 9:00 AM - 6:00 PM PST</p>
+                <h4 className="mb-3">Response Time</h4>
+                <p className="text-muted-foreground mb-2">Monday – Friday: 9:00 AM – 6:00 PM IST</p>
                 <p className="text-muted-foreground">
                   We typically respond within 24 hours on business days.
                 </p>
