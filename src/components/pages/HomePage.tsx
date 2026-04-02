@@ -151,14 +151,6 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
               >
                 {isLoggedIn ? 'Go to Dashboard' : 'Start Free'}
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-white rounded-[16px] border-white px-8 hover:bg-white/10"
-                onClick={() => onNavigate?.('Features')}
-              >
-                Explore Features
-              </Button>
             </div>
           </motion.div>
         </div>
