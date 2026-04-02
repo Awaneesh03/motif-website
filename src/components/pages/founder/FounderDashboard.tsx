@@ -26,7 +26,7 @@ import { Badge } from '../../ui/badge';
 import { useUser } from '@/contexts/UserContext';
 import { getUserIdeas, type Idea } from '@/lib/ideasService';
 import { supabase } from '@/lib/supabase';
-import { getRecentActivity, mergeActivityEvents, type ActivityEvent } from '@/lib/activityService';
+import { getRecentActivity, mergeActivityEvents, type ActivityEvent, type ActivityCursor } from '@/lib/activityService';
 import { getFounderMetrics, type FounderMetrics } from '@/lib/metricsService';
 import { useFounderDemoMode } from '@/hooks/useDemoMode';
 import { demoFounderStartups } from '@/lib/demoData';
@@ -39,7 +39,7 @@ export function FounderDashboard() {
   const [currentTip, setCurrentTip] = useState(0);
   const [myStartups, setMyStartups] = useState<Idea[]>([]);
   const [activityEvents,     setActivityEvents]     = useState<ActivityEvent[]>([]);
-  const [activityCursor,     setActivityCursor]     = useState<string | null>(null);
+  const [activityCursor,     setActivityCursor]     = useState<ActivityCursor | null>(null);
   const [hasMoreActivity,    setHasMoreActivity]    = useState(false);
   const [loadingMoreActivity, setLoadingMoreActivity] = useState(false);
   const [recentAnalyses, setRecentAnalyses] = useState<RecentAnalysis[]>([]);

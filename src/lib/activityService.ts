@@ -142,24 +142,46 @@ export async function logActivity(
 
 // ── Feed fetch ────────────────────────────────────────────────────────────────
 
+/**
+ * Opaque composite cursor capturing (created_at, id) — the two columns the
+ * feed is ordered by. Using both fields eliminates the "same-timestamp" gap
+ * problem: if two events share the same created_at, the single-field cursor
+ * would either skip or duplicate one of them depending on page boundaries.
+ */
+export interface ActivityCursor {
+  created_at: string; // ISO 8601 timestamptz
+  id: string;         // UUID — used as tie-breaker (lexicographic DESC)
+}
+
 export interface ActivityPage {
   events: ActivityEvent[];
   /**
    * Pass as `cursor` to the next call to fetch the page after this one.
    * `null` means there are no more events to load.
    */
-  nextCursor: string | null;
+  nextCursor: ActivityCursor | null;
 }
 
 /**
  * Fetches a page of activity events for a user.
- * Cursor-based: pass `cursor` (the `created_at` of the last item) for older pages.
+ *
+ * Composite cursor pagination over (created_at DESC, id DESC):
+ *   page 1  → no cursor
+ *   page N  → cursor = { created_at, id } of the last event on page N-1
+ *
+ * The composite WHERE clause is equivalent to:
+ *   created_at < cursor.created_at
+ *   OR (created_at = cursor.created_at AND id < cursor.id)
+ *
+ * This guarantees no rows are skipped or duplicated even when multiple
+ * events share the exact same created_at timestamp.
+ *
  * Always resolves — returns an empty page on error.
  */
 export async function getRecentActivity(
   userId: string,
   limit = 10,
-  cursor?: string,
+  cursor?: ActivityCursor,
 ): Promise<ActivityPage> {
   try {
     // Fetch one extra row to cheaply detect whether a next page exists
@@ -172,7 +194,12 @@ export async function getRecentActivity(
       .limit(limit + 1);
 
     if (cursor) {
-      query = query.lt('created_at', cursor);
+      // PostgREST composite cursor:
+      // rows WHERE created_at < cursor OR (created_at = cursor AND id < cursorId)
+      query = query.or(
+        `created_at.lt.${cursor.created_at},` +
+        `and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`
+      );
     }
 
     const { data, error } = await query;
@@ -184,7 +211,10 @@ export async function getRecentActivity(
     const rows    = (data ?? []) as ActivityEvent[];
     const hasMore = rows.length > limit;
     const events  = rows.slice(0, limit);
-    const nextCursor = hasMore ? events[events.length - 1].created_at : null;
+    const last    = events.length > 0 ? events[events.length - 1] : null;
+    const nextCursor: ActivityCursor | null = hasMore && last
+      ? { created_at: last.created_at, id: last.id }
+      : null;
 
     return { events, nextCursor };
   } catch (e) {
