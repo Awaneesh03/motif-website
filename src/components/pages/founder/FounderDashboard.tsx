@@ -26,8 +26,7 @@ import { Badge } from '../../ui/badge';
 import { useUser } from '@/contexts/UserContext';
 import { getUserIdeas, type Idea } from '@/lib/ideasService';
 import { supabase } from '@/lib/supabase';
-import { getUserNotifications, type Notification } from '@/lib/notificationService';
-import { ActivityTimeline } from '@/components/ActivityTimeline';
+import { getRecentActivity, type ActivityEvent } from '@/lib/activityService';
 import { getFounderMetrics, type FounderMetrics } from '@/lib/metricsService';
 import { useFounderDemoMode } from '@/hooks/useDemoMode';
 import { demoFounderStartups } from '@/lib/demoData';
@@ -39,7 +38,7 @@ export function FounderDashboard() {
   const navigate = useNavigate();
   const [currentTip, setCurrentTip] = useState(0);
   const [myStartups, setMyStartups] = useState<Idea[]>([]);
-  const [recentActivity, setRecentActivity] = useState<Notification[]>([]);
+  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([]);
   const [recentAnalyses, setRecentAnalyses] = useState<RecentAnalysis[]>([]);
   const [metrics, setMetrics] = useState<FounderMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,15 +104,15 @@ export function FounderDashboard() {
 
         try {
           // Fetch all data in parallel
-          const [ideas, notifications, founderMetrics, analyses] = await Promise.all([
+          const [ideas, activity, founderMetrics, analyses] = await Promise.all([
             getUserIdeas(user.id),
-            getUserNotifications(user.id, 10),
+            getRecentActivity(user.id, 10),
             getFounderMetrics(user.id),
             getRecentAnalyses().catch(() => [] as RecentAnalysis[]),
           ]);
 
           setMyStartups(ideas);
-          setRecentActivity(notifications);
+          setActivityEvents(activity);
           setMetrics(founderMetrics);
           setRecentAnalyses(analyses);
         } catch (err) {
@@ -167,6 +166,23 @@ export function FounderDashboard() {
               setMetrics(founderMetrics);
             } catch (err) {
               console.error('Error updating data:', err);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'user_activity',
+            filter: `user_id=eq.${userId}`,
+          },
+          async () => {
+            try {
+              const activity = await getRecentActivity(userId, 10);
+              setActivityEvents(activity);
+            } catch (err) {
+              console.error('Error updating activity feed:', err);
             }
           }
         )
@@ -574,7 +590,7 @@ export function FounderDashboard() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Activity className="h-5 w-5 text-primary" />
-                      Recent Activity
+                      Recent Analyses
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -636,12 +652,75 @@ export function FounderDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <ActivityTimeline
-                  activities={recentActivity}
-                  title="Recent Activity"
-                  maxItems={10}
-                  compact={false}
-                />
+                <Card className="glass-surface border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      Recent Activity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <div className="space-y-3">
+                        {[...Array(4)].map((_, i) => (
+                          <div key={i} className="flex items-center gap-3 animate-pulse">
+                            <div className="h-8 w-8 rounded-full bg-muted flex-shrink-0" />
+                            <div className="flex-1 space-y-1.5">
+                              <div className="h-3 w-2/5 rounded bg-muted" />
+                              <div className="h-3 w-1/4 rounded bg-muted" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : activityEvents.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <Sparkles className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">No recent activity yet</p>
+                        <p className="text-xs mt-1">Start analyzing ideas to see your activity here</p>
+                      </div>
+                    ) : (
+                      <ul className="space-y-1">
+                        {activityEvents.map((event, index) => {
+                          const colorMap: Record<string, string> = {
+                            idea_analyzed:     'bg-yellow-500/10 text-yellow-500',
+                            pitch_created:     'bg-blue-500/10 text-blue-500',
+                            funding_submitted: 'bg-green-500/10 text-green-500',
+                            case_viewed:       'bg-purple-500/10 text-purple-500',
+                            community_action:  'bg-pink-500/10 text-pink-500',
+                            profile_updated:   'bg-muted text-muted-foreground',
+                          };
+                          const iconMap: Record<string, React.ElementType> = {
+                            idea_analyzed:     Lightbulb,
+                            pitch_created:     Send,
+                            funding_submitted: CheckCircle2,
+                            case_viewed:       BookOpen,
+                            community_action:  Users,
+                            profile_updated:   Activity,
+                          };
+                          const colorClass = colorMap[event.type] ?? 'bg-muted text-muted-foreground';
+                          const Icon = iconMap[event.type] ?? Activity;
+                          return (
+                            <motion.li
+                              key={event.id}
+                              initial={{ opacity: 0, x: -8 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.04 }}
+                              className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                            >
+                              <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{event.title}</p>
+                                <p className="text-xs text-muted-foreground">{formatRelativeTime(event.created_at)}</p>
+                              </div>
+                            </motion.li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </CardContent>
+                </Card>
               </motion.div>
 
               {/* Go to Profile CTA */}
