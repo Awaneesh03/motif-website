@@ -63,11 +63,13 @@ function _isDuplicate(userId: string, type: ActivityType, title: string): boolea
 /**
  * Fire-and-forget activity log. Never throws — safe to call anywhere.
  *
- * - Resolves the user from the live Supabase session (no stale context).
- * - Two-layer dedup: in-memory (instant, same session) + DB check (cross-session).
- *   Both use a 10-second window keyed on `type:title`.
- * - title is optional; omit to use the default label from ACTIVITY_META.
+ * Three-layer dedup (10-second window):
+ *   Layer 1 — in-memory Map (0ms, same session)
+ *   Layer 2 — DB SELECT on dedup_key (cross-session/device)
+ *   Layer 3 — DB unique index on (user_id, dedup_key, dedup_bucket);
+ *             concurrent inserts that slip past Layer 2 get a 23505 — silently ignored
  *
+ * title is optional; omit to use the default label from ACTIVITY_META.
  * Returns the inserted row id on success, null on skip or failure.
  */
 export async function logActivity(
@@ -82,15 +84,16 @@ export async function logActivity(
       return null;
     }
 
-    const resolvedTitle = title?.trim() || ACTIVITY_META[type].label;
-    const dedupKey = `${type}:${resolvedTitle}`;
+    const resolvedTitle  = title?.trim() || ACTIVITY_META[type].label;
+    const dedupKey       = `${type}:${resolvedTitle}`;
+    const dedupBucket    = Math.floor(Date.now() / 10_000); // 10-second window
 
     // ── Layer 1: in-memory dedup (instant, no network) ───────────────────────
     if (_isDuplicate(user.id, type, resolvedTitle)) {
       return null;
     }
 
-    // ── Layer 2: DB dedup (cross-session / cross-device) ─────────────────────
+    // ── Layer 2: DB SELECT dedup (cross-session / cross-device) ──────────────
     const tenSecondsAgo = new Date(Date.now() - 10_000).toISOString();
     const { data: existing, error: checkError } = await supabase
       .from('user_activity')
@@ -102,27 +105,30 @@ export async function logActivity(
 
     if (checkError) {
       console.warn('[activityService] dedup check failed:', checkError.message);
-      // Continue to insert — a failed check is not a reason to drop the event
+      // Do not drop the event — proceed to insert
     } else if (existing && existing.length > 0) {
-      return null; // DB duplicate within window
+      return null;
     }
 
-    // ── Insert ────────────────────────────────────────────────────────────────
+    // ── Layer 3: INSERT — unique index (user_id, dedup_key, dedup_bucket) ────
     const { data, error } = await supabase
       .from('user_activity')
       .insert({
-        user_id:   user.id,
+        user_id:      user.id,
         type,
-        title:     resolvedTitle,
-        metadata:  metadata ?? null,
-        dedup_key: dedupKey,
+        title:        resolvedTitle,
+        metadata:     metadata ?? null,
+        dedup_key:    dedupKey,
+        dedup_bucket: dedupBucket,
       })
       .select('id')
       .single();
 
     if (error) {
-      // 23505 = unique_violation: a concurrent insert beat us to it — treat as success
-      if (error.code === '23505') return null;
+      if (error.code === '23505') {
+        console.info('[activityService] duplicate prevented by DB constraint');
+        return null;
+      }
       console.warn('[activityService] insert failed:', error.message);
       return null;
     }
