@@ -26,7 +26,7 @@ import { Badge } from '../../ui/badge';
 import { useUser } from '@/contexts/UserContext';
 import { getUserIdeas, type Idea } from '@/lib/ideasService';
 import { supabase } from '@/lib/supabase';
-import { getRecentActivity, type ActivityEvent } from '@/lib/activityService';
+import { getRecentActivity, mergeActivityEvents, type ActivityEvent } from '@/lib/activityService';
 import { getFounderMetrics, type FounderMetrics } from '@/lib/metricsService';
 import { useFounderDemoMode } from '@/hooks/useDemoMode';
 import { demoFounderStartups } from '@/lib/demoData';
@@ -38,7 +38,10 @@ export function FounderDashboard() {
   const navigate = useNavigate();
   const [currentTip, setCurrentTip] = useState(0);
   const [myStartups, setMyStartups] = useState<Idea[]>([]);
-  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([]);
+  const [activityEvents,     setActivityEvents]     = useState<ActivityEvent[]>([]);
+  const [activityCursor,     setActivityCursor]     = useState<string | null>(null);
+  const [hasMoreActivity,    setHasMoreActivity]    = useState(false);
+  const [loadingMoreActivity, setLoadingMoreActivity] = useState(false);
   const [recentAnalyses, setRecentAnalyses] = useState<RecentAnalysis[]>([]);
   const [metrics, setMetrics] = useState<FounderMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -104,7 +107,7 @@ export function FounderDashboard() {
 
         try {
           // Fetch all data in parallel
-          const [ideas, activity, founderMetrics, analyses] = await Promise.all([
+          const [ideas, activityPage, founderMetrics, analyses] = await Promise.all([
             getUserIdeas(user.id),
             getRecentActivity(user.id, 10),
             getFounderMetrics(user.id),
@@ -112,7 +115,9 @@ export function FounderDashboard() {
           ]);
 
           setMyStartups(ideas);
-          setActivityEvents(activity);
+          setActivityEvents(activityPage.events);
+          setActivityCursor(activityPage.nextCursor);
+          setHasMoreActivity(activityPage.nextCursor !== null);
           setMetrics(founderMetrics);
           setRecentAnalyses(analyses);
         } catch (err) {
@@ -182,8 +187,8 @@ export function FounderDashboard() {
               const row = payload.new as Record<string, unknown>;
               // Validate minimum fields — fall back to full refetch if malformed
               if (!row?.id || !row?.type || !row?.title || !row?.created_at) {
-                const activity = await getRecentActivity(userId, 10);
-                setActivityEvents(activity);
+                const { events } = await getRecentActivity(userId, 10);
+                setActivityEvents(events);
                 return;
               }
               const newEvent: ActivityEvent = {
@@ -197,14 +202,28 @@ export function FounderDashboard() {
               setActivityEvents(prev => {
                 // Dedupe by id — Supabase can deliver duplicates on reconnect
                 if (prev.some(e => e.id === newEvent.id)) return prev;
-                return [newEvent, ...prev].slice(0, 10);
+                // Prepend + re-sort by created_at DESC (in case of clock skew)
+                const updated = [newEvent, ...prev];
+                updated.sort((a, b) =>
+                  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                );
+                return updated.slice(0, 10);
               });
             } catch (err) {
               console.error('Error updating activity feed:', err);
             }
           }
         )
-        .subscribe();
+        .subscribe(async (status) => {
+          // On every (re)connect: merge latest events into state without flicker.
+          // mergeActivityEvents dedupes by id so repeated calls are safe.
+          if (status === 'SUBSCRIBED') {
+            try {
+              const { events } = await getRecentActivity(userId, 10);
+              setActivityEvents(prev => mergeActivityEvents(prev, events, 10));
+            } catch { /* silent — subscription already works */ }
+          }
+        });
 
       return () => {
         channel.unsubscribe();
@@ -212,6 +231,39 @@ export function FounderDashboard() {
       };
     }
   }, [user]);
+
+  // ── Periodic silent sync (60 s) ───────────────────────────────────────────
+  // Catches any events missed during realtime downtime without causing flicker.
+  useEffect(() => {
+    if (!user?.id) return;
+    const userId = user.id;
+    const id = setInterval(async () => {
+      try {
+        const { events } = await getRecentActivity(userId, 10);
+        setActivityEvents(prev => mergeActivityEvents(prev, events, 10));
+      } catch { /* silent */ }
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [user?.id]);
+
+  // ── Load more activity (cursor-based) ────────────────────────────────────
+  const loadMoreActivity = async () => {
+    if (!user?.id || !activityCursor || loadingMoreActivity) return;
+    setLoadingMoreActivity(true);
+    try {
+      const { events, nextCursor } = await getRecentActivity(user.id, 10, activityCursor);
+      setActivityEvents(prev => {
+        const seen = new Set(prev.map(e => e.id));
+        return [...prev, ...events.filter(e => !seen.has(e.id))];
+      });
+      setActivityCursor(nextCursor);
+      setHasMoreActivity(nextCursor !== null);
+    } catch (err) {
+      console.error('Load more activity failed:', err);
+    } finally {
+      setLoadingMoreActivity(false);
+    }
+  };
 
   // Submit a single startup for admin review.
   // Only the clicked card's button is disabled — all other cards are unaffected.
@@ -697,6 +749,7 @@ export function FounderDashboard() {
                         <p className="text-xs mt-1">Start analyzing ideas to see your activity here</p>
                       </div>
                     ) : (
+                      <>
                       <ul className="space-y-1">
                         {activityEvents.map((event, index) => {
                           type ActivityStyle = { color: string; icon: React.ElementType };
@@ -730,6 +783,22 @@ export function FounderDashboard() {
                           );
                         })}
                       </ul>
+                      {hasMoreActivity && (
+                        <div className="mt-3 text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                            onClick={loadMoreActivity}
+                            disabled={loadingMoreActivity}
+                          >
+                            {loadingMoreActivity
+                              ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Loading…</>
+                              : 'Load more'}
+                          </Button>
+                        </div>
+                      )}
+                      </>
                     )}
                   </CardContent>
                 </Card>

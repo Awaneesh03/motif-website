@@ -142,29 +142,76 @@ export async function logActivity(
 
 // ── Feed fetch ────────────────────────────────────────────────────────────────
 
+export interface ActivityPage {
+  events: ActivityEvent[];
+  /**
+   * Pass as `cursor` to the next call to fetch the page after this one.
+   * `null` means there are no more events to load.
+   */
+  nextCursor: string | null;
+}
+
 /**
- * Fetches the most recent activity events for a user.
- * Always resolves — returns [] on error.
+ * Fetches a page of activity events for a user.
+ * Cursor-based: pass `cursor` (the `created_at` of the last item) for older pages.
+ * Always resolves — returns an empty page on error.
  */
 export async function getRecentActivity(
   userId: string,
-  limit = 20,
-): Promise<ActivityEvent[]> {
+  limit = 10,
+  cursor?: string,
+): Promise<ActivityPage> {
   try {
-    const { data, error } = await supabase
+    // Fetch one extra row to cheaply detect whether a next page exists
+    let query = supabase
       .from('user_activity')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .order('id',         { ascending: false }) // stable tie-break
+      .limit(limit + 1);
 
+    if (cursor) {
+      query = query.lt('created_at', cursor);
+    }
+
+    const { data, error } = await query;
     if (error) {
       console.warn('[activityService] fetch failed:', error.message);
-      return [];
+      return { events: [], nextCursor: null };
     }
-    return (data ?? []) as ActivityEvent[];
+
+    const rows    = (data ?? []) as ActivityEvent[];
+    const hasMore = rows.length > limit;
+    const events  = rows.slice(0, limit);
+    const nextCursor = hasMore ? events[events.length - 1].created_at : null;
+
+    return { events, nextCursor };
   } catch (e) {
     console.warn('[activityService] unexpected error:', e);
-    return [];
+    return { events: [], nextCursor: null };
   }
+}
+
+// ── Merge utility ─────────────────────────────────────────────────────────────
+
+/**
+ * Merges two lists of activity events, deduplicates by id, and returns the
+ * result sorted by created_at DESC (id DESC as tie-break), capped at `limit`.
+ *
+ * Safe to call on every reconnect or periodic sync — never produces duplicates
+ * or changes the order of events already visible to the user.
+ */
+export function mergeActivityEvents(
+  existing: ActivityEvent[],
+  incoming: ActivityEvent[],
+  limit = 10,
+): ActivityEvent[] {
+  const seen   = new Set(existing.map(e => e.id));
+  const merged = [...incoming.filter(e => !seen.has(e.id)), ...existing];
+  merged.sort((a, b) => {
+    const diff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    return diff !== 0 ? diff : b.id.localeCompare(a.id);
+  });
+  return merged.slice(0, limit);
 }

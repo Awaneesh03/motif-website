@@ -301,7 +301,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       setStats(prev => ({ ...prev, ideasShared: communityCount ?? 0 }));
 
       // Load activity feed from user_activity table
-      const activity = await getRecentActivity(authUser.id, 20);
+      const { events: activity } = await getRecentActivity(authUser.id, 20);
       setActivityTimeline(activity);
     } catch (error) {
       console.error('Error loading user data:', error);

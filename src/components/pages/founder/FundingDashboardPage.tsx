@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   FileText, Clock, CheckCircle2, XCircle, Sparkles,
-  Loader2, AlertCircle, RefreshCw, ChevronDown, ChevronUp,
+  AlertCircle, RefreshCw, ChevronDown, ChevronUp,
   Banknote, ArrowRight, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
