@@ -758,6 +758,7 @@ export function FounderDashboard() {
                             pitch_created:     { color: 'bg-blue-500/10 text-blue-500',     icon: Send },
                             funding_submitted: { color: 'bg-green-500/10 text-green-500',   icon: CheckCircle2 },
                             case_viewed:       { color: 'bg-purple-500/10 text-purple-500', icon: BookOpen },
+                            case_completed:    { color: 'bg-emerald-500/10 text-emerald-500', icon: CheckCircle2 },
                             community_action:  { color: 'bg-pink-500/10 text-pink-500',     icon: Users },
                             profile_updated:   { color: 'bg-muted text-muted-foreground',   icon: Activity },
                             unknown:           { color: 'bg-muted text-muted-foreground',   icon: Activity },

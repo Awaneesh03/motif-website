@@ -115,7 +115,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
   // ============================================================================
   const [currentRenderState, setCurrentRenderState] = useState<RenderState>('auth_loading');
   const [userIdeas, setUserIdeas] = useState<any[]>([]);
-  const [, setUserCases] = useState<any[]>([]);
   const [activityTimeline, setActivityTimeline] = useState<ActivityEvent[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [profileCreationAttempted, setProfileCreationAttempted] = useState(false);
@@ -259,6 +258,42 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     }
   }, [authUser, currentRenderState]);
 
+  // Realtime: keep case study count in sync when new completions are recorded
+  useEffect(() => {
+    if (!authUser) return;
+
+    const channel = supabase
+      .channel('profile-case-completions')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_activity',
+          filter: `user_id=eq.${authUser.id}`,
+        },
+        (payload) => {
+          const row = payload.new as { type?: string } | null;
+          if (row?.type === 'case_completed' || payload.eventType === 'DELETE') {
+            // Re-fetch the count to stay accurate (handles INSERT, UPDATE, DELETE)
+            supabase
+              .from('user_activity')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', authUser.id)
+              .eq('type', 'case_completed')
+              .then(({ count }) => {
+                setStats(prev => ({ ...prev, caseStudiesSaved: count ?? 0 }));
+              });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [authUser]);
+
   const loadUserData = async () => {
     if (!authUser) return;
 
@@ -279,18 +314,15 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
         setUserIdeas([]);
       }
 
-      // Load case studies
-      const { data: cases, error: casesError } = await supabase
-        .from('user_attempts')
-        .select('*')
+      // Load case studies completed count from user_activity
+      const { count: caseCount, error: casesError } = await supabase
+        .from('user_activity')
+        .select('id', { count: 'exact', head: true })
         .eq('user_id', authUser.id)
-        .order('attempted_at', { ascending: false });
+        .eq('type', 'case_completed');
 
-      if (!casesError && Array.isArray(cases)) {
-        setUserCases(cases);
-        setStats(prev => ({ ...prev, caseStudiesSaved: cases.length }));
-      } else {
-        setUserCases([]);
+      if (!casesError) {
+        setStats(prev => ({ ...prev, caseStudiesSaved: caseCount ?? 0 }));
       }
 
       // Load community ideas count
@@ -307,7 +339,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       console.error('Error loading user data:', error);
       // Continue with empty data
       setUserIdeas([]);
-      setUserCases([]);
       setActivityTimeline([]);
     } finally {
       setDataLoading(false);
@@ -1142,6 +1173,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                             activity.type === 'pitch_created'     ? Target :
                             activity.type === 'funding_submitted' ? Sparkles :
                             activity.type === 'case_viewed'       ? BookOpen :
+                            activity.type === 'case_completed'    ? CheckCircle2 :
                             activity.type === 'community_action'  ? Users :
                             Lightbulb;
                           return (

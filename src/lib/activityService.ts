@@ -7,6 +7,7 @@ export type ActivityType =
   | 'pitch_created'
   | 'funding_submitted'
   | 'case_viewed'
+  | 'case_completed'
   | 'community_action'
   | 'profile_updated';
 
@@ -26,6 +27,7 @@ export const ACTIVITY_META: Record<ActivityType, { icon: string; color: string; 
   pitch_created:     { icon: 'presentation',  color: 'text-blue-500',          label: 'Pitch deck generated' },
   funding_submitted: { icon: 'banknote',      color: 'text-green-500',         label: 'Funding submitted' },
   case_viewed:       { icon: 'book',          color: 'text-purple-500',        label: 'Case study viewed' },
+  case_completed:    { icon: 'check-circle',  color: 'text-emerald-500',       label: 'Case study completed' },
   community_action:  { icon: 'users',         color: 'text-pink-500',          label: 'Community interaction' },
   profile_updated:   { icon: 'user',          color: 'text-muted-foreground',  label: 'Profile updated' },
 };
