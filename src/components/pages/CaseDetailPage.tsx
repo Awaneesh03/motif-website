@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
@@ -11,246 +11,278 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Lightbulb,
+  BarChart2,
 } from 'lucide-react';
 
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Card, CardContent } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Textarea } from '../ui/textarea';
-import { DifficultyBadge } from '../DifficultyBadge';
-import { LeaderboardWidget } from '../LeaderboardWidget';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Progress } from '../ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { DifficultyBadge } from '../DifficultyBadge';
+import { LeaderboardWidget, type ContributorEntry } from '../LeaderboardWidget';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { StarRating } from '../ui/star-rating';
+import { Skeleton } from '../ui/skeleton';
 
 import { supabase } from '@/lib/supabase';
 import { apiClient, CaseEvaluationResponse } from '@/lib/api-client';
+import { useUser } from '@/contexts/UserContext';
 
 interface CaseDetailPageProps {
   onNavigate?: (page: string) => void;
 }
 
+interface CaseData {
+  id: string;
+  company: string;
+  title: string;
+  description: string;
+  problem: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  category: string;
+  tags: string[];
+  publishedDate: string;
+  constraints: string;
+  expectedOutcome: string;
+  hints: string[];
+}
+
+// ── Fetch top contributors for this case from user_activity + profiles ────────
+// Source: user_activity WHERE type='case_completed' AND title=caseTitle
+// metadata.score holds the AI score. We join profiles for name/avatar.
+async function fetchContributors(caseTitle: string): Promise<ContributorEntry[]> {
+  // Step 1: aggregate completions by user_id
+  const { data: rows, error } = await supabase
+    .from('user_activity')
+    .select('user_id, metadata')
+    .eq('type', 'case_completed')
+    .eq('title', caseTitle);
+
+  if (error || !rows || rows.length === 0) return [];
+
+  // Group by user_id: track best score and attempt count
+  const byUser = new Map<string, { bestScore: number; attempts: number }>();
+  for (const row of rows) {
+    const score = typeof row.metadata?.score === 'number' ? row.metadata.score : 0;
+    const existing = byUser.get(row.user_id);
+    if (!existing) {
+      byUser.set(row.user_id, { bestScore: score, attempts: 1 });
+    } else {
+      byUser.set(row.user_id, {
+        bestScore: Math.max(existing.bestScore, score),
+        attempts: existing.attempts + 1,
+      });
+    }
+  }
+
+  // Sort by best score DESC, take top 5
+  const top5 = [...byUser.entries()]
+    .sort((a, b) => b[1].bestScore - a[1].bestScore)
+    .slice(0, 5);
+
+  if (top5.length === 0) return [];
+
+  // Step 2: join profiles for name + avatar
+  const userIds = top5.map(([uid]) => uid);
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, name, avatar')
+    .in('id', userIds);
+
+  const profileMap = new Map<string, { name: string; avatar: string }>();
+  for (const p of profiles ?? []) {
+    profileMap.set(p.id, { name: p.name || 'User', avatar: p.avatar || '' });
+  }
+
+  return top5.map(([userId, stats], index) => {
+    const profile = profileMap.get(userId) ?? { name: 'User', avatar: '' };
+    return {
+      rank: index + 1,
+      userId,
+      name: profile.name,
+      avatar: profile.avatar,
+      score: stats.bestScore,
+      attempts: stats.attempts,
+    };
+  });
+}
+
+function mapDifficulty(d: string): 'Easy' | 'Medium' | 'Hard' {
+  if (d === 'Beginner') return 'Easy';
+  if (d === 'Advanced') return 'Hard';
+  return 'Medium';
+}
+
 export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
   const { caseId } = useParams<{ caseId: string }>();
+  const { user } = useUser();
+
+  // Case data
+  const [caseData, setCaseData] = useState<CaseData | null>(null);
+  const [caseLoading, setCaseLoading] = useState(true);
+
+  // Solution editor
   const [solution, setSolution] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [showEvaluationModal, setShowEvaluationModal] = useState(false);
-  const [showExitWarning, setShowExitWarning] = useState(false);
-  const [evaluationData, setEvaluationData] = useState<any>(null);
+
+  // Evaluation
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evaluationData, setEvaluationData] = useState<CaseEvaluationResponse | null>(null);
+  const [showEvaluationModal, setShowEvaluationModal] = useState(false);
   const [userRating, setUserRating] = useState(0);
-  const [caseData, setCaseData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Fallback mock data for when case is not found
-  const defaultCase = {
-    id: '1',
-    company: 'PayStream',
-    logo: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100&h=100&fit=crop',
-    title: 'Scaling User Acquisition',
-    description:
-      "PayStream is a B2B SaaS platform that helps companies manage their workflow automation. They've found initial product-market fit with 100 paying customers, but growth has plateaued.",
-    problem:
-      'The company needs to grow from 100 to 1000 users in 3 months with only $5,000 marketing budget. Traditional paid advertising channels are too expensive for their current CAC:LTV ratio. The team consists of 2 founders and 1 developer - no dedicated marketing expertise.',
-    difficulty: 'Medium' as const,
-    category: 'Marketing',
-    tags: ['Growth', 'Marketing', 'B2B', 'SaaS'],
-    estimatedTime: '45 minutes',
-    reward: '500 points',
-    publishedDate: 'Nov 5, 2025',
-  };
+  // Contributors (sidebar)
+  const [contributors, setContributors] = useState<ContributorEntry[]>([]);
+  const [contributorsLoading, setContributorsLoading] = useState(true);
 
-  // Fetch case study from Supabase
+  // Exit warning
+  const [showExitWarning, setShowExitWarning] = useState(false);
+
+  // ── Fetch case study ─────────────────────────────────────────────────────
   useEffect(() => {
-    const fetchCaseStudy = async () => {
-      if (!caseId) {
-        console.warn('[CaseDetailPage] No caseId provided');
-        setCaseData(defaultCase);
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('[CaseDetailPage] Fetching case study with ID:', caseId);
-      setIsLoading(true);
+    if (!caseId) {
+      setCaseLoading(false);
+      return;
+    }
+    setCaseLoading(true);
+    (async () => {
       try {
         const { data, error } = await supabase
           .from('case_studies')
           .select('*')
           .eq('id', caseId)
           .single();
-
-        console.log('[CaseDetailPage] Query result:', { data, error });
-
         if (error || !data) {
-          console.error('[CaseDetailPage] Case study not found:', error);
-          // Set caseData to null to show not found message
           setCaseData(null);
         } else {
-          console.log('[CaseDetailPage] Raw data from DB:', JSON.stringify(data, null, 2));
-          
-          // Transform DB data to component format
-          const mapDifficulty = (d: string): 'Easy' | 'Medium' | 'Hard' => {
-            switch (d) {
-              case 'Beginner': return 'Easy';
-              case 'Intermediate': return 'Medium';
-              case 'Advanced': return 'Hard';
-              default: return 'Medium';
-            }
-          };
-
-          const transformedData = {
+          setCaseData({
             id: data.id,
             company: data.company || 'Case Study',
-            logo: data.image_url || 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100&h=100&fit=crop',
             title: data.title || 'Untitled Case Study',
-            description: data.background || data.problem_statement || 'No description available',
-            problem: data.problem_statement || 'No problem statement available',
+            description: data.background || data.problem_statement || '',
+            problem: data.problem_statement || '',
             difficulty: mapDifficulty(data.difficulty),
             category: data.category || 'General',
-            tags: Array.isArray(data.tags) ? data.tags : (typeof data.tags === 'string' ? data.tags.split(',').map((t: string) => t.trim()) : []),
-            estimatedTime: '45 minutes',
-            reward: '500 points',
-            publishedDate: data.created_at ? new Date(data.created_at).toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'short', 
-              day: 'numeric' 
-            }) : 'Unknown date',
-            // Additional fields from DB
+            tags: Array.isArray(data.tags)
+              ? data.tags
+              : typeof data.tags === 'string'
+              ? data.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+              : [],
+            publishedDate: data.created_at
+              ? new Date(data.created_at).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })
+              : '',
             constraints: data.constraints || '',
             expectedOutcome: data.expected_outcome || '',
-            hints: data.hints || [],
-            solution: data.solution || '',
-          };
-          
-          console.log('[CaseDetailPage] Transformed data:', transformedData);
-          setCaseData(transformedData);
+            hints: Array.isArray(data.hints) ? data.hints : [],
+          });
         }
-      } catch (err) {
-        console.error('[CaseDetailPage] Error fetching case study:', err);
-        setCaseData(null);
       } finally {
-        setIsLoading(false);
+        setCaseLoading(false);
       }
-    };
-
-    fetchCaseStudy();
+    })();
   }, [caseId]);
 
-  // Auto-save simulation
-  useEffect(() => {
-    if (solution.length > 0) {
-      const timer = setTimeout(() => {
-        setIsSaving(true);
-        setTimeout(() => {
-          setIsSaving(false);
-          setLastSaved(new Date());
-        }, 500);
-      }, 2000);
-      return () => clearTimeout(timer);
+  // ── Fetch contributors once caseData is available ─────────────────────────
+  const loadContributors = useCallback(async () => {
+    if (!caseData?.title) return;
+    setContributorsLoading(true);
+    try {
+      const entries = await fetchContributors(caseData.title);
+      setContributors(entries);
+    } catch {
+      setContributors([]);
+    } finally {
+      setContributorsLoading(false);
     }
+  }, [caseData?.title]);
+
+  useEffect(() => {
+    loadContributors();
+  }, [loadContributors]);
+
+  // ── Auto-save draft (debounced, local only — marks timestamp) ─────────────
+  useEffect(() => {
+    if (solution.length === 0) return;
+    const timer = setTimeout(() => {
+      setIsSaving(true);
+      setTimeout(() => {
+        setIsSaving(false);
+        setLastSaved(new Date());
+      }, 400);
+    }, 2000);
+    return () => clearTimeout(timer);
   }, [solution]);
 
-  const handleSaveDraft = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      setLastSaved(new Date());
-    }, 500);
-  };
+  // ── Evaluate solution via backend ─────────────────────────────────────────
+  const getFallbackEvaluation = (sol: string): CaseEvaluationResponse => {
+    const words = sol.split(/\s+/).length;
+    const hasStrategy = /strateg|plan|approach|method/i.test(sol);
+    const hasMetrics  = /metric|kpi|measure|track|analytics/i.test(sol);
+    const hasBudget   = /budget|cost|spend|allocat|investment/i.test(sol);
+    const hasTimeline = /timeline|week|month|phase|quarter/i.test(sol);
 
-  const evaluateSolutionWithAI = async (userSolution: string): Promise<CaseEvaluationResponse> => {
-    try {
-      const response = await apiClient.post<CaseEvaluationResponse>('/api/ai/evaluate-case', {
-        caseTitle: caseData.title,
-        company: caseData.company,
-        problem: caseData.problem,
-        solution: userSolution,
-      });
-
-      return response;
-    } catch (error) {
-      console.error('AI evaluation error:', error);
-      // Fallback to basic evaluation when backend is unreachable
-      if (error instanceof Error &&
-          (error.message.toLowerCase().includes('failed to fetch') ||
-           error.message.toLowerCase().includes('network'))) {
-        return getFallbackEvaluation(userSolution);
-      }
-      return getFallbackEvaluation(userSolution);
-    }
-  };
-
-  const getFallbackEvaluation = (solution: string) => {
-    const words = solution.split(/\s+/).length;
-    const hasStrategy = /strateg|plan|approach|method/i.test(solution);
-    const hasMetrics = /metric|kpi|measure|track|analytics/i.test(solution);
-    const hasBudget = /budget|cost|spend|allocat|investment/i.test(solution);
-    const hasTimeline = /timeline|week|month|phase|quarter/i.test(solution);
-
-    let score = 60; // Base score
-
+    let score = 60;
     if (words > 100) score += 10;
     if (words > 200) score += 5;
     if (hasStrategy) score += 10;
-    if (hasMetrics) score += 10;
-    if (hasBudget) score += 10;
+    if (hasMetrics)  score += 10;
+    if (hasBudget)   score += 10;
     if (hasTimeline) score += 5;
-
     score = Math.min(score, 100);
 
-    const feedback = [];
-    const strengths = [];
-    const improvements = [];
-
-    if (hasStrategy) {
-      strengths.push('Clear strategic approach identified');
-    } else {
-      improvements.push('Add more strategic thinking and overall approach');
-    }
-
-    if (hasMetrics) {
-      strengths.push('Good focus on metrics and measurement');
-    } else {
-      improvements.push('Include specific KPIs and success metrics');
-    }
-
-    if (hasBudget) {
-      strengths.push('Budget considerations addressed');
-    } else {
-      improvements.push('Provide detailed budget allocation breakdown');
-    }
-
-    if (words < 100) {
-      improvements.push('Expand your solution with more detailed analysis');
-    }
-
-    feedback.push(...strengths, ...improvements.slice(0, 3 - strengths.length));
+    const strengths: string[]     = [];
+    const improvements: string[]  = [];
+    if (hasStrategy) strengths.push('Clear strategic approach identified');
+    else             improvements.push('Add more strategic thinking and overall approach');
+    if (hasMetrics)  strengths.push('Good focus on metrics and measurement');
+    else             improvements.push('Include specific KPIs and success metrics');
+    if (hasBudget)   strengths.push('Budget considerations addressed');
+    else             improvements.push('Provide detailed budget allocation breakdown');
+    if (words < 100) improvements.push('Expand your solution with more detailed analysis');
 
     return {
       score,
       verdict: score >= 70 ? 'Pass' : 'Try Again',
-      feedback: feedback.slice(0, 3),
+      feedback: [...strengths, ...improvements].slice(0, 3),
       strengths,
       improvements,
     };
   };
 
   const handleSubmit = async () => {
+    if (!caseData) return;
     setIsEvaluating(true);
-
     try {
-      const evaluation = await evaluateSolutionWithAI(solution);
+      let evaluation: CaseEvaluationResponse;
+      try {
+        evaluation = await apiClient.post<CaseEvaluationResponse>('/api/ai/evaluate-case', {
+          caseTitle: caseData.title,
+          company:   caseData.company,
+          problem:   caseData.problem,
+          solution,
+        });
+      } catch {
+        evaluation = getFallbackEvaluation(solution);
+      }
       setEvaluationData(evaluation);
       setShowEvaluationModal(true);
-    } catch (error) {
-      console.error('Evaluation error:', error);
-      // Show error to user
-      alert('Failed to evaluate solution. Please try again.');
     } finally {
       setIsEvaluating(false);
     }
+  };
+
+  const handleAfterEvaluation = () => {
+    setShowEvaluationModal(false);
+    // Refetch contributors so leaderboard reflects this submission
+    loadContributors();
   };
 
   const handleBack = () => {
@@ -261,26 +293,66 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     }
   };
 
-  // Show loading state
-  if (isLoading) {
+  const handleSaveDraft = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      setLastSaved(new Date());
+    }, 400);
+  };
+
+  // ── Loading skeleton ──────────────────────────────────────────────────────
+  if (caseLoading) {
     return (
-      <div className="bg-background min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading case study...</p>
+      <div className="bg-background min-h-screen">
+        <div className="border-border border-b bg-gradient-to-r from-[#C9A7EB]/10 to-transparent">
+          <div className="mx-auto max-w-[1140px] px-4 pt-4 pb-6 sm:px-6 lg:px-8">
+            <Skeleton className="h-8 w-36 mb-5 rounded-lg" />
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-14 w-14 rounded-xl flex-shrink-0" />
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-24 rounded" />
+                <Skeleton className="h-6 w-64 rounded" />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Skeleton className="h-5 w-16 rounded" />
+              <Skeleton className="h-5 w-20 rounded" />
+              <Skeleton className="h-5 w-14 rounded" />
+            </div>
+          </div>
+        </div>
+        <div className="mx-auto max-w-[1140px] px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid gap-8 md:grid-cols-3">
+            <div className="space-y-6 md:col-span-2">
+              <Skeleton className="h-48 w-full rounded-xl" />
+              <div className="grid grid-cols-3 gap-3">
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+              </div>
+              <Skeleton className="h-96 w-full rounded-xl" />
+            </div>
+            <div className="space-y-6">
+              <Skeleton className="h-64 w-full rounded-xl" />
+              <Skeleton className="h-48 w-full rounded-xl" />
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Safety check for caseData
+  // ── Not found ─────────────────────────────────────────────────────────────
   if (!caseData) {
     return (
       <div className="bg-background min-h-screen flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center px-4">
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-lg font-semibold mb-2">Case study not found</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            This case may have been removed or the link is incorrect.
+          </p>
           <Button variant="outline" onClick={() => onNavigate?.('CaseStudies')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Case Studies
           </Button>
         </div>
@@ -290,29 +362,27 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
 
   return (
     <div className="bg-background min-h-screen">
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="border-border border-b bg-gradient-to-r from-[#C9A7EB]/10 to-transparent">
         <div className="mx-auto max-w-[1140px] px-4 pt-4 pb-6 sm:px-6 lg:px-8">
-          {/* Back button row */}
           <div className="mb-5">
-            <Button variant="ghost" size="sm" onClick={handleBack} className="rounded-lg -ml-2 text-muted-foreground hover:text-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="rounded-lg -ml-2 text-muted-foreground hover:text-foreground"
+            >
               <ArrowLeft className="mr-1.5 h-4 w-4" />
               Back to Case Studies
             </Button>
           </div>
 
-          {/* Logo + Title + CTA */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <img
-                src={caseData.logo}
-                alt={caseData.company}
-                className="h-14 w-14 rounded-xl object-cover border border-border/40 flex-shrink-0"
-              />
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">{caseData.company}</p>
-                <h1 className="text-xl font-bold leading-snug">{caseData.title}</h1>
-              </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
+                {caseData.company}
+              </p>
+              <h1 className="text-xl font-bold leading-snug">{caseData.title}</h1>
             </div>
             <Button
               className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90 sm:flex-shrink-0"
@@ -324,47 +394,103 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
             </Button>
           </div>
 
-          {/* Tags row */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <DifficultyBadge difficulty={caseData.difficulty} />
-            {caseData.tags.map((tag: string) => (
+            <Badge variant="secondary" className="rounded-lg text-xs">
+              {caseData.category}
+            </Badge>
+            {caseData.tags.map(tag => (
               <Badge key={tag} variant="outline" className="rounded-lg text-xs">
                 {tag}
               </Badge>
             ))}
-            <span className="ml-auto text-xs text-muted-foreground">{caseData.publishedDate}</span>
+            {caseData.publishedDate && (
+              <span className="ml-auto text-xs text-muted-foreground">{caseData.publishedDate}</span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* ── Main grid ──────────────────────────────────────────────────────── */}
       <div className="mx-auto max-w-[1140px] px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-8 md:grid-cols-3">
-          {/* Left Content */}
+
+          {/* LEFT — problem + workspace */}
           <div className="space-y-6 md:col-span-2">
+
             {/* Problem Overview */}
             <Card className="border-border/50">
               <CardContent className="p-6 space-y-5">
-                <div>
-                  <h2 className="text-base font-semibold mb-2">Problem Overview</h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{caseData.description}</p>
-                </div>
-                <div className="rounded-xl bg-muted/40 border border-border/40 p-4">
-                  <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                    <Target className="h-4 w-4 text-primary flex-shrink-0" />
-                    The Challenge
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{caseData.problem}</p>
-                </div>
+                {caseData.description && (
+                  <div>
+                    <h2 className="text-base font-semibold mb-2">Problem Overview</h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {caseData.description}
+                    </p>
+                  </div>
+                )}
+
+                {caseData.problem && (
+                  <div className="rounded-xl bg-muted/40 border border-border/40 p-4">
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Target className="h-4 w-4 text-primary flex-shrink-0" />
+                      The Challenge
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {caseData.problem}
+                    </p>
+                  </div>
+                )}
+
+                {caseData.expectedOutcome && (
+                  <div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <BarChart2 className="h-4 w-4 text-primary flex-shrink-0" />
+                      Expected Outcome
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {caseData.expectedOutcome}
+                    </p>
+                  </div>
+                )}
+
+                {caseData.constraints && (
+                  <div className="rounded-xl bg-orange-50 dark:bg-orange-900/10 border border-orange-200/60 dark:border-orange-800/40 p-4">
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                      Constraints
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {caseData.constraints}
+                    </p>
+                  </div>
+                )}
+
+                {caseData.hints.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Lightbulb className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                      Hints
+                    </h3>
+                    <ul className="space-y-1.5">
+                      {caseData.hints.map((hint, i) => (
+                        <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span>{hint}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Info Bar */}
+            {/* Key Details bar */}
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-xl border border-border/50 bg-card p-4 flex flex-col items-center gap-2 text-center">
                 <Clock className="h-5 w-5 text-primary" />
                 <p className="text-xs text-muted-foreground">Est. Time</p>
-                <p className="text-sm font-semibold">{caseData.estimatedTime}</p>
+                <p className="text-sm font-semibold">45 min</p>
               </div>
               <div className="rounded-xl border border-border/50 bg-card p-4 flex flex-col items-center gap-2 text-center">
                 <Target className="h-5 w-5 text-primary" />
@@ -373,46 +499,45 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
               </div>
               <div className="rounded-xl border border-border/50 bg-card p-4 flex flex-col items-center gap-2 text-center">
                 <Trophy className="h-5 w-5 text-amber-500" />
-                <p className="text-xs text-muted-foreground">Reward</p>
-                <p className="text-sm font-semibold">{caseData.reward}</p>
+                <p className="text-xs text-muted-foreground">Pass Mark</p>
+                <p className="text-sm font-semibold">70 / 100</p>
               </div>
             </div>
 
-            {/* Workspace Panel */}
+            {/* Workspace */}
             <Card id="workspace" className="border-border/50">
-              <CardContent className="p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-base font-semibold">Your Solution</h2>
-                  <div className="text-muted-foreground flex items-center gap-2 text-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Your Solution</CardTitle>
+                  <div className="text-muted-foreground flex items-center gap-2 text-xs">
                     {isSaving ? (
                       <>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          className="border-primary h-3 w-3 rounded-full border-2 border-t-transparent"
-                        />
-                        <span>Saving...</span>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>Saving…</span>
                       </>
                     ) : lastSaved ? (
                       <span>Saved {lastSaved.toLocaleTimeString()}</span>
                     ) : null}
                   </div>
                 </div>
-
-                {/* Editor */}
+              </CardHeader>
+              <CardContent className="pt-0">
+                {!user && (
+                  <div className="mb-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-800/40 p-3 text-sm text-amber-800 dark:text-amber-300">
+                    Sign in to submit and track your attempts.
+                  </div>
+                )}
                 <Textarea
                   value={solution}
                   onChange={e => setSolution(e.target.value)}
-                  placeholder="Describe your solution strategy here...&#10;&#10;Consider:&#10;• What channels would you prioritize?&#10;• How would you allocate the $5k budget?&#10;• What metrics would you track?&#10;• What's your 90-day execution plan?"
+                  placeholder={`Describe your solution strategy here…\n\n• What approach would you take?\n• How would you measure success?\n• What's your execution timeline?\n• What risks would you mitigate?`}
                   className="mb-4 min-h-[300px] resize-none rounded-xl"
                 />
-
-                {/* Submission Controls */}
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
                     onClick={handleSaveDraft}
-                    disabled={isSaving}
+                    disabled={isSaving || solution.length === 0}
                     className="rounded-xl"
                   >
                     <Save className="mr-2 h-4 w-4" />
@@ -425,12 +550,8 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                   >
                     {isEvaluating ? (
                       <>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          className="mr-2 h-4 w-4 rounded-full border-2 border-white border-t-transparent"
-                        />
-                        Evaluating...
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Evaluating…
                       </>
                     ) : (
                       <>
@@ -440,264 +561,316 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                     )}
                   </Button>
                 </div>
+                {solution.length > 0 && solution.length < 50 && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {50 - solution.length} more characters needed to submit.
+                  </p>
+                )}
               </CardContent>
             </Card>
+
+            {/* Attempts history (shown after at least one evaluation) */}
+            {evaluationData && (
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <BarChart2 className="h-4 w-4 text-primary" />
+                    Your Latest Result
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-6 mb-4">
+                    <div className="text-center">
+                      <p className="text-4xl font-bold text-primary">{evaluationData.score}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">out of 100</p>
+                    </div>
+                    <div className="flex-1">
+                      <Progress value={evaluationData.score} className="h-2 mb-2" />
+                      <div
+                        className={`inline-flex items-center gap-1.5 text-sm font-medium ${
+                          evaluationData.verdict === 'Pass'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-orange-600 dark:text-orange-400'
+                        }`}
+                      >
+                        {evaluationData.verdict === 'Pass' ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4" />
+                        )}
+                        {evaluationData.verdict}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Tabs defaultValue="strengths">
+                    <TabsList className="w-full">
+                      <TabsTrigger value="strengths" className="flex-1 text-xs">Strengths</TabsTrigger>
+                      <TabsTrigger value="improvements" className="flex-1 text-xs">Improve</TabsTrigger>
+                      <TabsTrigger value="feedback" className="flex-1 text-xs">Feedback</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="strengths" className="mt-3">
+                      {(evaluationData.strengths ?? []).length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4 text-center">
+                          No specific strengths identified.
+                        </p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {evaluationData.strengths!.map((s, i) => (
+                            <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                              <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="improvements" className="mt-3">
+                      {(evaluationData.improvements ?? []).length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4 text-center">
+                          No improvements identified.
+                        </p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {evaluationData.improvements!.map((s, i) => (
+                            <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                              <AlertCircle className="h-4 w-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="feedback" className="mt-3">
+                      {(evaluationData.feedback ?? []).length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4 text-center">
+                          No feedback available.
+                        </p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {evaluationData.feedback!.map((s, i) => (
+                            <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                              <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 w-full rounded-xl text-xs"
+                    onClick={() => {
+                      const lines = [
+                        `Case Study Report — ${caseData.title}`,
+                        `Score: ${evaluationData.score}/100`,
+                        `Verdict: ${evaluationData.verdict}`,
+                        '',
+                        'Strengths:',
+                        ...(evaluationData.strengths ?? []).map(s => `  • ${s}`),
+                        '',
+                        'Areas for Improvement:',
+                        ...(evaluationData.improvements ?? []).map(s => `  • ${s}`),
+                        '',
+                        'Feedback:',
+                        ...(evaluationData.feedback ?? []).map(s => `  • ${s}`),
+                      ];
+                      const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `case-study-report-${caseData.id}.txt`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    Export Report
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
-          {/* Right Sidebar */}
+          {/* RIGHT sidebar */}
           <div className="space-y-6">
+            {/* Top Contributors — real data */}
             <LeaderboardWidget
-              onViewLeaderboard={() => {
-                // Navigate to Case Studies page with leaderboard tab active
-                window.scrollTo(0, 0);
-                onNavigate?.('Case Studies');
-                // After navigation, we can use a URL parameter or state to show leaderboard tab
-                setTimeout(() => {
-                  // Trigger leaderboard tab selection if on Case Studies page
-                  const event = new CustomEvent('showLeaderboard');
-                  window.dispatchEvent(event);
-                }, 100);
-              }}
+              entries={contributors}
+              isLoading={contributorsLoading}
             />
 
-            {/* Progress Card */}
-            <Card className="border-border/50">
-              <CardContent className="p-5">
-                <Tabs defaultValue="history">
-                  <TabsList className="grid w-full grid-cols-2 h-auto gap-1 p-1">
-                    <TabsTrigger value="history" className="text-xs py-1.5">History</TabsTrigger>
-                    <TabsTrigger value="badges" className="text-xs py-1.5">Badges</TabsTrigger>
-                    <TabsTrigger value="notes" className="text-xs py-1.5">Notes</TabsTrigger>
-                    <TabsTrigger value="report" className="text-xs py-1.5">Report</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="history" className="mt-4">
+            {/* Your progress card */}
+            {user && (
+              <Card className="border-border/50">
+                <CardContent className="p-5">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    Your Progress
+                  </h3>
+                  {evaluationData ? (
                     <div className="space-y-3">
-                      <div className="text-muted-foreground py-8 text-center text-sm">
-                        No previous attempts
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Best Score</span>
+                        <span className="font-bold text-primary">{evaluationData.score}/100</span>
                       </div>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="badges" className="mt-4">
-                    <div className="text-muted-foreground py-8 text-center text-sm">
-                      Complete cases to earn badges
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="notes" className="mt-4">
-                    <Textarea
-                      placeholder="Add your notes here..."
-                      className="min-h-[120px] resize-none rounded-xl"
-                    />
-                  </TabsContent>
-                  <TabsContent value="report" className="mt-4">
-                    {evaluationData ? (
-                      <div className="space-y-4">
-                        {/* Case Summary */}
-                        <div>
-                          <h4 className="mb-2 text-sm">Case Summary</h4>
-                          <Card className="border border-border/40 bg-muted/30">
-                            <CardContent className="text-muted-foreground p-3 text-xs">
-                              Completed on {new Date().toLocaleDateString()}
-                            </CardContent>
-                          </Card>
-                        </div>
-
-                        {/* AI Evaluation */}
-                        <div>
-                          <h4 className="mb-2 text-sm">AI Evaluation</h4>
-                          <Card className="border border-border/40 bg-muted/30">
-                            <CardContent className="p-3">
-                              <div className="mb-3 text-center">
-                                <div className="text-gradient-lavender mb-1 text-2xl">
-                                  {evaluationData.score}
-                                </div>
-                                <Progress value={evaluationData.score} className="h-1.5" />
-                              </div>
-                              <div className="text-muted-foreground space-y-1 text-xs">
-                                {evaluationData.feedback.map((item: string, i: number) => (
-                                  <div key={i} className="flex gap-1">
-                                    <span className="text-primary">•</span>
-                                    <span>{item}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-
-                        {/* Improvement Suggestions */}
-                        <div>
-                          <h4 className="mb-2 text-sm">Suggestions</h4>
-                          <Card className="border border-border/40 bg-muted/30">
-                            <CardContent className="text-muted-foreground space-y-2 p-3 text-xs">
-                              <div className="flex gap-2">
-                                <CheckCircle2 className="text-primary mt-0.5 h-3 w-3 flex-shrink-0" />
-                                <span>Consider more specific metrics and KPIs</span>
-                              </div>
-                              <div className="flex gap-2">
-                                <CheckCircle2 className="text-primary mt-0.5 h-3 w-3 flex-shrink-0" />
-                                <span>Add competitive analysis details</span>
-                              </div>
-                              <div className="flex gap-2">
-                                <CheckCircle2 className="text-primary mt-0.5 h-3 w-3 flex-shrink-0" />
-                                <span>Include risk mitigation strategies</span>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-
-                        {/* Export Button */}
-                        <Button
-                          variant="outline"
-                          className="h-8 w-full rounded-xl text-xs"
-                          onClick={() => {
-                            const content = evaluationData
-                              ? `Case Study Report\n\nScore: ${evaluationData.score}/100\n\nStrengths:\n${evaluationData.strengths?.join('\n')}\n\nImprovements:\n${evaluationData.improvements?.join('\n')}\n\nFeedback:\n${evaluationData.feedback}`
-                              : 'No report available';
-                            const blob = new Blob([content], { type: 'text/plain' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = 'case-study-report.txt';
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          }}
+                      <Progress value={evaluationData.score} className="h-1.5" />
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Status</span>
+                        <Badge
+                          className={`border-0 text-xs ${
+                            evaluationData.verdict === 'Pass'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300'
+                          }`}
                         >
-                          Export Report
-                        </Button>
+                          {evaluationData.verdict === 'Pass' ? 'Passed' : 'In Progress'}
+                        </Badge>
                       </div>
-                    ) : (
-                      <div className="text-muted-foreground py-8 text-center text-sm">
-                        Complete the case to view your report
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Submit a solution to track your progress.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Case info card */}
+            <Card className="border-border/50 bg-muted/20">
+              <CardContent className="p-5 space-y-3">
+                <h3 className="text-sm font-semibold">Case Info</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Category</span>
+                    <span className="font-medium">{caseData.category}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Difficulty</span>
+                    <span className="font-medium">{caseData.difficulty}</span>
+                  </div>
+                  {caseData.publishedDate && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Published</span>
+                      <span className="font-medium">{caseData.publishedDate}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Contributors</span>
+                    <span className="font-medium">{contributors.length}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
 
-      {/* AI Evaluation Modal */}
+      {/* ── Evaluation Modal ───────────────────────────────────────────────── */}
       <Dialog open={showEvaluationModal} onOpenChange={setShowEvaluationModal}>
         <DialogContent className="sm:max-w-[500px]">
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
           >
             <DialogHeader>
-              <DialogTitle className="text-center text-2xl">
-                Your Submission Has Been Evaluated
+              <DialogTitle className="text-center text-xl">
+                Solution Evaluated
               </DialogTitle>
             </DialogHeader>
+
             {evaluationData && (
-              <div className="space-y-6 py-6">
+              <div className="space-y-5 py-4">
                 {/* Score */}
                 <div className="text-center">
-                  <div className="text-gradient-lavender mb-2 text-5xl">{evaluationData.score}</div>
-                  <p className="text-muted-foreground">out of 100</p>
-                  <Progress value={evaluationData.score} className="mt-4" />
+                  <p className="text-6xl font-bold text-primary mb-1">{evaluationData.score}</p>
+                  <p className="text-sm text-muted-foreground">out of 100</p>
+                  <Progress value={evaluationData.score} className="mt-3 h-2" />
                 </div>
 
                 {/* Verdict */}
                 <div className="text-center">
                   {evaluationData.verdict === 'Pass' ? (
-                    <div className="flex items-center justify-center gap-2 text-[#A9F5D0]">
-                      <CheckCircle2 className="h-6 w-6" />
-                      <span className="text-xl">Passed!</span>
+                    <div className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span className="text-lg font-semibold">Passed!</span>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center gap-2 text-[#FFD19C]">
-                      <AlertCircle className="h-6 w-6" />
-                      <span className="text-xl">Try Again</span>
+                    <div className="inline-flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                      <AlertCircle className="h-5 w-5" />
+                      <span className="text-lg font-semibold">Keep Trying</span>
                     </div>
                   )}
                 </div>
 
                 {/* Strengths */}
-                {evaluationData.strengths && evaluationData.strengths.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                      <CheckCircle2 className="h-5 w-5" />
-                      Strengths:
+                {(evaluationData.strengths ?? []).length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4" /> Strengths
                     </h4>
-                    <ul className="space-y-2">
-                      {evaluationData.strengths.map((item: string, index: number) => (
-                        <li key={index} className="text-muted-foreground flex gap-2 text-sm">
-                          <span className="text-green-600 dark:text-green-400">✓</span>
-                          <span>{item}</span>
+                    <ul className="space-y-1.5">
+                      {evaluationData.strengths!.map((s, i) => (
+                        <li key={i} className="text-sm text-muted-foreground flex gap-2">
+                          <span className="text-emerald-500 flex-shrink-0">✓</span>
+                          {s}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
 
-                {/* Areas for Improvement */}
-                {evaluationData.improvements && evaluationData.improvements.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-                      <AlertCircle className="h-5 w-5" />
-                      Areas for Improvement:
+                {/* Improvements */}
+                {(evaluationData.improvements ?? []).length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-orange-600 dark:text-orange-400 mb-2 flex items-center gap-1.5">
+                      <AlertCircle className="h-4 w-4" /> Areas for Improvement
                     </h4>
-                    <ul className="space-y-2">
-                      {evaluationData.improvements.map((item: string, index: number) => (
-                        <li key={index} className="text-muted-foreground flex gap-2 text-sm">
-                          <span className="text-orange-600 dark:text-orange-400">→</span>
-                          <span>{item}</span>
+                    <ul className="space-y-1.5">
+                      {evaluationData.improvements!.map((s, i) => (
+                        <li key={i} className="text-sm text-muted-foreground flex gap-2">
+                          <span className="text-orange-500 flex-shrink-0">→</span>
+                          {s}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
 
-                {/* General Feedback */}
-                {evaluationData.feedback && evaluationData.feedback.length > 0 && (
-                  <div className="space-y-2">
-                    <h4>Overall Feedback:</h4>
-                    <ul className="space-y-2">
-                      {evaluationData.feedback.map((item: string, index: number) => (
-                        <li key={index} className="text-muted-foreground flex gap-2 text-sm">
-                          <span className="text-primary">•</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
+                {/* Rate */}
+                <div className="border-t pt-4 space-y-2">
+                  <p className="text-sm font-medium text-center">Rate this case study</p>
+                  <div className="flex justify-center">
+                    <StarRating rating={userRating} onRatingChange={setUserRating} size="lg" />
                   </div>
-                )}
-
-                {/* User Rating Section */}
-                <div className="space-y-3 border-t pt-4">
-                  <h4>Rate this case study:</h4>
-                  <div className="flex flex-col items-center gap-3">
-                    <StarRating 
-                      rating={userRating}
-                      onRatingChange={setUserRating}
-                      size="lg"
-                    />
-                    {userRating > 0 && (
-                      <p className="text-sm text-muted-foreground text-center">
-                        Thank you for your feedback! This helps us improve our case studies.
-                      </p>
-                    )}
-                  </div>
+                  {userRating > 0 && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Thanks for your feedback!
+                    </p>
+                  )}
                 </div>
 
                 {/* Actions */}
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
-                    onClick={() => setShowEvaluationModal(false)}
                     className="flex-1 rounded-xl"
+                    onClick={handleAfterEvaluation}
                   >
                     Close
                   </Button>
                   <Button
-                    variant="outline"
-                    className="border-primary text-primary hover:bg-primary flex-1 rounded-xl hover:text-white"
-                    onClick={() => { setShowEvaluationModal(false); onNavigate?.('leaderboard'); }}
+                    className="gradient-lavender flex-1 rounded-xl hover:opacity-90"
+                    onClick={() => {
+                      handleAfterEvaluation();
+                      onNavigate?.('CaseStudies');
+                    }}
                   >
-                    View Leaderboard
+                    More Cases
                   </Button>
                 </div>
               </div>
@@ -706,7 +879,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Exit Warning Modal */}
+      {/* ── Exit Warning Modal ─────────────────────────────────────────────── */}
       <Dialog open={showExitWarning} onOpenChange={setShowExitWarning}>
         <DialogContent>
           <DialogHeader>

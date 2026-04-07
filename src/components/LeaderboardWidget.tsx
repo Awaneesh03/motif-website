@@ -1,105 +1,96 @@
-import { Trophy, Medal, Award } from 'lucide-react';
+import { Trophy, Medal, Award, Users } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
-import { Button } from './ui/button';
+import { Skeleton } from './ui/skeleton';
 
-interface LeaderboardEntry {
+export interface ContributorEntry {
   rank: number;
+  userId: string;
   name: string;
   avatar: string;
   score: number;
   attempts: number;
 }
 
-const mockData: LeaderboardEntry[] = [
-  {
-    rank: 1,
-    name: 'Sarah Chen',
-    avatar: 'https://images.unsplash.com/photo-1576558656222-ba66febe3dec?w=100&h=100&fit=crop',
-    score: 98,
-    attempts: 12,
-  },
-  {
-    rank: 2,
-    name: 'Marcus Johnson',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-    score: 95,
-    attempts: 15,
-  },
-  {
-    rank: 3,
-    name: 'Elena Rodriguez',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-    score: 92,
-    attempts: 10,
-  },
-  {
-    rank: 4,
-    name: 'Alex Kim',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-    score: 89,
-    attempts: 14,
-  },
-  {
-    rank: 5,
-    name: 'Jordan Lee',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
-    score: 87,
-    attempts: 11,
-  },
-];
-
 interface LeaderboardWidgetProps {
-  onViewLeaderboard?: () => void;
+  entries: ContributorEntry[];
+  isLoading: boolean;
 }
 
-export function LeaderboardWidget({ onViewLeaderboard }: LeaderboardWidgetProps) {
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Trophy className="h-4 w-4 text-[#FFD700]" />;
-      case 2:
-        return <Medal className="h-4 w-4 text-[#C0C0C0]" />;
-      case 3:
-        return <Award className="h-4 w-4 text-[#CD7F32]" />;
-      default:
-        return <span className="text-muted-foreground">#{rank}</span>;
-    }
-  };
+function RankIcon({ rank }: { rank: number }) {
+  if (rank === 1) return <Trophy className="h-4 w-4 text-[#FFD700]" />;
+  if (rank === 2) return <Medal className="h-4 w-4 text-[#C0C0C0]" />;
+  if (rank === 3) return <Award className="h-4 w-4 text-[#CD7F32]" />;
+  return <span className="text-sm font-medium text-muted-foreground">#{rank}</span>;
+}
 
+export function LeaderboardWidget({ entries, isLoading }: LeaderboardWidgetProps) {
   return (
     <Card className="glass-surface border-border/50">
-      <CardHeader>
-        <CardTitle>Top Contributors</CardTitle>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Trophy className="h-4 w-4 text-amber-500" />
+          Top Contributors
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {mockData.map(entry => (
-            <div key={entry.rank} className="flex items-center gap-3">
-              <div className="flex w-8 justify-center">{getRankIcon(entry.rank)}</div>
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={entry.avatar} alt={entry.name} />
-                <AvatarFallback>{entry.name[0]}</AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <p className="truncate">{entry.name}</p>
-                <p className="text-muted-foreground text-xs">{entry.attempts} attempts</p>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-4 w-4 rounded" />
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3 w-24 rounded" />
+                  <Skeleton className="h-3 w-16 rounded" />
+                </div>
+                <Skeleton className="h-5 w-10 rounded" />
               </div>
-              <Badge variant="secondary" className="ml-auto">
-                {entry.score}
-              </Badge>
-            </div>
-          ))}
-        </div>
-        <Button
-          variant="outline"
-          className="mt-6 w-full rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all"
-          onClick={onViewLeaderboard}
-        >
-          View Full Leaderboard
-        </Button>
+            ))}
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="py-8 text-center">
+            <Users className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
+            <p className="text-sm font-medium text-muted-foreground">No contributors yet</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Be the first to solve this case!
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {entries.map(entry => (
+              <div key={entry.userId} className="flex items-center gap-3">
+                <div className="flex w-6 justify-center flex-shrink-0">
+                  <RankIcon rank={entry.rank} />
+                </div>
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src={entry.avatar} alt={entry.name} />
+                  <AvatarFallback className="text-xs">
+                    {entry.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{entry.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {entry.attempts} {entry.attempts === 1 ? 'attempt' : 'attempts'}
+                  </p>
+                </div>
+                <Badge
+                  variant="secondary"
+                  className={`flex-shrink-0 text-xs ${
+                    entry.rank === 1
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                      : ''
+                  }`}
+                >
+                  {entry.score}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
