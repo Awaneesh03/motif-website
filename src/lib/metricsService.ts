@@ -22,19 +22,15 @@ export interface FounderMetrics {
  */
 export const getFounderMetrics = async (founderId: string): Promise<FounderMetrics> => {
   try {
-    // Get analyzed ideas count from idea_analyses table
-    const { data: analyzedIdeas, error: analyzedError } = await supabase
+    // Count analyzed ideas — head:true returns only the count, no rows transferred
+    const { count: totalAnalyzed, error: analyzedError } = await supabase
       .from('idea_analyses')
-      .select('*')
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', founderId);
 
     if (analyzedError) {
       console.error('Error fetching analyzed ideas:', analyzedError);
     }
-
-    // Use idea_analyses as the source of truth for all founder ideas
-    // NOTE: idea_analyses has no 'status' column — we only count totals
-    const totalAnalyzed = analyzedIdeas?.length || 0;
 
     // Get community ideas posted by this founder
     const { count: communityIdeasCount, error: communityError } = await supabase
@@ -47,7 +43,7 @@ export const getFounderMetrics = async (founderId: string): Promise<FounderMetri
     }
 
     return {
-      totalStartups: totalAnalyzed,
+      totalStartups: totalAnalyzed ?? 0,
       draftStartups: 0,
       pendingReview: 0,
       approvedForVC: 0,

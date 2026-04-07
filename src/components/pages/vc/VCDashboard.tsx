@@ -67,7 +67,7 @@ const VCDashboard = () => {
           const [requests, connections, notifications, vcMetrics] = await Promise.all([
             supabase
               .from('vc_applications')
-              .select('*')
+              .select('*, idea:idea_analyses(id, title)')
               .eq('vc_id', profile.id)
               .order('created_at', { ascending: false })
               .then(({ data }) => data),

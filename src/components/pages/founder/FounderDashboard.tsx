@@ -33,6 +33,51 @@ import { demoFounderStartups } from '@/lib/demoData';
 import { apiClient } from '@/lib/api-client';
 import { getRecentAnalyses, type RecentAnalysis } from '@/lib/aiAnalysis';
 
+// Hoisted out of render — defined once, used for both demo and real startup cards.
+// The real-startup variant has two extra cases ('rejected', 'active') that the
+// demo variant lacked; the demo cards just never produce those status values so
+// the extra cases are harmlessly unreachable for them.
+function getStatusInfo(status: string) {
+  switch (status) {
+    case 'draft':
+      return {
+        text: 'Draft',
+        description: 'Complete your details and submit for review',
+        badgeClass: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
+      };
+    case 'pending_review':
+      return {
+        text: 'Under Review',
+        description: 'Your startup is being reviewed by our team',
+        badgeClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      };
+    case 'approved_for_vc':
+      return {
+        text: 'Approved',
+        description: 'VCs can now discover your startup',
+        badgeClass: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      };
+    case 'rejected':
+      return {
+        text: 'Needs Changes',
+        description: 'Review feedback and update your submission',
+        badgeClass: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      };
+    case 'active':
+      return {
+        text: 'Active',
+        description: 'Your startup is live',
+        badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
+      };
+    default:
+      return {
+        text: 'Unknown status',
+        description: '',
+        badgeClass: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
+      };
+  }
+}
+
 export function FounderDashboard() {
   const { user, profile } = useUser();
   const navigate = useNavigate();
@@ -431,35 +476,6 @@ export function FounderDashboard() {
                         {/* Demo Startup Cards */}
                         <div className="grid gap-4 sm:grid-cols-2 mb-6">
                           {demoFounderStartups.map((demoStartup, index) => {
-                            const getStatusInfo = (status: string) => {
-                              switch (status) {
-                                case 'draft':
-                                  return {
-                                    text: 'Draft',
-                                    description: 'Complete your details and submit for review',
-                                    badgeClass: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-                                  };
-                                case 'pending_review':
-                                  return {
-                                    text: 'Under Review',
-                                    description: 'Your startup is being reviewed by our team',
-                                    badgeClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                                  };
-                                case 'approved_for_vc':
-                                  return {
-                                    text: 'Approved',
-                                    description: 'Your startup is approved and visible to VCs',
-                                    badgeClass: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                                  };
-                                default:
-                                  return {
-                                    text: 'Unknown status',
-                                    description: '',
-                                    badgeClass: 'bg-gray-100 text-gray-800',
-                                  };
-                              }
-                            };
-
                             const statusInfo = getStatusInfo(demoStartup.status || 'draft');
 
                             return (
@@ -545,48 +561,6 @@ export function FounderDashboard() {
                     ) : (
                       <div className="grid gap-4 sm:grid-cols-2">
                         {myStartups.map((startup, index) => {
-                          // Helper function to get status text and description
-                          const getStatusInfo = (status: string) => {
-                            switch (status) {
-                              case 'draft':
-                                return {
-                                  text: 'Draft',
-                                  description: 'Complete your details and submit for review',
-                                  badgeClass: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-                                };
-                              case 'pending_review':
-                                return {
-                                  text: 'Under Review',
-                                  description: 'Your startup is being reviewed by our team',
-                                  badgeClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                                };
-                              case 'approved_for_vc':
-                                return {
-                                  text: 'Approved',
-                                  description: 'VCs can now discover your startup',
-                                  badgeClass: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                                };
-                              case 'rejected':
-                                return {
-                                  text: 'Needs Changes',
-                                  description: 'Review feedback and update your submission',
-                                  badgeClass: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                                };
-                              case 'active':
-                                return {
-                                  text: 'Active',
-                                  description: 'Your startup is live',
-                                  badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
-                                };
-                              default:
-                                return {
-                                  text: 'Unknown status',
-                                  description: '',
-                                  badgeClass: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-                                };
-                            }
-                          };
-
                           const statusInfo = getStatusInfo(startup.status || 'draft');
 
                           return (
@@ -613,7 +587,7 @@ export function FounderDashboard() {
                               </div>
 
                               <p className="text-xs text-muted-foreground mb-3">
-                                Created {new Date(startup.created_at).toLocaleDateString()}
+                                Created {startup.created_at ? new Date(startup.created_at).toLocaleDateString() : '—'}
                               </p>
 
                               {/* Submit for Review Button — scoped to THIS card only */}

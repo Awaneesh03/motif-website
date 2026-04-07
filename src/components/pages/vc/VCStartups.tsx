@@ -50,7 +50,7 @@ const VCStartups = () => {
       // Fetch idea analyses with score >= 80
       const { data: highScoringAnalyses, error: analysesError } = await supabase
         .from('idea_analyses')
-        .select('idea_title, idea_description, score, created_at, user_id')
+        .select('id, idea_title, idea_description, score, created_at, user_id')
         .gte('score', 80)
         .order('score', { ascending: false });
 
@@ -58,7 +58,7 @@ const VCStartups = () => {
 
       // Transform to Startup format
       const highScoringStartups: Startup[] = (highScoringAnalyses || []).map((analysis: any) => ({
-        id: `analysis-${analysis.created_at}`, // Use timestamp as ID since analyses don't have their own ID
+        id: analysis.id,
         name: analysis.idea_title || 'Untitled',
         pitch: analysis.idea_description || '',
         problem: analysis.idea_description || '',
