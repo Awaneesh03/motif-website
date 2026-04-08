@@ -16,7 +16,6 @@ import { Textarea } from '../ui/textarea';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
 
-const COMMUNITY_STORAGE_KEY = 'motif-community-ideas';
 const COMMUNITY_COMMENTS_KEY = 'motif-community-comments';
 
 interface CommunityIdea {
@@ -52,147 +51,6 @@ interface AnalyzedIdea {
   target_market?: string;
 }
 
-const seedIdeas: CommunityIdea[] = [
-  {
-    title: 'AI-powered meal planning app for busy professionals',
-    description:
-      'An AI-powered assistant that helps users manage daily meal planning using predictive nutrition analysis and personalized recipes based on dietary preferences.',
-    upvotes: 234,
-    comments: 45,
-    tags: ['AI', 'HealthTech', 'Mobile'],
-    author: 'Alex Kim',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'Blockchain-based freelancer marketplace with escrow',
-    description:
-      'A decentralized platform connecting freelancers with clients, featuring smart contract escrow payments and reputation tracking on-chain.',
-    upvotes: 189,
-    comments: 32,
-    tags: ['Web3', 'Marketplace', 'Fintech'],
-    author: 'Jordan Lee',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'No-code platform for building internal tools',
-    description:
-      'Empower non-technical teams to build custom internal tools and workflows without writing code, integrating with existing business systems.',
-    upvotes: 156,
-    comments: 28,
-    tags: ['SaaS', 'No-Code', 'B2B'],
-    author: 'Sam Patel',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'Virtual reality training platform for medical students',
-    description:
-      'Immersive VR simulations for medical procedures and diagnostics, providing hands-on practice in a safe, controlled environment.',
-    upvotes: 142,
-    comments: 24,
-    tags: ['VR', 'EdTech', 'Healthcare'],
-    author: 'Maya Rodriguez',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'Sustainable packaging marketplace for e-commerce',
-    description:
-      'Connect e-commerce brands with eco-friendly packaging suppliers, featuring carbon footprint tracking and bulk ordering options.',
-    upvotes: 128,
-    comments: 19,
-    tags: ['Sustainability', 'E-commerce', 'B2B'],
-    author: 'Chen Wei',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'AI writing assistant for technical documentation',
-    description:
-      'Automated documentation generator for software projects, creating clear technical docs from code comments and API structures.',
-    upvotes: 115,
-    comments: 16,
-    tags: ['AI', 'SaaS', 'Developer Tools'],
-    author: 'Emily Davis',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'Smart parking solution for urban areas',
-    description:
-      'IoT-enabled parking system with real-time availability tracking, mobile reservations, and dynamic pricing for city parking management.',
-    upvotes: 98,
-    comments: 14,
-    tags: ['IoT', 'Smart City', 'Mobile'],
-    author: 'David Chen',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'Mental health chatbot for college students',
-    description:
-      'AI-powered conversational support providing 24/7 mental health resources, coping strategies, and crisis intervention for students.',
-    upvotes: 87,
-    comments: 12,
-    tags: ['AI', 'HealthTech', 'EdTech'],
-    author: 'Sarah Miller',
-    authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'Subscription box for sustainable pet products',
-    description:
-      "Monthly curated boxes of eco-friendly pet supplies, toys, and treats tailored to your pet's needs with zero-waste packaging.",
-    upvotes: 76,
-    comments: 10,
-    tags: ['E-commerce', 'Sustainability', 'Pets'],
-    author: 'Michael Brown',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'Voice-controlled home automation for elderly',
-    description:
-      'Simple voice interface for smart home control designed specifically for seniors, featuring emergency alerts and medication reminders.',
-    upvotes: 65,
-    comments: 8,
-    tags: ['IoT', 'HealthTech', 'Accessibility'],
-    author: 'Lisa Wang',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'Decentralized music streaming platform',
-    description:
-      'Web3 music platform where artists earn directly from streams using blockchain, with NFT album releases and fan governance.',
-    upvotes: 54,
-    comments: 7,
-    tags: ['Web3', 'Music', 'Entertainment'],
-    author: 'Tom Anderson',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&h=100&fit=crop',
-  },
-  {
-    title: 'AI-powered code review tool',
-    description:
-      'Intelligent code analysis tool that provides automated security checks, style suggestions, and performance optimizations.',
-    upvotes: 43,
-    comments: 5,
-    tags: ['AI', 'Developer Tools', 'SaaS'],
-    author: 'Priya Sharma',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&h=100&fit=crop',
-  },
-];
-
-const leaderboard = [
-  { name: 'Alex Kim', points: 2847, ideas: 12 },
-  { name: 'Jordan Lee', points: 2156, ideas: 8 },
-  { name: 'Sam Patel', points: 1923, ideas: 15 },
-  { name: 'Maya Rodriguez', points: 1654, ideas: 7 },
-  { name: 'Chen Wei', points: 1432, ideas: 9 },
-];
 
 interface CommunityPageProps {
   onNavigate?: (page: string) => void;
@@ -443,25 +301,6 @@ const idTieBreak = (aId: string | undefined, bId: string | undefined): number =>
 
 const normalizeIdeaValue = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
 
-const loadCommunityIdeas = (): CommunityIdea[] => {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(COMMUNITY_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    console.error('Failed to load community ideas:', error);
-    return [];
-  }
-};
-
-const persistCommunityIdeas = (ideas: CommunityIdea[]) => {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(COMMUNITY_STORAGE_KEY, JSON.stringify(ideas));
-  } catch (error) {
-    console.error('Failed to save community ideas:', error);
-  }
-};
 
 const parseTags = (value: string) =>
   value
@@ -501,7 +340,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const [selectedIdea, setSelectedIdea] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [communityIdeas, _setCommunityIdeas] = useState<CommunityIdea[]>(() => loadCommunityIdeas());
   const [commentStore, setCommentStore] = useState<Record<string, CommunityComment[]>>(
     () => loadCommunityComments()
   );
@@ -558,25 +396,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   // ID of the most recently posted idea — drives brief highlight + scroll-into-view
   const [highlightedIdeaId, setHighlightedIdeaId] = useState<string | null>(null);
   
-  // Local upvotes for demo ideas (stored in localStorage)
-  const [localUpvotes, setLocalUpvotes] = useState<Record<string, { count: number; hasUpvoted: boolean }>>(() => {
-    try {
-      const stored = localStorage.getItem('motif-demo-upvotes');
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  // Persist local upvotes
-  useEffect(() => {
-    localStorage.setItem('motif-demo-upvotes', JSON.stringify(localUpvotes));
-  }, [localUpvotes]);
-
-  useEffect(() => {
-    persistCommunityIdeas(communityIdeas);
-  }, [communityIdeas]);
-
   useEffect(() => {
     persistCommunityComments(commentStore);
   }, [commentStore]);
@@ -964,37 +783,28 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     }
   };
 
-  // Handle upvote for demo/seed ideas (local only)
-  const handleDemoUpvote = (ideaTitle: string, currentUpvotes: number) => {
-    const key = `demo:${ideaTitle}`;
-    const current = localUpvotes[key] || { count: currentUpvotes, hasUpvoted: false };
-    
-    setLocalUpvotes(prev => ({
-      ...prev,
-      [key]: {
-        count: current.hasUpvoted ? current.count - 1 : current.count + 1,
-        hasUpvoted: !current.hasUpvoted
-      }
-    }));
-  };
 
-  // Combine Supabase ideas, localStorage ideas, and seed ideas
-  const allIdeas = [...supabaseIdeas, ...communityIdeas, ...seedIdeas].map(idea => {
+  // All ideas come from Supabase — merge in cached comment counts from local store
+  const allIdeas = supabaseIdeas.map(idea => {
     const key = getIdeaKey(idea);
     const storedCount = commentStore[key]?.length ?? idea.comments;
-    
-    // Apply local upvotes for demo ideas (those without id)
-    const demoKey = `demo:${idea.title}`;
-    const localUpvote = localUpvotes[demoKey];
-    
-    return { 
-      ...idea, 
-      comments: storedCount,
-      // Use local upvote data for demo ideas
-      upvotes: localUpvote ? localUpvote.count : idea.upvotes,
-      hasUpvoted: idea.id ? idea.hasUpvoted : (localUpvote?.hasUpvoted || false)
-    };
+    return { ...idea, comments: storedCount };
   });
+
+  // Top Contributors — aggregated client-side from the already-fetched supabaseIdeas.
+  // Groups by authorId, sums upvotes, counts posts, sorts by total upvotes desc.
+  // This avoids a separate GROUP BY query; the data is already in memory.
+  const topContributors = (() => {
+    const map = new Map<string, { name: string; upvotes: number; ideas: number }>();
+    for (const idea of supabaseIdeas) {
+      if (!idea.authorId) continue;
+      const entry = map.get(idea.authorId) ?? { name: idea.author, upvotes: 0, ideas: 0 };
+      entry.upvotes += idea.upvotes ?? 0;
+      entry.ideas   += 1;
+      map.set(idea.authorId, entry);
+    }
+    return [...map.values()].sort((a, b) => b.upvotes - a.upvotes).slice(0, 5);
+  })();
 
   // Filter and sort ideas based on selected filter and tag.
   // Each branch pre-computes per-idea sort keys into a keyed array so the
@@ -1772,11 +1582,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                       <IdeaCard
                         {...idea}
                         onCommentClick={() => handleCommentClick(idea)}
-                        onUpvote={
-                          idea.id
-                            ? () => handleUpvote(idea.id!)
-                            : () => handleDemoUpvote(idea.title, idea.upvotes)
-                        }
+                        onUpvote={idea.id ? () => handleUpvote(idea.id!) : undefined}
                         hasUpvoted={idea.hasUpvoted}
                       />
                     </motion.div>
@@ -1844,31 +1650,37 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Top Contributors</h3>
                 </div>
                 <div className="space-y-3">
-                    {leaderboard.map((user, index) => (
-                      <div key={user.name} className="flex items-center gap-2.5">
-                        <div className="flex-shrink-0">
-                          <div
-                            className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
-                              index === 0
-                                ? 'bg-yellow-500 text-white'
-                                : index === 1
-                                  ? 'bg-gray-400 text-white'
-                                  : index === 2
-                                    ? 'bg-orange-600 text-white'
-                                    : 'bg-muted text-muted-foreground'
-                            }`}
-                          >
-                            {index + 1}
+                    {topContributors.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">
+                        No ideas posted yet — be the first!
+                      </p>
+                    ) : (
+                      topContributors.map((contributor, index) => (
+                        <div key={contributor.name} className="flex items-center gap-2.5">
+                          <div className="flex-shrink-0">
+                            <div
+                              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+                                index === 0
+                                  ? 'bg-yellow-500 text-white'
+                                  : index === 1
+                                    ? 'bg-gray-400 text-white'
+                                    : index === 2
+                                      ? 'bg-orange-600 text-white'
+                                      : 'bg-muted text-muted-foreground'
+                              }`}
+                            >
+                              {index + 1}
+                            </div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{contributor.name}</p>
+                            <p className="text-muted-foreground text-xs">
+                              {contributor.upvotes} upvotes · {contributor.ideas} {contributor.ideas === 1 ? 'idea' : 'ideas'}
+                            </p>
                           </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{user.name}</p>
-                          <p className="text-muted-foreground text-xs">
-                            {user.points} pts · {user.ideas} ideas
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                 </div>
               </div>
             </div>
