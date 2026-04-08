@@ -50,61 +50,34 @@ interface CaseData {
   hints: string[];
 }
 
-// ── Fetch top contributors — DB-side aggregation keyed by stable caseId ───────
+// ── Fetch top contributors via DB-side RPC ────────────────────────────────────
 //
-// Primary path: filter by metadata->>'caseId' (stable UUID, set by backend
-//   for all submissions after this deploy).
-// Fallback path: filter by title string for events written before caseId was
-//   added — guarantees the leaderboard is never empty for existing data.
+// Calls the get_case_leaderboard Postgres function which runs:
+//   SELECT user_id, MAX(score::int) AS best_score, COUNT(*) AS attempts
+//   FROM user_activity
+//   WHERE type = 'case_completed' AND metadata->>'caseId' = p_case_id
+//     AND score IS NOT NULL AND score ~ '^\d+$'
+//   GROUP BY user_id ORDER BY best_score DESC LIMIT 5
 //
-// Aggregation happens in two SELECT passes (PostgREST doesn't expose GROUP BY),
-// but each pass returns only the columns we need — no full-row fetch.
-async function fetchContributors(caseId: string, caseTitle: string): Promise<ContributorEntry[]> {
-  // ── Pass 1: rows with stable caseId in metadata (new events) ────────────
-  const { data: byIdRows } = await supabase
-    .from('user_activity')
-    .select('user_id, metadata')
-    .eq('type', 'case_completed')
-    .eq('metadata->>caseId', caseId);           // PostgREST JSONB arrow operator
+// The DB does all aggregation — at most 5 rows cross the wire regardless of
+// how many completion events exist. A second query joins profiles for UI data.
+//
+// score validation (^\d+$ guard + ::int cast) is enforced by the DB function;
+// invalid or missing scores are excluded, not coerced to 0.
+async function fetchContributors(caseId: string): Promise<ContributorEntry[]> {
+  type RpcRow = { user_id: string; best_score: number; attempts: number };
 
-  // ── Pass 2: rows keyed only by title (legacy events, before caseId) ─────
-  // Exclude rows already captured in pass 1 to avoid double-counting.
-  const { data: byTitleRows } = await supabase
-    .from('user_activity')
-    .select('user_id, metadata')
-    .eq('type', 'case_completed')
-    .eq('title', caseTitle)
-    .is('metadata->>caseId', null);             // only rows missing caseId
+  const { data, error } = await supabase.rpc('get_case_leaderboard', {
+    p_case_id: caseId,
+    p_limit:   5,
+  });
 
-  const allRows = [...(byIdRows ?? []), ...(byTitleRows ?? [])];
-  if (allRows.length === 0) return [];
+  if (error || !data || (data as RpcRow[]).length === 0) return [];
 
-  // ── Client-side aggregation: MAX(score) + attempt count per user ─────────
-  // Two-pass SELECT is necessary because PostgREST doesn't expose GROUP BY.
-  // The result set is at most a few hundred rows (one per completion event),
-  // so in-memory aggregation is negligible.
-  const byUser = new Map<string, { bestScore: number; attempts: number }>();
-  for (const row of allRows) {
-    const rawScore = row.metadata?.score;
-    // Guard: score must be a finite integer in [0,100]
-    const score =
-      typeof rawScore === 'number' && Number.isFinite(rawScore)
-        ? Math.max(0, Math.min(100, Math.round(rawScore)))
-        : 0;
-    const prev = byUser.get(row.user_id);
-    byUser.set(row.user_id, {
-      bestScore: prev ? Math.max(prev.bestScore, score) : score,
-      attempts:  prev ? prev.attempts + 1 : 1,
-    });
-  }
+  const rows = data as RpcRow[];
 
-  // Sort DESC by best score, take top 5
-  const top5 = [...byUser.entries()]
-    .sort((a, b) => b[1].bestScore - a[1].bestScore)
-    .slice(0, 5);
-
-  // ── Join profiles for display name + avatar ───────────────────────────────
-  const userIds = top5.map(([uid]) => uid);
+  // Join profiles for display name + avatar — at most 5 IDs
+  const userIds = rows.map(r => r.user_id);
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, name, avatar')
@@ -115,15 +88,15 @@ async function fetchContributors(caseId: string, caseTitle: string): Promise<Con
     profileMap.set(p.id, { name: p.name || 'User', avatar: p.avatar || '' });
   }
 
-  return top5.map(([userId, stats], index) => {
-    const profile = profileMap.get(userId) ?? { name: 'User', avatar: '' };
+  return rows.map((row, index) => {
+    const profile = profileMap.get(row.user_id) ?? { name: 'User', avatar: '' };
     return {
       rank:     index + 1,
-      userId,
+      userId:   row.user_id,
       name:     profile.name,
       avatar:   profile.avatar,
-      score:    stats.bestScore,
-      attempts: stats.attempts,
+      score:    row.best_score,
+      attempts: Number(row.attempts), // bigint arrives as string in some drivers
     };
   });
 }
@@ -208,51 +181,40 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     })();
   }, [caseId]);
 
-  // ── Fetch contributors (keyed by stable caseId, title used as fallback) ─────
+  // ── Fetch contributors — depends only on stable caseId ───────────────────
   const loadContributors = useCallback(async () => {
-    if (!caseId || !caseData?.title) return;
+    if (!caseId) return;
     setContributorsLoading(true);
     try {
-      const entries = await fetchContributors(caseId, caseData.title);
+      const entries = await fetchContributors(caseId);
       setContributors(entries);
     } catch {
       setContributors([]);
     } finally {
       setContributorsLoading(false);
     }
-  }, [caseId, caseData?.title]);
+  }, [caseId]);
 
   useEffect(() => {
     loadContributors();
   }, [loadContributors]);
 
-  // ── Realtime: refresh leaderboard when any case_completed event is inserted ─
-  // Filter by caseId in metadata so only events for THIS case trigger a reload.
-  // Because Supabase realtime column filters don't support JSONB paths, we
-  // filter on type only and check caseId in the handler — still limits to one
-  // small refetch per actual completion event.
+  // ── Realtime: push-based leaderboard refresh on INSERT ────────────────────
+  // Supabase realtime doesn't support JSONB path filters, so we subscribe to
+  // all user_activity INSERTs and match caseId in the handler. Only one RPC
+  // call is triggered per relevant event — all others are dropped in JS.
   useEffect(() => {
-    if (!caseId || !caseData?.title) return;
+    if (!caseId) return;
 
     const channel = supabase
       .channel(`leaderboard-${caseId}`)
       .on(
         'postgres_changes',
-        {
-          event:  'INSERT',
-          schema: 'public',
-          table:  'user_activity',
-        },
+        { event: 'INSERT', schema: 'public', table: 'user_activity' },
         (payload) => {
           const row = payload.new as { type?: string; metadata?: Record<string, unknown> } | null;
           if (row?.type !== 'case_completed') return;
-          // Check that the event belongs to this case (new-style caseId or legacy title match)
-          const metaCaseId = row.metadata?.caseId;
-          const metaTitle  = (payload.new as Record<string, unknown>)?.title as string | undefined;
-          const isThisCase =
-            metaCaseId === caseId ||
-            (!metaCaseId && metaTitle === caseData?.title);
-          if (!isThisCase) return;
+          if (row.metadata?.caseId !== caseId) return;
           loadContributors();
         }
       )
@@ -261,7 +223,14 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [caseId, caseData?.title, loadContributors]);
+  }, [caseId, loadContributors]);
+
+  // ── Periodic sync (60 s) — catches events missed during realtime downtime ─
+  useEffect(() => {
+    if (!caseId) return;
+    const id = setInterval(loadContributors, 60_000);
+    return () => clearInterval(id);
+  }, [caseId, loadContributors]);
 
   // ── Auto-save draft (debounced, local only — marks timestamp) ─────────────
   useEffect(() => {
