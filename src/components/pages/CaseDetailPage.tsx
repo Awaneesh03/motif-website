@@ -331,7 +331,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     return (
       <div className="bg-background min-h-screen">
         <div className="border-border border-b bg-gradient-to-r from-[#C9A7EB]/10 to-transparent">
-          <div className="mx-auto max-w-[1140px] px-4 pt-4 pb-6 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 pt-4 pb-6 sm:px-6 lg:px-8">
             <Skeleton className="h-8 w-36 mb-5 rounded-lg" />
             <div className="flex items-center gap-4">
               <Skeleton className="h-14 w-14 rounded-xl flex-shrink-0" />
@@ -347,16 +347,16 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
             </div>
           </div>
         </div>
-        <div className="mx-auto max-w-[1140px] px-4 py-8 sm:px-6 lg:px-8">
-          <div className="grid gap-8 md:grid-cols-3">
-            <div className="space-y-6 md:col-span-2">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid gap-6 lg:grid-cols-12">
+            <div className="space-y-6 lg:col-span-8">
               <Skeleton className="h-48 w-full rounded-xl" />
               <div className="grid grid-cols-3 gap-3">
                 {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
               </div>
               <Skeleton className="h-96 w-full rounded-xl" />
             </div>
-            <div className="space-y-6">
+            <div className="space-y-6 lg:col-span-4">
               <Skeleton className="h-64 w-full rounded-xl" />
               <Skeleton className="h-48 w-full rounded-xl" />
             </div>
@@ -389,7 +389,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     <div className="bg-background min-h-screen">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="border-border border-b bg-gradient-to-r from-[#C9A7EB]/10 to-transparent">
-        <div className="mx-auto max-w-[1140px] px-4 pt-4 pb-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 pt-4 pb-6 sm:px-6 lg:px-8">
           <div className="mb-5">
             <Button
               variant="ghost"
@@ -437,11 +437,11 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
       </div>
 
       {/* ── Main grid ──────────────────────────────────────────────────────── */}
-      <div className="mx-auto max-w-[1140px] px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-8 md:grid-cols-3">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid gap-6 lg:grid-cols-12">
 
-          {/* LEFT — problem + workspace */}
-          <div className="space-y-6 md:col-span-2">
+          {/* LEFT — problem + workspace (8/12 cols on desktop) */}
+          <div className="space-y-6 lg:col-span-8">
 
             {/* Problem Overview */}
             <Card className="border-border/50">
@@ -719,8 +719,8 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
             )}
           </div>
 
-          {/* RIGHT sidebar */}
-          <div className="space-y-6">
+          {/* RIGHT sidebar (4/12 cols on desktop, stacks below on mobile/tablet) */}
+          <div className="space-y-6 lg:col-span-4 lg:sticky lg:top-6 lg:self-start">
             {/* Top Contributors — real data */}
             <LeaderboardWidget
               entries={contributors}
