@@ -7,7 +7,7 @@ interface IdeaCardProps {
   title: string;
   description?: string;
   upvotes: number;
-  comments: number;
+  comments_count: number;
   tags: string[];
   author: string;
   authorAvatar?: string;
@@ -20,7 +20,7 @@ export function IdeaCard({
   title,
   description,
   upvotes,
-  comments,
+  comments_count,
   tags,
   author,
   authorAvatar,
@@ -37,9 +37,9 @@ export function IdeaCard({
         backgroundColor: '#ffffff',
         border: '1px solid #d1d5db',
         borderRadius: 10,
-        transition: 'box-shadow 0.2s, border-color 0.2s',
+        transition: 'box-shadow 0.2s, border-color 0.2s, transform 0.15s',
       }}
-      className="hover:shadow-md hover:border-gray-300"
+      className="hover:shadow-lg hover:border-gray-300 hover:scale-[1.008]"
     >
       <div style={{ padding: 16 }}>
         {/* 3-column layout: Left fixed | Center fill | Right fixed */}
@@ -56,8 +56,8 @@ export function IdeaCard({
                   : 'Upvote this idea'
                 : 'Login to upvote'
             }
-            className={`transition-transform ${
-              !canUpvote ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'
+            className={`transition-transform duration-150 ${
+              !canUpvote ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-110 active:scale-90'
             }`}
             style={{
               flexShrink: 0,
@@ -129,7 +129,7 @@ export function IdeaCard({
           <button
             onClick={onCommentClick}
             title="View Comments"
-            className="cursor-pointer transition-opacity hover:opacity-75"
+            className="cursor-pointer transition-transform duration-150 hover:scale-110 active:scale-90"
             style={{
               flexShrink: 0,
               display: 'flex',
@@ -156,7 +156,7 @@ export function IdeaCard({
                 color: '#1e293b',
               }}
             >
-              {comments}
+              {comments_count}
             </span>
           </button>
 

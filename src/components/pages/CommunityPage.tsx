@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
-import { TrendingUp, Clock, MessageCircle, Award, Send, Lightbulb, Loader2, Sparkles, MessageSquare, Filter, ThumbsUp } from 'lucide-react';
+import { TrendingUp, Clock, MessageCircle, Send, Lightbulb, Loader2, Sparkles, MessageSquare, Filter, ThumbsUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '../ui/button';
@@ -23,7 +23,7 @@ interface CommunityIdea {
   title: string;
   description: string;
   upvotes: number;
-  comments: number;
+  comments_count: number;
   tags: string[];
   author: string;
   authorAvatar?: string;
@@ -39,7 +39,8 @@ interface CommunityComment {
   author: string;
   avatar?: string;
   message: string;
-  timestamp: string;
+  /** ISO-8601 timestamp — used for formatRelativeTime() in the render. */
+  createdAt: string;
 }
 
 interface AnalyzedIdea {
@@ -240,6 +241,26 @@ const makeContentHash = (title: string, description: string): string => {
  */
 const FEATURE_IDEMPOTENCY_KEY = false;
 
+/** Maximum comment length enforced both in the UI and on insert. */
+const COMMENT_MAX_CHARS = 300;
+
+/** Number of comments fetched per page. */
+const COMMENT_PAGE_SIZE = 20;
+
+/**
+ * Converts an ISO timestamp to a human-friendly relative string.
+ * Updates only at render time — callers should re-render periodically
+ * if live "X minutes ago" ticking is needed (not required here).
+ */
+const formatRelativeTime = (iso: string): string => {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60_000)        return 'just now';
+  if (diff < 3_600_000)     return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000)    return `${Math.floor(diff / 3_600_000)}h ago`;
+  if (diff < 7 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d ago`;
+  return new Date(iso).toLocaleDateString();
+};
+
 /** Maps a raw Supabase community_ideas row to a typed CommunityIdea. */
 const mapRowToIdea = (row: any, hasUpvoted = false): CommunityIdea => ({
   id: row.id,
@@ -247,7 +268,7 @@ const mapRowToIdea = (row: any, hasUpvoted = false): CommunityIdea => ({
   description: row.description,
   tags: row.tags || [],
   upvotes: row.upvotes_count || 0,
-  comments: row.comments_count || 0,
+  comments_count: row.comments_count || 0,
   author: row.author_name,
   authorAvatar: row.author_avatar,
   authorId: row.author_id,
@@ -280,7 +301,7 @@ const createdAtTs = (idea: CommunityIdea): number => {
  *   artificially low score from a fractionally larger raw age.
  */
 const trendingScore = (idea: CommunityIdea, maxAgeHours = Infinity): number => {
-  const votes = (idea.upvotes ?? 0) + (idea.comments ?? 0);
+  const votes = (idea.upvotes ?? 0) + (idea.comments_count ?? 0);
   const ts = idea.createdAt ? new Date(idea.createdAt).getTime() : NaN;
   // Math.max(0, …) clamps negative ages caused by clock skew (future-dated posts).
   const rawAge = Number.isFinite(ts) ? (Date.now() - ts) / 3_600_000 : Infinity;
@@ -339,6 +360,10 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   const [commentPanelOpen, setCommentPanelOpen] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
+  const [isSendingComment, setIsSendingComment] = useState(false);
+  const [hasMoreComments, setHasMoreComments] = useState(false);
+  const [isLoadingMoreComments, setIsLoadingMoreComments] = useState(false);
+  const commentTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [commentStore, setCommentStore] = useState<Record<string, CommunityComment[]>>(
     () => loadCommunityComments()
@@ -414,31 +439,72 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     return () => clearTimeout(t);
   }, [highlightedIdeaId]);
 
-  // Load comments from Supabase when the panel opens for a DB-backed idea
+  // Load comments from Supabase when the panel opens, and subscribe to live inserts.
+  // Fetches the latest COMMENT_PAGE_SIZE comments (DESC) then reverses for chronological display.
+  // Resets pagination state whenever the selected idea changes.
   useEffect(() => {
     if (!commentPanelOpen || !selectedIdea?.id) return;
+
+    const ideaId = selectedIdea.id;
+    const key = getIdeaKey(selectedIdea);
+
+    // Reset pagination + clear stale list for the new idea
+    setHasMoreComments(false);
+    setIsLoadingMoreComments(false);
+
+    const mapRow = (c: any): CommunityComment => ({
+      id: c.id,
+      author: c.author_name,
+      avatar: undefined,
+      message: c.message,
+      createdAt: c.created_at,
+    });
 
     const fetchComments = async () => {
       const { data, error } = await supabase
         .from('community_comments')
         .select('*')
-        .eq('idea_id', selectedIdea.id)
-        .order('created_at', { ascending: true });
+        .eq('idea_id', ideaId)
+        .order('created_at', { ascending: false })   // newest first from DB
+        .limit(COMMENT_PAGE_SIZE);
 
       if (error || !data) return;
 
-      const key = getIdeaKey(selectedIdea);
-      const mapped: CommunityComment[] = data.map((c: any) => ({
-        id: c.id,
-        author: c.author_name,
-        avatar: undefined,
-        message: c.content,
-        timestamp: new Date(c.created_at).toLocaleString(),
-      }));
+      // Reverse so oldest appears at top, newest at bottom (chronological read order)
+      const mapped = [...data].reverse().map(mapRow);
+      setHasMoreComments(data.length === COMMENT_PAGE_SIZE);
       setCommentStore(prev => ({ ...prev, [key]: mapped }));
     };
 
     fetchComments();
+
+    // Auto-focus the textarea after the panel animation settles (~150 ms)
+    const focusTid = setTimeout(() => commentTextareaRef.current?.focus(), 150);
+
+    // Subscribe to new comments on this idea while the panel is open.
+    // Realtime fires AFTER our own insert has already updated optimistic state,
+    // so deduplicate by UUID before appending.
+    const commentChannel = supabase
+      .channel(`comments-panel-${ideaId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'community_comments', filter: `idea_id=eq.${ideaId}` },
+        (payload) => {
+          const incoming = mapRow(payload.new as any);
+          setCommentStore(prev => {
+            const existing = prev[key] || [];
+            if (existing.some(e => e.id === incoming.id)) return prev;
+            return { ...prev, [key]: [...existing, incoming] };
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearTimeout(focusTid);
+      supabase.removeChannel(commentChannel);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commentPanelOpen, selectedIdea?.id]);
 
   // Fetch analyzed ideas when post dialog opens
@@ -784,27 +850,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   };
 
 
-  // All ideas come from Supabase — merge in cached comment counts from local store
-  const allIdeas = supabaseIdeas.map(idea => {
-    const key = getIdeaKey(idea);
-    const storedCount = commentStore[key]?.length ?? idea.comments;
-    return { ...idea, comments: storedCount };
-  });
-
-  // Top Contributors — aggregated client-side from the already-fetched supabaseIdeas.
-  // Groups by authorId, sums upvotes, counts posts, sorts by total upvotes desc.
-  // This avoids a separate GROUP BY query; the data is already in memory.
-  const topContributors = (() => {
-    const map = new Map<string, { name: string; upvotes: number; ideas: number }>();
-    for (const idea of supabaseIdeas) {
-      if (!idea.authorId) continue;
-      const entry = map.get(idea.authorId) ?? { name: idea.author, upvotes: 0, ideas: 0 };
-      entry.upvotes += idea.upvotes ?? 0;
-      entry.ideas   += 1;
-      map.set(idea.authorId, entry);
-    }
-    return [...map.values()].sort((a, b) => b.upvotes - a.upvotes).slice(0, 5);
-  })();
+  // All ideas come from Supabase — DB counts are authoritative.
+  // commentStore is used only to populate the comment panel list, not for card counts.
+  const allIdeas = supabaseIdeas;
 
   // Filter and sort ideas based on selected filter and tag.
   // Each branch pre-computes per-idea sort keys into a keyed array so the
@@ -849,11 +897,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     } else if (filter === 'discussed') {
       const keyed = filtered.map(idea => ({
         idea,
-        comments: idea.comments ?? 0,
+        comments_count: idea.comments_count ?? 0,
         ts: createdAtTs(idea),
       }));
       keyed.sort((a, b) => {
-        const diff = b.comments - a.comments;
+        const diff = b.comments_count - a.comments_count;
         if (diff !== 0) return diff;
         if (b.ts !== a.ts) return b.ts - a.ts;
         return idTieBreak(a.idea.id, b.idea.id);
@@ -981,7 +1029,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       description: postDescription,
       tags: postTags,
       upvotes: 0,
-      comments: 0,
+      comments_count: 0,
       author: authorName,
       authorAvatar: profile?.avatar || undefined,
       authorId: user.id,
@@ -1165,40 +1213,144 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     setCommentPanelOpen(true);
   };
 
+  /**
+   * Cursor-based "load older comments" — fetches COMMENT_PAGE_SIZE rows
+   * created before the oldest comment currently displayed and prepends them.
+   */
+  const handleLoadMoreComments = async () => {
+    if (!selectedIdea?.id || isLoadingMoreComments) return;
+    const key = getIdeaKey(selectedIdea);
+    const current = commentStore[key] || [];
+    const oldest = current[0]; // array is chronological: index 0 = oldest shown
+    if (!oldest) return;
+
+    setIsLoadingMoreComments(true);
+    const { data, error } = await supabase
+      .from('community_comments')
+      .select('*')
+      .eq('idea_id', selectedIdea.id)
+      .lt('created_at', oldest.createdAt)          // cursor: strictly before oldest
+      .order('created_at', { ascending: false })   // newest of the older batch first
+      .limit(COMMENT_PAGE_SIZE);
+
+    setIsLoadingMoreComments(false);
+
+    if (error || !data) return;
+
+    const older = [...data].reverse().map((c: any): CommunityComment => ({
+      id: c.id,
+      author: c.author_name,
+      avatar: undefined,
+      message: c.message,
+      createdAt: c.created_at,
+    }));
+
+    setHasMoreComments(data.length === COMMENT_PAGE_SIZE);
+    setCommentStore(prev => ({ ...prev, [key]: [...older, ...(prev[key] || [])] }));
+  };
+
   const handleSendComment = async () => {
-    if (!newComment.trim() || !selectedIdea) return;
+    if (!newComment.trim() || !selectedIdea || isSendingComment) return;
+    if (!user) {
+      toast.error('Please log in to comment.');
+      return;
+    }
 
     const key = getIdeaKey(selectedIdea);
     const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
-    const commentText = newComment.trim();
-    const newEntry: CommunityComment = {
-      id: `${Date.now()}`,
+    const commentText = newComment.slice(0, COMMENT_MAX_CHARS).trim();
+    if (!commentText) return;
+
+    // Temporary optimistic ID — replaced by the real UUID after DB confirms
+    const optimisticId = `optimistic-${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    const optimisticEntry: CommunityComment = {
+      id: optimisticId,
       author: authorName,
       avatar: profile?.avatar || undefined,
       message: commentText,
-      timestamp: new Date().toLocaleString(),
+      createdAt: nowIso,
     };
 
-    // Optimistic UI update
+    // Optimistic insert — show the comment immediately
     setCommentStore(prev => {
       const existing = prev[key] || [];
-      return { ...prev, [key]: [...existing, newEntry] };
+      return { ...prev, [key]: [...existing, optimisticEntry] };
     });
-    setSelectedIdea({ ...selectedIdea, comments: (selectedIdea.comments || 0) + 1 });
     setNewComment('');
+    setIsSendingComment(true);
 
-    // Persist to Supabase for real community ideas (those with a DB id)
+    // Persist to DB — correct column names from community_comments schema:
+    //   author_id  (NOT user_id) — required by RLS: auth.uid() = author_id
+    //   message    (NOT content) — actual column name
+    const { data: inserted, error } = await supabase
+      .from('community_comments')
+      .insert({
+        idea_id: selectedIdea.id,
+        author_id: user.id,
+        author_name: authorName,
+        message: commentText,
+      })
+      .select()
+      .single();
+
+    setIsSendingComment(false);
+
+    if (error) {
+      // Rollback: remove optimistic entry, restore text for retry
+      setCommentStore(prev => {
+        const existing = prev[key] || [];
+        return { ...prev, [key]: existing.filter(c => c.id !== optimisticId) };
+      });
+      logError('handleSendComment/insert', error, { userId: user.id, ideaTitle: selectedIdea.title });
+      toast.error(`Failed to post comment: ${error.message}`);
+      setNewComment(commentText);
+      return;
+    }
+
+    // Swap temp optimistic ID for the real DB UUID so realtime dedup works
+    if (inserted) {
+      setCommentStore(prev => {
+        const existing = prev[key] || [];
+        return {
+          ...prev,
+          [key]: existing.map(c =>
+            c.id === optimisticId
+              ? { ...c, id: inserted.id, createdAt: inserted.created_at }
+              : c
+          ),
+        };
+      });
+    }
+
+    // ── Card comment-count update ────────────────────────────────────────────
+    // The DB trigger (trigger_update_comments_count) increments
+    // community_ideas.comments_count synchronously inside the INSERT transaction,
+    // so by the time .select().single() returns above, the DB already has the
+    // correct count.  However, the count on idea cards comes from supabaseIdeas
+    // state which is only refreshed by fetchCommunityIdeas() — and that only runs
+    // when the realtime subscription fires a UPDATE event on community_ideas.
+    //
+    // Supabase Realtime can drop or delay trigger-fired UPDATE events depending on
+    // replica identity and network conditions.  To keep the UI always correct:
+    //
+    //   1. Optimistic increment — updates the card count instantly (no waiting).
+    //      Does NOT touch updatedAt, so the updated_at guard in setSupabaseIdeas
+    //      won't suppress the real DB value when the refetch arrives.
+    //
+    //   2. Explicit fetchCommunityIdeas() — guaranteed sync with the DB regardless
+    //      of whether realtime delivers the event.  The trigger has already fired
+    //      by the time this runs, so the fetched row carries the correct count.
     if (selectedIdea.id) {
-      try {
-        await supabase.from('community_comments').insert({
-          idea_id: selectedIdea.id,
-          user_id: user?.id || null,
-          author_name: authorName,
-          content: commentText,
-        });
-      } catch (error) {
-        console.error('Failed to save comment to database:', error);
-      }
+      setSupabaseIdeas(prev =>
+        prev.map(idea =>
+          idea.id === selectedIdea.id
+            ? { ...idea, comments_count: Math.max(0, (idea.comments_count ?? 0) + 1) }
+            : idea
+        )
+      );
+      // Background sync — runs after state flushes, so no fetch/render contention.
+      fetchCommunityIdeas();
     }
 
     toast.success('Comment posted.');
@@ -1475,7 +1627,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     variant={filter === 'trending' ? 'default' : 'outline'}
                     onClick={() => handleFilterChange('trending')}
                     size="sm"
-                    className="rounded-full h-8"
+                    className="rounded-full h-8 transition-all duration-200"
                     title="Last 7 days · ranked by time-decayed engagement"
                   >
                     <TrendingUp className="mr-1.5 h-3.5 w-3.5" />
@@ -1485,7 +1637,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     variant={filter === 'new' ? 'default' : 'outline'}
                     onClick={() => handleFilterChange('new')}
                     size="sm"
-                    className="rounded-full h-8"
+                    className="rounded-full h-8 transition-all duration-200"
                     title="Most recently posted"
                   >
                     <Clock className="mr-1.5 h-3.5 w-3.5" />
@@ -1495,7 +1647,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     variant={filter === 'discussed' ? 'default' : 'outline'}
                     onClick={() => handleFilterChange('discussed')}
                     size="sm"
-                    className="rounded-full h-8"
+                    className="rounded-full h-8 transition-all duration-200"
                     title="Highest comments"
                   >
                     <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
@@ -1505,7 +1657,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                     variant={filter === 'upvoted' ? 'default' : 'outline'}
                     onClick={() => handleFilterChange('upvoted')}
                     size="sm"
-                    className="rounded-full h-8"
+                    className="rounded-full h-8 transition-all duration-200"
                     title="All time · highest upvotes"
                   >
                     <ThumbsUp className="mr-1.5 h-3.5 w-3.5" />
@@ -1545,24 +1697,39 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                 {ideas.length === 0 ? (
                   <Card className="border-dashed border-2">
                     <CardContent className="p-12 text-center">
-                      <MessageCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                      <h3 className="mb-2 text-lg font-semibold">No ideas found</h3>
-                      <p className="text-muted-foreground mb-4">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                        <Lightbulb className="h-8 w-8 text-primary" />
+                      </div>
+                      <h3 className="mb-2 text-lg font-semibold">
                         {selectedTag
-                          ? `No ideas match the "${selectedTag}" tag. Try selecting a different tag.`
-                          : 'No ideas match the current filter.'}
+                          ? `No "${selectedTag}" ideas yet`
+                          : 'No ideas yet. Be the first to share 🚀'}
+                      </h3>
+                      <p className="text-muted-foreground mb-6 text-sm">
+                        {selectedTag
+                          ? `No ideas match the "${selectedTag}" tag. Clear the filter or post one!`
+                          : 'The community is waiting for your next big idea.'}
                       </p>
-                      {selectedTag && (
+                      <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
                         <Button
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedTag(null);
-                            setDisplayCount(5);
-                          }}
+                          className="gradient-lavender shadow-lavender rounded-[14px]"
+                          onClick={() => setPostFormOpen(true)}
                         >
-                          Clear tag filter
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Post your idea
                         </Button>
-                      )}
+                        {selectedTag && (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedTag(null);
+                              setDisplayCount(5);
+                            }}
+                          >
+                            Clear tag filter
+                          </Button>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 ) : (
@@ -1622,7 +1789,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                       <Badge
                         key={tag}
                         variant={selectedTag === tag ? 'default' : 'secondary'}
-                        className="hover:bg-primary hover:text-primary-foreground cursor-pointer rounded-full transition-all"
+                        className="hover:bg-primary hover:text-primary-foreground cursor-pointer rounded-full transition-all duration-200 select-none"
                         onClick={() => handleTagClick(tag)}
                       >
                         {tag}
@@ -1644,45 +1811,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                   )}
               </div>
 
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <div className="mb-4 flex items-center gap-2">
-                  <Award className="text-primary h-4 w-4" />
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Top Contributors</h3>
-                </div>
-                <div className="space-y-3">
-                    {topContributors.length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic">
-                        No ideas posted yet — be the first!
-                      </p>
-                    ) : (
-                      topContributors.map((contributor, index) => (
-                        <div key={contributor.name} className="flex items-center gap-2.5">
-                          <div className="flex-shrink-0">
-                            <div
-                              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
-                                index === 0
-                                  ? 'bg-yellow-500 text-white'
-                                  : index === 1
-                                    ? 'bg-gray-400 text-white'
-                                    : index === 2
-                                      ? 'bg-orange-600 text-white'
-                                      : 'bg-muted text-muted-foreground'
-                              }`}
-                            >
-                              {index + 1}
-                            </div>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{contributor.name}</p>
-                            <p className="text-muted-foreground text-xs">
-                              {contributor.upvotes} upvotes · {contributor.ideas} {contributor.ideas === 1 ? 'idea' : 'ideas'}
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -1692,84 +1820,151 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       <Sheet open={commentPanelOpen} onOpenChange={setCommentPanelOpen}>
         <SheetContent
           side="right"
-          className="w-full overflow-y-auto border-l border-border bg-background sm:w-[500px]"
+          className="flex w-full flex-col border-l border-border bg-background p-0 sm:w-[480px]"
         >
-          <SheetHeader className="border-b border-border pb-4">
-            <SheetTitle className="text-xl font-semibold">
-              Comments
+          {/* ── Header ── */}
+          <SheetHeader className="shrink-0 border-b border-border px-5 py-4">
+            <SheetTitle className="text-base font-semibold">
+              {selectedIdea ? (
+                <span className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                  {selectedIdeaComments.length > 0
+                    ? `${selectedIdeaComments.length} comment${selectedIdeaComments.length !== 1 ? 's' : ''}`
+                    : 'Comments'}
+                </span>
+              ) : 'Comments'}
             </SheetTitle>
+            {selectedIdea && (
+              <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                {selectedIdea.title}
+              </p>
+            )}
           </SheetHeader>
 
           {selectedIdea && (
-            <div className="mt-4 space-y-4">
-              {/* Idea Summary */}
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <h4 className="mb-2 font-medium line-clamp-2">{selectedIdea.title}</h4>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={selectedIdea.authorAvatar} alt={selectedIdea.author} />
-                    <AvatarFallback className="text-xs">
-                      {selectedIdea.author[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span>{selectedIdea.author}</span>
-                  <span>·</span>
-                  <span>{selectedIdea.comments} comments</span>
-                </div>
-              </div>
+            <div className="flex min-h-0 flex-1 flex-col">
 
-              {/* Comments List */}
-              <div className="space-y-3">
+              {/* ── Scrollable comment list ── */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-1">
+
+                {/* Load older comments */}
+                {hasMoreComments && (
+                  <div className="pb-3 text-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleLoadMoreComments}
+                      disabled={isLoadingMoreComments}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      {isLoadingMoreComments
+                        ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Loading…</>
+                        : 'Load older comments'
+                      }
+                    </Button>
+                  </div>
+                )}
+
+                {/* Empty state */}
                 {selectedIdeaComments.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-border p-8 text-center">
-                    <MessageCircle className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
-                    <p className="text-sm font-medium mb-1">No comments yet</p>
-                    <p className="text-xs text-muted-foreground">Be the first to share your feedback on this idea.</p>
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                      <MessageSquare className="h-6 w-6 text-primary" />
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">Start the conversation 🚀</p>
+                    <p className="mt-1 text-xs text-muted-foreground max-w-[200px]">
+                      Be the first to share your thoughts on this idea.
+                    </p>
                   </div>
                 ) : (
-                  selectedIdeaComments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className="rounded-lg border border-border bg-card p-3"
-                    >
-                      <div className="mb-2 flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
+                  <div className="space-y-2">
+                    {selectedIdeaComments.map((comment, index) => (
+                      <motion.div
+                        key={comment.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.18, delay: comment.id.startsWith('optimistic') ? 0 : index * 0.03 }}
+                        className="group flex gap-3 rounded-xl bg-muted/40 px-3 py-3 hover:bg-muted/60 transition-colors"
+                      >
+                        {/* Avatar */}
+                        <Avatar className="mt-0.5 h-8 w-8 shrink-0">
                           <AvatarImage src={comment.avatar} alt={comment.author} />
-                          <AvatarFallback className="text-xs">
-                            {comment.author[0]}
+                          <AvatarFallback className="text-[11px] font-semibold bg-primary/10 text-primary">
+                            {comment.author.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium text-sm">{comment.author}</span>
-                        <span className="text-xs text-muted-foreground">{comment.timestamp}</span>
-                      </div>
-                      <p className="text-sm text-foreground/90 pl-10">
-                        {comment.message}
-                      </p>
-                    </div>
-                  ))
+
+                        {/* Body */}
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-0.5 flex items-baseline gap-2">
+                            <span className="text-[13px] font-semibold leading-snug truncate">
+                              {comment.author}
+                            </span>
+                            <span className="shrink-0 text-[11px] text-muted-foreground">
+                              {formatRelativeTime(comment.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-[13px] leading-relaxed text-foreground/85 whitespace-pre-wrap break-words">
+                            {comment.message}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Add Comment Input */}
-              <div className="sticky bottom-0 rounded-lg border border-border bg-background p-3">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Share your feedback..."
-                    value={newComment}
-                    onChange={e => setNewComment(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSendComment()}
-                    className="flex-1 text-sm"
-                  />
-                  <Button
-                    onClick={handleSendComment}
-                    disabled={!newComment.trim()}
-                    size="sm"
-                    className="gradient-lavender"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
+              {/* ── Sticky input bar ── */}
+              <div className="shrink-0 border-t border-border bg-background px-4 py-3">
+                {!user ? (
+                  <p className="py-2 text-center text-xs text-muted-foreground">
+                    Log in to join the conversation
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <Textarea
+                      ref={commentTextareaRef}
+                      placeholder="Share your thoughts… (Enter to send)"
+                      value={newComment}
+                      onChange={e => setNewComment(e.target.value.slice(0, COMMENT_MAX_CHARS))}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey && !isSendingComment) {
+                          e.preventDefault();
+                          handleSendComment();
+                        }
+                      }}
+                      disabled={isSendingComment}
+                      rows={2}
+                      className="resize-none text-sm leading-relaxed"
+                    />
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`text-[11px] tabular-nums ${
+                          newComment.length >= COMMENT_MAX_CHARS
+                            ? 'text-destructive font-medium'
+                            : newComment.length >= COMMENT_MAX_CHARS * 0.85
+                              ? 'text-amber-500'
+                              : 'text-muted-foreground'
+                        }`}
+                      >
+                        {newComment.length} / {COMMENT_MAX_CHARS}
+                      </span>
+                      <Button
+                        onClick={handleSendComment}
+                        disabled={!newComment.trim() || isSendingComment}
+                        size="sm"
+                        className="gradient-lavender h-8 px-4 text-xs"
+                      >
+                        {isSendingComment
+                          ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Sending</>
+                          : <><Send className="mr-1.5 h-3.5 w-3.5" />Send</>
+                        }
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
+
             </div>
           )}
         </SheetContent>

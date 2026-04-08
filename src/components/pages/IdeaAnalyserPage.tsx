@@ -52,7 +52,7 @@ interface CommunityIdea {
   title: string;
   description: string;
   upvotes: number;
-  comments: number;
+  comments_count: number;
   tags: string[];
   author: string;
   authorAvatar?: string;
@@ -1030,7 +1030,7 @@ Powered by Motif - Your AI-Powered Startup Companion
       description: ideaDescription.trim(),
       tags: buildTagsFromTargetMarket(selectedMarkets),
       upvotes: 0,
-      comments: 0,
+      comments_count: 0,
       author: authorName,
       authorAvatar: profile?.avatar || undefined,
       createdAt: new Date().toISOString(),

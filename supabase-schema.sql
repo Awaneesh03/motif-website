@@ -243,6 +243,22 @@ END $$;
 -- Database → Replication → Check that tables are listed
 
 -- ============================================================================
+-- REPLICA IDENTITY — required for Supabase Realtime to deliver UPDATE events
+-- caused by triggers (e.g. trigger_update_comments_count).
+--
+-- PostgreSQL default REPLICA IDENTITY ('DEFAULT') only includes the primary key
+-- in the WAL for UPDATE rows.  Supabase Realtime needs the full new row to
+-- populate payload.new correctly.  Setting FULL ensures every UPDATE event
+-- (including those fired by triggers) carries all column values.
+--
+-- Run these once in the Supabase SQL editor.  They are safe to re-run.
+-- ============================================================================
+
+ALTER TABLE community_ideas    REPLICA IDENTITY FULL;
+ALTER TABLE community_upvotes  REPLICA IDENTITY FULL;
+ALTER TABLE community_comments REPLICA IDENTITY FULL;
+
+-- ============================================================================
 -- NOTIFICATIONS TABLE (For activity tracking)
 -- ============================================================================
 

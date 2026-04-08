@@ -49,21 +49,21 @@ const communityIdeas = [
   {
     title: 'AI-powered meal planning app for busy professionals',
     upvotes: 234,
-    comments: 45,
+    comments_count: 45,
     tags: ['AI', 'HealthTech', 'Mobile'],
     author: 'Alex Kim',
   },
   {
     title: 'Blockchain-based freelancer marketplace with escrow',
     upvotes: 189,
-    comments: 32,
+    comments_count: 32,
     tags: ['Web3', 'Marketplace', 'Fintech'],
     author: 'Jordan Lee',
   },
   {
     title: 'No-code platform for building internal tools',
     upvotes: 156,
-    comments: 28,
+    comments_count: 28,
     tags: ['SaaS', 'No-Code', 'B2B'],
     author: 'Sam Patel',
   },
@@ -601,7 +601,7 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
                   </Avatar>
                   <span>{selectedIdea.author}</span>
                   <span>·</span>
-                  <span>{selectedIdea.comments} comments</span>
+                  <span>{selectedIdea.comments_count} comments</span>
                 </div>
               </div>
 
