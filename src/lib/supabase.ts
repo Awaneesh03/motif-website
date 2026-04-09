@@ -85,3 +85,36 @@ export const supabase = createClient(
 
 // Export a flag so UI can block sign-in when credentials are missing
 export const supabaseConfigured = hasValidCredentials;
+
+// Export the Supabase URL for storage URL construction
+export const supabasePublicUrl = supabaseUrl;
+
+/**
+ * Resolve a case study image to a full public URL.
+ *
+ * Edge cases handled:
+ * - null / undefined / empty string → null
+ * - whitespace-only string → null
+ * - already a full http/https URL → returned as-is (no double-wrapping)
+ * - bare filename or path → constructed from VITE_SUPABASE_URL
+ * - VITE_SUPABASE_URL not configured → null + console.warn (avoids broken URL)
+ */
+export function getCaseStudyImageUrl(image?: string | null): string | null {
+  if (!image) return null;
+
+  const trimmed = image.trim();
+  if (!trimmed) return null;
+
+  // Already a full URL — return unchanged
+  if (trimmed.startsWith('https://') || trimmed.startsWith('http://')) return trimmed;
+
+  // Need the base URL to construct a storage path
+  if (!supabaseUrl) {
+    console.warn('[getCaseStudyImageUrl] VITE_SUPABASE_URL is not set; cannot resolve image:', trimmed);
+    return null;
+  }
+
+  // Strip any accidental leading slash so we never end up with double slashes
+  const path = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
+  return `${supabaseUrl}/storage/v1/object/public/case-studies/${path}`;
+}

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';
+import { invalidateCaseStudyCache } from '@/lib/caseStudyService';
 
 interface CaseStudy {
   id: string;
@@ -104,6 +105,7 @@ const AdminCaseStudies = () => {
 
       if (error) throw error;
 
+      invalidateCaseStudyCache();
       setCaseStudies(prev => prev.filter(study => study.id !== id));
       toast.success('Case study deleted successfully');
     } catch (error) {

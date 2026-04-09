@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';
+import { invalidateCaseStudyCache } from '@/lib/caseStudyService';
 
 interface CaseStudyFormData {
   title: string;
@@ -186,6 +187,7 @@ const AdminCaseStudyForm = () => {
           .eq('id', id);
 
         if (error) throw error;
+        invalidateCaseStudyCache();
         toast.success('Case study updated successfully');
       } else {
         // Create in Supabase - transform form data to database format
@@ -212,6 +214,7 @@ const AdminCaseStudyForm = () => {
           .insert([dbData]);
 
         if (error) throw error;
+        invalidateCaseStudyCache();
         toast.success('Case study created successfully');
       }
 

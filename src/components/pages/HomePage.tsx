@@ -1,12 +1,16 @@
 import { motion } from 'motion/react';
-import { Lightbulb, Target, Rocket, Users, TrendingUp, Bot, CheckCircle2, Send } from 'lucide-react';
-import { useState } from 'react';
+import { Lightbulb, Target, Rocket, Users, TrendingUp, Bot, CheckCircle2, Send, BookOpen } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+import { fetchCaseStudies, subscribeToCaseStudies } from '@/lib/caseStudyService';
+import type { CaseStudy } from '@/lib/caseStudyService';
 
 import { Button } from '../ui/button';
 import { FeatureCard } from '../FeatureCard';
 import { IdeaCard } from '../IdeaCard';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { Skeleton } from '../ui/skeleton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Input } from '../ui/input';
@@ -70,14 +74,94 @@ const communityIdeas = [
 ];
 
 interface HomePageProps {
-  onNavigate?: (page: string) => void;
+  onNavigate?: (page: string, caseId?: string) => void;
   isLoggedIn?: boolean;
+}
+
+// Renders the case study logo. Logo is a pre-resolved URL (from the service)
+// or null — no URL construction needed here.
+function FeaturedCaseImage({ logo, company }: { logo: string | null; company: string }) {
+  const [error, setError] = useState(false);
+  const initial = (company || '?').charAt(0).toUpperCase();
+
+  if (logo && !error) {
+    return (
+      <img
+        src={logo}
+        alt={`${company} logo`}
+        className="h-14 w-14 flex-shrink-0 rounded-lg object-cover ring-2 ring-primary/10"
+        onError={() => {
+          console.warn(`[FeaturedCaseImage] Image failed to load for "${company}":`, logo);
+          setError(true);
+        }}
+      />
+    );
+  }
+  return (
+    <div
+      className="h-14 w-14 flex-shrink-0 rounded-lg bg-primary/10 ring-2 ring-primary/10 flex items-center justify-center font-semibold text-lg text-primary/70 select-none"
+      aria-label={`${company} logo placeholder`}
+    >
+      {initial}
+    </div>
+  );
+}
+
+// Skeleton for one featured case card
+function FeaturedCaseSkeleton() {
+  return (
+    <div className="glass-surface border-border/50 rounded-[16px] p-6 flex flex-col h-full">
+      <div className="mb-4 flex gap-4 items-start">
+        <Skeleton className="h-14 w-14 flex-shrink-0 rounded-lg" />
+        <div className="flex-1 space-y-2 pt-1">
+          <Skeleton className="h-3 w-1/3 rounded" />
+          <Skeleton className="h-5 w-3/4 rounded" />
+          <Skeleton className="h-3 w-full rounded" />
+          <Skeleton className="h-3 w-2/3 rounded" />
+        </div>
+      </div>
+      <div className="flex gap-2 mb-4">
+        <Skeleton className="h-5 w-14 rounded-full" />
+        <Skeleton className="h-5 w-20 rounded-full" />
+        <Skeleton className="h-5 w-24 rounded-full ml-auto" />
+      </div>
+      <Skeleton className="h-10 w-full rounded-xl mt-auto" />
+    </div>
+  );
 }
 
 export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
   const [commentPanelOpen, setCommentPanelOpen] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
+  const [featuredCases, setFeaturedCases] = useState<CaseStudy[]>([]);
+  const [casesLoading, setCasesLoading] = useState(true);
+  const [casesError, setCasesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchCaseStudies(3).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        setCasesError(error);
+      } else {
+        setFeaturedCases(data);
+      }
+      setCasesLoading(false);
+    });
+
+    // Reflect background cache refreshes in the featured section.
+    // The full dataset is received; we slice to the same limit used above.
+    const unsubscribe = subscribeToCaseStudies((fresh) => {
+      if (!cancelled) setFeaturedCases(fresh.slice(0, 3));
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   const handleCommentClick = (idea: any) => {
     setSelectedIdea(idea);
@@ -326,84 +410,67 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
             </p>
           </motion.div>
           <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                id: '1',
-                company: 'PayStream',
-                logo: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100&h=100&fit=crop',
-                title: 'Scaling User Acquisition',
-                description: 'Grow from 100 to 1000 users with $5k budget',
-                difficulty: 'Medium',
-                category: 'Marketing',
-                attempts: 234,
-              },
-              {
-                id: '2',
-                company: 'DevHub',
-                logo: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=100&h=100&fit=crop',
-                title: 'Product-Market Fit Crisis',
-                description: 'Find the right market for your AI tool',
-                difficulty: 'Hard',
-                category: 'Product',
-                attempts: 189,
-              },
-              {
-                id: '3',
-                company: 'ShipFast',
-                logo: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100&h=100&fit=crop',
-                title: 'Optimizing Operations',
-                description: 'Reduce delivery time by 30% while cutting costs',
-                difficulty: 'Medium',
-                category: 'Operations',
-                attempts: 156,
-              },
-            ].map((caseItem, index) => (
-              <motion.div
-                key={caseItem.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="h-full"
-              >
-                <Card className="glass-surface border-border/50 hover:shadow-lavender flex h-full flex-col transition-all hover:border-primary/30">
-                  <CardContent className="flex flex-col p-6 h-full">
-                    <div className="mb-4 flex gap-4 items-start">
-                      <img
-                        src={caseItem.logo}
-                        alt={caseItem.company}
-                        className="h-14 w-14 flex-shrink-0 rounded-lg object-cover ring-2 ring-primary/10"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-muted-foreground text-xs mb-1">{caseItem.company}</p>
-                        <h3 className="mb-2 font-semibold text-lg leading-tight">{caseItem.title}</h3>
-                        <p className="text-muted-foreground text-sm leading-relaxed">{caseItem.description}</p>
+            {casesLoading ? (
+              <>
+                <FeaturedCaseSkeleton />
+                <FeaturedCaseSkeleton />
+                <FeaturedCaseSkeleton />
+              </>
+            ) : casesError ? (
+              <div className="col-span-full text-center py-12">
+                <Target className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                <p className="text-muted-foreground text-sm">{casesError}</p>
+              </div>
+            ) : featuredCases.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <BookOpen className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                <p className="text-muted-foreground text-sm">No case studies published yet — check back soon.</p>
+              </div>
+            ) : (
+              featuredCases.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="h-full"
+                >
+                  <Card className="glass-surface border-border/50 hover:shadow-lavender flex h-full flex-col transition-all hover:border-primary/30">
+                    <CardContent className="flex flex-col p-6 h-full">
+                      <div className="mb-4 flex gap-4 items-start">
+                        <FeaturedCaseImage logo={item.logo} company={item.company} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-muted-foreground text-xs mb-1">{item.company}</p>
+                          <h3 className="mb-2 font-semibold text-lg leading-tight">{item.title}</h3>
+                          <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2">{item.description}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="mb-4 flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant={caseItem.difficulty === 'Easy' ? 'secondary' : caseItem.difficulty === 'Medium' ? 'default' : 'destructive'}
-                        className="rounded-full"
+                      <div className="mb-4 flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant={item.difficulty === 'Easy' ? 'secondary' : item.difficulty === 'Medium' ? 'default' : 'destructive'}
+                          className="rounded-full"
+                        >
+                          {item.difficulty}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs rounded-full">
+                          {item.category}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs rounded-full ml-auto">
+                          {item.attempts} attempts
+                        </Badge>
+                      </div>
+                      <Button
+                        className="gradient-lavender shadow-lavender w-full rounded-xl text-white hover:opacity-90 hover:scale-105 transition-all mt-auto"
+                        onClick={() => onNavigate?.('CaseDetail', item.id)}
                       >
-                        {caseItem.difficulty}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs rounded-full">
-                        {caseItem.category}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs rounded-full ml-auto">
-                        {caseItem.attempts} attempts
-                      </Badge>
-                    </div>
-                    <Button
-                      className="gradient-lavender shadow-lavender w-full rounded-xl text-white hover:opacity-90 hover:scale-105 transition-all mt-auto"
-                      onClick={() => onNavigate?.('Case Studies')}
-                    >
-                      Start the Challenge →
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                        Start the Challenge →
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            )}
           </div>
           <div className="text-center">
             <Button
