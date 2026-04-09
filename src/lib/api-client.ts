@@ -29,12 +29,18 @@ class ApiClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    timeoutMs: number = 30000  // Default 30s timeout
+    timeoutMs: number = 30000,  // Default 30s timeout
+    externalSignal?: AbortSignal
   ): Promise<T> {
     const token = await this.getAuthToken();
 
     if (!token) {
       throw new Error('Authentication required. Please login first.');
+    }
+
+    // Bail immediately if the caller already cancelled before we even started
+    if (externalSignal?.aborted) {
+      throw new DOMException('Request cancelled by user.', 'AbortError');
     }
 
     const url = `${BACKEND_URL}${endpoint}`;
@@ -44,9 +50,11 @@ class ApiClient {
       ...options.headers,
     };
 
-    // Create AbortController for timeout
+    // Create AbortController for timeout; also forward external cancellation
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const onExternalAbort = () => controller.abort();
+    externalSignal?.addEventListener('abort', onExternalAbort);
 
     try {
       const response = await fetch(url, {
@@ -56,6 +64,7 @@ class ApiClient {
       });
 
       clearTimeout(timeoutId);
+      externalSignal?.removeEventListener('abort', onExternalAbort);
 
       // Handle non-OK responses
       if (!response.ok) {
@@ -72,9 +81,14 @@ class ApiClient {
 
     } catch (error) {
       clearTimeout(timeoutId);
+      externalSignal?.removeEventListener('abort', onExternalAbort);
       if (import.meta.env.DEV) console.error(`API request failed: ${endpoint}`, error);
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
+          // Distinguish user-cancelled from server timeout
+          if (externalSignal?.aborted) {
+            throw new DOMException('Request cancelled by user.', 'AbortError');
+          }
           throw new Error('Request timed out. The AI analysis is taking longer than expected. Please try again.');
         }
         // Re-throw with more context if it's a generic error
@@ -118,13 +132,66 @@ class ApiClient {
   }
 
   /**
-   * POST request
+   * POST request.
+   * Automatically retries on cold-start "Failed to fetch" errors (server sleeping).
+   * onWakeUp is called before each retry so the UI can update its status message.
+   *
+   * Retry schedule: 8 s → 15 s → 20 s (3 attempts total after the first failure).
+   * During each wait, aborts immediately if the external signal fires.
    */
-  async post<T>(endpoint: string, body: any, timeoutMs?: number): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }, timeoutMs);
+  async post<T>(
+    endpoint: string,
+    body: any,
+    timeoutMs?: number,
+    signal?: AbortSignal,
+    onWakeUp?: (attempt: number, totalAttempts: number) => void
+  ): Promise<T> {
+    const RETRY_DELAYS = [8_000, 15_000, 20_000];
+    const isColdStart = (e: unknown) =>
+      e instanceof Error &&
+      (e.message === 'Failed to fetch' ||
+        e.message.includes('Failed to fetch') ||
+        e.message.includes('backend server may be unavailable') ||
+        e.message.includes('NetworkError') ||
+        e.message.includes('network'));
+
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+      // Bail immediately if caller cancelled
+      if (signal?.aborted) throw new DOMException('Request cancelled by user.', 'AbortError');
+
+      try {
+        return await this.request<T>(endpoint, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }, timeoutMs, signal);
+      } catch (err) {
+        lastError = err;
+
+        // Don't retry on user cancellation or non-network errors
+        if (err instanceof DOMException && err.name === 'AbortError') throw err;
+        if (!isColdStart(err)) throw err;
+        if (attempt === RETRY_DELAYS.length) break; // exhausted all retries
+
+        const delay = RETRY_DELAYS[attempt];
+        if (import.meta.env.DEV)
+          console.warn(`[ApiClient] Cold start detected, retrying in ${delay / 1000}s (attempt ${attempt + 1}/${RETRY_DELAYS.length})`);
+
+        onWakeUp?.(attempt + 1, RETRY_DELAYS.length);
+
+        // Wait for the retry delay, but abort early if the signal fires
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(resolve, delay);
+          signal?.addEventListener('abort', () => {
+            clearTimeout(timer);
+            reject(new DOMException('Request cancelled by user.', 'AbortError'));
+          }, { once: true });
+        });
+      }
+    }
+
+    throw lastError;
   }
 
   /**
@@ -301,12 +368,21 @@ export interface IdeaResponse {
   targetMarket: string;
 }
 
+export interface CaseEvaluationBreakdown {
+  clarity: number;
+  strategy: number;
+  feasibility: number;
+  depth: number;
+}
+
 export interface CaseEvaluationResponse {
   score: number;
+  /** "Keep Trying" | "Good Effort" | "Strong Solution" */
   verdict: string;
   feedback: string[];
   strengths: string[];
   improvements: string[];
+  breakdown?: CaseEvaluationBreakdown;
   timestamp?: string;
 }
 

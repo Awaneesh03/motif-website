@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
@@ -13,6 +13,10 @@ import {
   Loader2,
   Lightbulb,
   BarChart2,
+  Tag,
+  Gauge,
+  CalendarDays,
+  Users,
 } from 'lucide-react';
 
 import { Button } from '../ui/button';
@@ -20,15 +24,16 @@ import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Textarea } from '../ui/textarea';
 import { Progress } from '../ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { DifficultyBadge } from '../DifficultyBadge';
 import { LeaderboardWidget, type ContributorEntry } from '../LeaderboardWidget';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { StarRating } from '../ui/star-rating';
 import { Skeleton } from '../ui/skeleton';
 
+import { toast } from 'sonner';
+
 import { supabase } from '@/lib/supabase';
-import { apiClient, CaseEvaluationResponse } from '@/lib/api-client';
+import { apiClient, CaseEvaluationResponse, CaseEvaluationBreakdown } from '@/lib/api-client';
 import { useUser } from '@/contexts/UserContext';
 
 interface CaseDetailPageProps {
@@ -122,7 +127,31 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
 
   // Evaluation
   const [isEvaluating, setIsEvaluating] = useState(false);
-  const [evaluationData, setEvaluationData] = useState<CaseEvaluationResponse | null>(null);
+  const [isSubmitLocked, setIsSubmitLocked] = useState(false);
+  const [evalStage, setEvalStage] = useState<string | null>(null);
+  const [evalProgress, setEvalProgress] = useState(0);
+  const evalStageIndexRef = useRef(0);
+  const evalStageIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const evalProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const evalLongTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const evalStartTimeRef = useRef<number>(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const submitDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortToastTsRef = useRef<number>(0);
+  const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null);
+  const rateLimitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Hydrate last result from sessionStorage on mount (keyed by caseId)
+  const [evaluationData, setEvaluationData] = useState<CaseEvaluationResponse | null>(() => {
+    if (!caseId) return null;
+    try {
+      const raw = sessionStorage.getItem(`eval:${caseId}`);
+      return raw ? (JSON.parse(raw) as CaseEvaluationResponse) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
   const [userRating, setUserRating] = useState(0);
 
@@ -232,6 +261,18 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     return () => clearInterval(id);
   }, [caseId, loadContributors]);
 
+  // ── Cancel in-flight evaluation and all timers on unmount ───────────────
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      if (evalStageIntervalRef.current) clearInterval(evalStageIntervalRef.current);
+      if (evalProgressIntervalRef.current) clearInterval(evalProgressIntervalRef.current);
+      if (evalLongTimeoutRef.current) clearTimeout(evalLongTimeoutRef.current);
+      if (rateLimitTimerRef.current) clearInterval(rateLimitTimerRef.current);
+      if (submitDebounceRef.current) clearTimeout(submitDebounceRef.current);
+    };
+  }, []);
+
   // ── Auto-save draft (debounced, local only — marks timestamp) ─────────────
   useEffect(() => {
     if (solution.length === 0) return;
@@ -245,63 +286,242 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     return () => clearTimeout(timer);
   }, [solution]);
 
-  // ── Evaluate solution via backend ─────────────────────────────────────────
-  const getFallbackEvaluation = (sol: string): CaseEvaluationResponse => {
-    const words = sol.split(/\s+/).length;
-    const hasStrategy = /strateg|plan|approach|method/i.test(sol);
-    const hasMetrics  = /metric|kpi|measure|track|analytics/i.test(sol);
-    const hasBudget   = /budget|cost|spend|allocat|investment/i.test(sol);
-    const hasTimeline = /timeline|week|month|phase|quarter/i.test(sol);
+  // ── Input validation — reject gibberish / spam / thin answers ───────────
+  const validateInput = (text: string): string | null => {
+    const BAD = 'Please write a clear and meaningful solution.';
+    const trimmed = text.trim();
 
-    let score = 60;
-    if (words > 100) score += 10;
-    if (words > 200) score += 5;
-    if (hasStrategy) score += 10;
-    if (hasMetrics)  score += 10;
-    if (hasBudget)   score += 10;
-    if (hasTimeline) score += 5;
-    score = Math.min(score, 100);
+    // Minimum length
+    if (trimmed.length < 80) return BAD;
 
-    const strengths: string[]     = [];
-    const improvements: string[]  = [];
-    if (hasStrategy) strengths.push('Clear strategic approach identified');
-    else             improvements.push('Add more strategic thinking and overall approach');
-    if (hasMetrics)  strengths.push('Good focus on metrics and measurement');
-    else             improvements.push('Include specific KPIs and success metrics');
-    if (hasBudget)   strengths.push('Budget considerations addressed');
-    else             improvements.push('Provide detailed budget allocation breakdown');
-    if (words < 100) improvements.push('Expand your solution with more detailed analysis');
+    // Minimum word count (words > 1 char, i.e. not just punctuation/initials)
+    const words = trimmed.split(/\s+/).filter(w => w.length > 1);
+    if (words.length < 10) return BAD;
 
-    return {
-      score,
-      verdict: score >= 70 ? 'Pass' : 'Try Again',
-      feedback: [...strengths, ...improvements].slice(0, 3),
-      strengths,
-      improvements,
-    };
+    // Unique word ratio < 40% → heavy padding or copy-paste loop
+    const normalised = words.map(w => w.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    const unique = new Set(normalised.filter(Boolean));
+    if (unique.size / normalised.length < 0.4) return BAD;
+
+    // Any single word > 30% of total → spam (e.g. "AI AI AI AI AI…")
+    const freq: Record<string, number> = {};
+    for (const w of normalised) if (w) freq[w] = (freq[w] ?? 0) + 1;
+    const maxFreq = Math.max(...Object.values(freq));
+    if (maxFreq / normalised.length > 0.3) return BAD;
+
+    // Repeated character runs (e.g. "aaaaaaa", "asdfasdf")
+    if (/(.)\1{6,}/.test(trimmed)) return BAD;
+
+    // Non-readable character ratio > 30%
+    const nonReadable = (trimmed.match(/[^a-zA-Z0-9\s.,!?;:'"()\-–—]/g) ?? []).length;
+    if (nonReadable / trimmed.length > 0.3) return BAD;
+
+    return null;
   };
 
-  const handleSubmit = async () => {
-    if (!caseData) return;
-    setIsEvaluating(true);
-    try {
-      let evaluation: CaseEvaluationResponse;
-      try {
-        evaluation = await apiClient.post<CaseEvaluationResponse>('/api/ai/evaluate-case', {
-          caseTitle: caseData.title,
-          caseId:    caseData.id,       // stable UUID — stored in metadata for leaderboard filtering
-          company:   caseData.company,
-          problem:   caseData.problem,
-          solution,
-        });
-      } catch {
-        evaluation = getFallbackEvaluation(solution);
+  // ── Stage labels — rotate every 2.5s independent of API ─────────────────
+  const EVAL_STAGES = [
+    'Analyzing your solution…',
+    'Breaking down strategy…',
+    'Evaluating feasibility…',
+    'Generating feedback…',
+    'Reviewing key points…',
+    'Finalising your score…',
+  ] as const;
+
+  const stopEvalAnimation = () => {
+    if (evalStageIntervalRef.current) {
+      clearInterval(evalStageIntervalRef.current);
+      evalStageIntervalRef.current = null;
+    }
+    if (evalProgressIntervalRef.current) {
+      clearInterval(evalProgressIntervalRef.current);
+      evalProgressIntervalRef.current = null;
+    }
+    if (evalLongTimeoutRef.current) {
+      clearTimeout(evalLongTimeoutRef.current);
+      evalLongTimeoutRef.current = null;
+    }
+    setEvalStage(null);
+  };
+
+  const startEvalAnimation = () => {
+    evalStageIndexRef.current = 0;
+    setEvalStage(EVAL_STAGES[0]);
+
+    // Rotate stage label every 2.5s
+    evalStageIntervalRef.current = setInterval(() => {
+      evalStageIndexRef.current = (evalStageIndexRef.current + 1) % EVAL_STAGES.length;
+      setEvalStage(EVAL_STAGES[evalStageIndexRef.current]);
+    }, 2500);
+
+    // After 15s, override with "taking longer" message without aborting
+    evalLongTimeoutRef.current = setTimeout(() => {
+      setEvalStage('Still working — complex solutions take longer…');
+    }, 15_000);
+
+    // Fake progress bar: starts fast, decelerates, caps at ~88%
+    setEvalProgress(5);
+    evalProgressIntervalRef.current = setInterval(() => {
+      setEvalProgress(prev => {
+        if (prev >= 88) return prev;
+        const increment = Math.max(0.4, (88 - prev) * 0.045);
+        return Math.min(88, prev + increment);
+      });
+    }, 400);
+  };
+
+  // ── Countdown teardown helper — used in multiple paths ───────────────────
+  const clearRateLimitCountdown = () => {
+    if (rateLimitTimerRef.current) {
+      clearInterval(rateLimitTimerRef.current);
+      rateLimitTimerRef.current = null;
+    }
+    setRateLimitCountdown(null);
+  };
+
+  // ── Evaluate solution via backend ─────────────────────────────────────────
+  const runEvaluation = async () => {
+    if (!caseData || isEvaluating) return;
+
+    const validationError = validateInput(solution);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    // Cancel any prior in-flight request — throttle restart toast to once per 1.5s
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      const now = Date.now();
+      if (now - abortToastTsRef.current > 1500) {
+        abortToastTsRef.current = now;
+        toast.info('Restarting evaluation…', { duration: 2000 });
       }
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    clearRateLimitCountdown();
+
+    const evaluationId = crypto.randomUUID();
+    const clampedSolution = solution.slice(0, 3000);
+    const startTime = Date.now();
+    evalStartTimeRef.current = startTime;
+
+    if (import.meta.env.DEV) console.log('[Eval] start', new Date(startTime).toISOString());
+
+    setIsEvaluating(true);
+    startEvalAnimation();
+
+    try {
+      const evaluation = await apiClient.post<CaseEvaluationResponse>(
+        '/api/ai/evaluate-case',
+        {
+          caseTitle:    caseData.title,
+          caseId:       caseData.id,
+          company:      caseData.company,
+          problem:      caseData.problem,
+          solution:     clampedSolution,
+          evaluationId,
+        },
+        180_000,
+        controller.signal,
+        (attempt, total) => {
+          // Show a friendly waking-up message during cold-start retries
+          setEvalStage(
+            attempt === 1
+              ? 'Server is waking up — this takes ~15s on first load…'
+              : `Still waking up, retrying… (${attempt}/${total})`
+          );
+          if (import.meta.env.DEV)
+            console.log(`[Eval] cold-start retry ${attempt}/${total}`);
+        }
+      );
+
+      const elapsed = Date.now() - startTime;
+      if (import.meta.env.DEV)
+        console.log('[Eval] success', `${elapsed}ms`, evaluation.score);
+
+      // Jump progress to 100% smoothly before revealing result
+      setEvalProgress(100);
+      stopEvalAnimation();
+      clearRateLimitCountdown();
+      abortControllerRef.current = null;
+
+      try {
+        sessionStorage.setItem(`eval:${caseData.id}`, JSON.stringify(evaluation));
+      } catch { /* quota exceeded — safe to ignore */ }
+
+      // Enforce minimum 2.5s display so the animation doesn't flash and vanish
+      const remaining = Math.max(0, 2500 - elapsed);
+      await new Promise(r => setTimeout(r, remaining));
+
       setEvaluationData(evaluation);
       setShowEvaluationModal(true);
+    } catch (err) {
+      const elapsed = Date.now() - startTime;
+      stopEvalAnimation();
+      setEvalProgress(0);
+
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        if (import.meta.env.DEV) console.log('[Eval] aborted after', `${elapsed}ms`);
+        return;
+      }
+
+      const raw = err instanceof Error ? err.message : '';
+      if (import.meta.env.DEV) console.error('[Eval] error after', `${elapsed}ms`, raw);
+
+      const waitMatch = raw.match(/try again in ~(\d+)s/i);
+      if (waitMatch) {
+        clearRateLimitCountdown();
+        let secs = parseInt(waitMatch[1], 10);
+        const attemptsMatch = raw.match(/(\d+)\s*(?:\/|of)\s*(\d+)\s*used/i);
+        const attemptsLabel = attemptsMatch ? ` (${attemptsMatch[1]}/${attemptsMatch[2]} used)` : '';
+        setRateLimitCountdown(secs);
+        toast.error(`Too many submissions${attemptsLabel}. Try again in ${secs}s.`);
+        rateLimitTimerRef.current = setInterval(() => {
+          secs -= 1;
+          if (secs <= 0) clearRateLimitCountdown();
+          else setRateLimitCountdown(secs);
+        }, 1000);
+        return;
+      }
+
+      const isColdStartExhausted =
+        raw.includes('Failed to fetch') ||
+        raw.includes('backend server may be unavailable') ||
+        raw.includes('NetworkError');
+      if (isColdStartExhausted) {
+        toast.error('Server is still starting up. Please wait 30 seconds and try again.');
+        return;
+      }
+
+      const isUserFacing =
+        raw.toLowerCase().includes('solution') ||
+        raw.toLowerCase().includes('meaningful') ||
+        raw.toLowerCase().includes('practical') ||
+        raw.toLowerCase().includes('quickly') ||
+        raw.toLowerCase().includes('circuit') ||
+        raw.toLowerCase().includes('unavailable');
+      toast.error(isUserFacing ? raw : 'Evaluation failed. Please try again.');
     } finally {
       setIsEvaluating(false);
     }
+  };
+
+  // Debounced wrapper — prevents rapid double-clicks from firing two evaluations.
+  // isSubmitLocked provides a ~100ms visual disable window immediately after the
+  // debounce fires, before isEvaluating becomes true.
+  const handleSubmit = () => {
+    if (isSubmitLocked || isEvaluating) return;
+    if (submitDebounceRef.current) clearTimeout(submitDebounceRef.current);
+    setIsSubmitLocked(true);
+    submitDebounceRef.current = setTimeout(() => {
+      submitDebounceRef.current = null;
+      setIsSubmitLocked(false);
+      runEvaluation();
+    }, 350);
   };
 
   const handleAfterEvaluation = () => {
@@ -331,7 +551,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     return (
       <div className="bg-background min-h-screen">
         <div className="border-border border-b bg-gradient-to-r from-[#C9A7EB]/10 to-transparent">
-          <div className="mx-auto max-w-7xl px-4 pt-4 pb-6 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-6xl px-4 pt-4 pb-6 sm:px-6 lg:px-8">
             <Skeleton className="h-8 w-36 mb-5 rounded-lg" />
             <div className="flex items-center gap-4">
               <Skeleton className="h-14 w-14 rounded-xl flex-shrink-0" />
@@ -347,9 +567,9 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
             </div>
           </div>
         </div>
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="grid gap-6 lg:grid-cols-12">
-            <div className="space-y-6 lg:col-span-8">
+        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-12">
+            <div className="space-y-8 lg:col-span-8">
               <Skeleton className="h-48 w-full rounded-xl" />
               <div className="grid grid-cols-3 gap-3">
                 {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
@@ -389,7 +609,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
     <div className="bg-background min-h-screen">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="border-border border-b bg-gradient-to-r from-[#C9A7EB]/10 to-transparent">
-        <div className="mx-auto max-w-7xl px-4 pt-4 pb-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl px-4 pt-4 pb-6 sm:px-6 lg:px-8">
           <div className="mb-5">
             <Button
               variant="ghost"
@@ -437,11 +657,11 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
       </div>
 
       {/* ── Main grid ──────────────────────────────────────────────────────── */}
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-12">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-12">
 
           {/* LEFT — problem + workspace (8/12 cols on desktop) */}
-          <div className="space-y-6 lg:col-span-8">
+          <div className="space-y-8 lg:col-span-8">
 
             {/* Problem Overview */}
             <Card className="border-border/50">
@@ -556,43 +776,137 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                   value={solution}
                   onChange={e => setSolution(e.target.value)}
                   placeholder={`Describe your solution strategy here…\n\n• What approach would you take?\n• How would you measure success?\n• What's your execution timeline?\n• What risks would you mitigate?`}
-                  className="mb-4 min-h-[300px] resize-none rounded-xl"
+                  className="mb-1 min-h-[300px] resize-none rounded-xl"
+                  aria-describedby="solution-hint"
+                  aria-label="Your solution"
                 />
+                {/* Character count hints — referenced by aria-describedby */}
+                <div id="solution-hint" className="mb-3 flex justify-between text-xs">
+                  {solution.length > 0 && solution.length < 80 ? (
+                    <span className="text-muted-foreground">
+                      {80 - solution.length} more characters needed to submit.
+                    </span>
+                  ) : solution.length >= 2700 ? (
+                    <span className={solution.length >= 3000 ? 'text-destructive' : 'text-amber-500'}>
+                      {solution.length}/3000 characters
+                      {solution.length >= 3000 && ' — limit reached, excess will be trimmed'}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                  {solution.length >= 80 && solution.length < 2700 && (
+                    <span className="text-muted-foreground ml-auto">{solution.length} chars</span>
+                  )}
+                </div>
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
                     onClick={handleSaveDraft}
-                    disabled={isSaving || solution.length === 0}
+                    disabled={isSaving || solution.length === 0 || isEvaluating}
                     className="rounded-xl"
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save Draft
                   </Button>
                   <Button
-                    className="gradient-lavender shadow-lavender flex-1 rounded-xl hover:opacity-90"
+                    className={`gradient-lavender shadow-lavender flex-1 rounded-xl hover:opacity-90 transition-all${isEvaluating ? ' opacity-90' : ''}`}
                     onClick={handleSubmit}
-                    disabled={solution.length < 50 || isEvaluating}
+                    disabled={solution.length < 80 || isEvaluating || isSubmitLocked || rateLimitCountdown !== null}
+                    aria-busy={isEvaluating}
+                    aria-label={
+                      isEvaluating
+                        ? (evalStage ?? 'Evaluating…')
+                        : rateLimitCountdown !== null
+                        ? `Submission blocked. Try again in ${rateLimitCountdown} seconds`
+                        : 'Submit solution for evaluation'
+                    }
                   >
                     {isEvaluating ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Evaluating…
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                        <span
+                          role="status"
+                          aria-live="polite"
+                          aria-atomic="true"
+                          className="transition-opacity duration-200"
+                          key={evalStage}
+                        >
+                          {evalStage ?? 'Evaluating…'}
+                        </span>
+                      </>
+                    ) : rateLimitCountdown !== null ? (
+                      <>
+                        <Clock className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Try again in {rateLimitCountdown}s
                       </>
                     ) : (
                       <>
-                        <Send className="mr-2 h-4 w-4" />
+                        <Send className="mr-2 h-4 w-4" aria-hidden="true" />
                         Submit Solution
                       </>
                     )}
                   </Button>
                 </div>
-                {solution.length > 0 && solution.length < 50 && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {50 - solution.length} more characters needed to submit.
-                  </p>
+
+                {/* Progress bar — visible only while evaluating */}
+                {isEvaluating && (
+                  <div className="mt-3 space-y-1.5">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+                        style={{ width: `${evalProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      {evalProgress < 30
+                        ? 'Reading your solution…'
+                        : evalProgress < 60
+                        ? 'Evaluating strategy and depth…'
+                        : evalProgress < 88
+                        ? 'Scoring and writing feedback…'
+                        : 'Wrapping up…'}
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Skeleton loading card — shown while evaluation is in flight */}
+            {isEvaluating && (
+              <Card className="border-border/50 overflow-hidden">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    Preparing your result…
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-5">
+                    <div className="h-14 w-14 flex-shrink-0 rounded-xl bg-muted animate-pulse" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-2.5 w-full rounded-full bg-muted animate-pulse" />
+                      <div className="h-2.5 w-2/3 rounded-full bg-muted animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border/40 bg-muted/30 p-4 space-y-3">
+                    {['Clarity', 'Strategy', 'Feasibility', 'Depth'].map(d => (
+                      <div key={d}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground/60">{d}</span>
+                          <div className="h-3 w-6 rounded bg-muted animate-pulse" />
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-muted animate-pulse" />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 w-full rounded bg-muted animate-pulse" />
+                    <div className="h-3 w-5/6 rounded bg-muted animate-pulse" />
+                    <div className="h-3 w-4/6 rounded bg-muted animate-pulse" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Attempts history (shown after at least one evaluation) */}
             {evaluationData && (
@@ -603,22 +917,25 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                     Your Latest Result
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-6 mb-4">
-                    <div className="text-center">
-                      <p className="text-4xl font-bold text-primary">{evaluationData.score}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">out of 100</p>
+                <CardContent className="space-y-5">
+                  {/* Score + verdict row */}
+                  <div className="flex items-center gap-5">
+                    <div className="text-center flex-shrink-0">
+                      <p className="text-5xl font-bold text-primary leading-none">{evaluationData.score}</p>
+                      <p className="text-xs text-muted-foreground mt-1">out of 100</p>
                     </div>
-                    <div className="flex-1">
-                      <Progress value={evaluationData.score} className="h-2 mb-2" />
+                    <div className="flex-1 space-y-2">
+                      <Progress value={evaluationData.score} className="h-2.5" />
                       <div
-                        className={`inline-flex items-center gap-1.5 text-sm font-medium ${
-                          evaluationData.verdict === 'Pass'
+                        className={`inline-flex items-center gap-1.5 text-sm font-semibold ${
+                          evaluationData.verdict === 'Strong Solution'
                             ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-orange-600 dark:text-orange-400'
+                            : evaluationData.verdict === 'Good Effort'
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-red-600 dark:text-red-400'
                         }`}
                       >
-                        {evaluationData.verdict === 'Pass' ? (
+                        {evaluationData.verdict === 'Strong Solution' ? (
                           <CheckCircle2 className="h-4 w-4" />
                         ) : (
                           <AlertCircle className="h-4 w-4" />
@@ -628,80 +945,90 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                     </div>
                   </div>
 
-                  <Tabs defaultValue="strengths">
-                    <TabsList className="w-full">
-                      <TabsTrigger value="strengths" className="flex-1 text-xs">Strengths</TabsTrigger>
-                      <TabsTrigger value="improvements" className="flex-1 text-xs">Improve</TabsTrigger>
-                      <TabsTrigger value="feedback" className="flex-1 text-xs">Feedback</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="strengths" className="mt-3">
-                      {(evaluationData.strengths ?? []).length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-4 text-center">
-                          No specific strengths identified.
-                        </p>
-                      ) : (
-                        <ul className="space-y-2">
-                          {evaluationData.strengths!.map((s, i) => (
-                            <li key={i} className="flex gap-2 text-sm text-muted-foreground">
-                              <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                              {s}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </TabsContent>
-                    <TabsContent value="improvements" className="mt-3">
-                      {(evaluationData.improvements ?? []).length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-4 text-center">
-                          No improvements identified.
-                        </p>
-                      ) : (
-                        <ul className="space-y-2">
-                          {evaluationData.improvements!.map((s, i) => (
-                            <li key={i} className="flex gap-2 text-sm text-muted-foreground">
-                              <AlertCircle className="h-4 w-4 text-orange-500 flex-shrink-0 mt-0.5" />
-                              {s}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </TabsContent>
-                    <TabsContent value="feedback" className="mt-3">
-                      {(evaluationData.feedback ?? []).length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-4 text-center">
-                          No feedback available.
-                        </p>
-                      ) : (
-                        <ul className="space-y-2">
-                          {evaluationData.feedback!.map((s, i) => (
-                            <li key={i} className="flex gap-2 text-sm text-muted-foreground">
-                              <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                              {s}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </TabsContent>
-                  </Tabs>
+                  {/* Breakdown bars */}
+                  {evaluationData.breakdown && (
+                    <div className="rounded-xl bg-muted/40 border border-border/40 p-4 space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Score Breakdown</p>
+                      {(
+                        [
+                          { key: 'clarity',     label: 'Clarity' },
+                          { key: 'strategy',    label: 'Strategy' },
+                          { key: 'feasibility', label: 'Feasibility' },
+                          { key: 'depth',       label: 'Depth' },
+                        ] as { key: keyof CaseEvaluationBreakdown; label: string }[]
+                      ).map(({ key, label }) => {
+                        const val = evaluationData.breakdown![key] ?? 0;
+                        return (
+                          <div key={key}>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-muted-foreground">{label}</span>
+                              <span className="font-medium">{val}</span>
+                            </div>
+                            <Progress value={val} className="h-1.5" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Strengths */}
+                  {(evaluationData.strengths ?? []).length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Strengths
+                      </p>
+                      <ul className="space-y-2">
+                        {evaluationData.strengths!.map((s, i) => (
+                          <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                            <span className="text-emerald-500 flex-shrink-0 mt-0.5">✓</span>
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Improvements */}
+                  {(evaluationData.improvements ?? []).length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                        <AlertCircle className="h-3.5 w-3.5" /> Areas to Improve
+                      </p>
+                      <ul className="space-y-2">
+                        {evaluationData.improvements!.map((s, i) => (
+                          <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                            <span className="text-orange-500 flex-shrink-0 mt-0.5">→</span>
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-4 w-full rounded-xl text-xs"
+                    className="w-full rounded-xl text-xs"
                     onClick={() => {
+                      const bd = evaluationData.breakdown;
                       const lines = [
                         `Case Study Report — ${caseData.title}`,
                         `Score: ${evaluationData.score}/100`,
                         `Verdict: ${evaluationData.verdict}`,
                         '',
+                        ...(bd ? [
+                          'Breakdown:',
+                          `  Clarity:     ${bd.clarity}`,
+                          `  Strategy:    ${bd.strategy}`,
+                          `  Feasibility: ${bd.feasibility}`,
+                          `  Depth:       ${bd.depth}`,
+                          '',
+                        ] : []),
                         'Strengths:',
                         ...(evaluationData.strengths ?? []).map(s => `  • ${s}`),
                         '',
                         'Areas for Improvement:',
                         ...(evaluationData.improvements ?? []).map(s => `  • ${s}`),
-                        '',
-                        'Feedback:',
-                        ...(evaluationData.feedback ?? []).map(s => `  • ${s}`),
                       ];
                       const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
                       const url = URL.createObjectURL(blob);
@@ -720,38 +1047,42 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
           </div>
 
           {/* RIGHT sidebar (4/12 cols on desktop, stacks below on mobile/tablet) */}
-          <div className="space-y-6 lg:col-span-4 lg:sticky lg:top-6 lg:self-start">
+          <div className="space-y-5 lg:col-span-4 lg:sticky lg:top-6 lg:self-start">
             {/* Top Contributors — real data */}
             <LeaderboardWidget
               entries={contributors}
               isLoading={contributorsLoading}
             />
 
-            {/* Your progress card */}
+            {/* Your Progress card */}
             {user && (
               <Card className="border-border/50">
-                <CardContent className="p-5">
-                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <CardHeader className="pb-3 pt-5 px-5">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary" />
                     Your Progress
-                  </h3>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 pb-5 pt-0">
                   {evaluationData ? (
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex justify-between items-center text-sm py-1">
                         <span className="text-muted-foreground">Best Score</span>
                         <span className="font-bold text-primary">{evaluationData.score}/100</span>
                       </div>
                       <Progress value={evaluationData.score} className="h-1.5" />
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="border-t border-border/40 pt-3 flex justify-between items-center text-sm">
                         <span className="text-muted-foreground">Status</span>
                         <Badge
                           className={`border-0 text-xs ${
-                            evaluationData.verdict === 'Pass'
+                            evaluationData.verdict === 'Strong Solution'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300'
+                              : evaluationData.verdict === 'Good Effort'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
                           }`}
                         >
-                          {evaluationData.verdict === 'Pass' ? 'Passed' : 'In Progress'}
+                          {evaluationData.verdict}
                         </Badge>
                       </div>
                     </div>
@@ -764,28 +1095,63 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
               </Card>
             )}
 
-            {/* Case info card */}
-            <Card className="border-border/50 bg-muted/20">
-              <CardContent className="p-5 space-y-3">
-                <h3 className="text-sm font-semibold">Case Info</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Category</span>
-                    <span className="font-medium">{caseData.category}</span>
+            {/* Case Info card */}
+            <Card className="border-border/50 overflow-hidden">
+              <CardHeader className="pb-3 pt-4 px-4 border-b border-border/40 bg-muted/30">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Case Info
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="grid grid-cols-2 divide-x divide-y divide-border/40">
+                  {/* Category */}
+                  <div className="flex flex-col gap-1 px-4 py-3">
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                      <Tag className="h-3 w-3 flex-shrink-0" />
+                      Category
+                    </span>
+                    <span className="text-sm font-semibold text-foreground leading-snug">
+                      {caseData.category}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Difficulty</span>
-                    <span className="font-medium">{caseData.difficulty}</span>
+
+                  {/* Difficulty */}
+                  <div className="flex flex-col gap-1 px-4 py-3">
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                      <Gauge className="h-3 w-3 flex-shrink-0" />
+                      Difficulty
+                    </span>
+                    <span className={`text-sm font-semibold leading-snug ${
+                      caseData.difficulty === 'Hard'
+                        ? 'text-red-500'
+                        : caseData.difficulty === 'Medium'
+                        ? 'text-amber-500'
+                        : 'text-emerald-500'
+                    }`}>
+                      {caseData.difficulty}
+                    </span>
                   </div>
-                  {caseData.publishedDate && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Published</span>
-                      <span className="font-medium">{caseData.publishedDate}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Contributors</span>
-                    <span className="font-medium">{contributors.length}</span>
+
+                  {/* Contributors */}
+                  <div className="flex flex-col gap-1 px-4 py-3">
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                      <Users className="h-3 w-3 flex-shrink-0" />
+                      Contributors
+                    </span>
+                    <span className="text-sm font-semibold text-foreground leading-snug">
+                      {contributors.length}
+                    </span>
+                  </div>
+
+                  {/* Published */}
+                  <div className="flex flex-col gap-1 px-4 py-3">
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                      <CalendarDays className="h-3 w-3 flex-shrink-0" />
+                      Published
+                    </span>
+                    <span className="text-sm font-semibold text-foreground leading-snug">
+                      {caseData.publishedDate || '—'}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -819,18 +1185,49 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
 
                 {/* Verdict */}
                 <div className="text-center">
-                  {evaluationData.verdict === 'Pass' ? (
-                    <div className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <div
+                    className={`inline-flex items-center gap-2 ${
+                      evaluationData.verdict === 'Strong Solution'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : evaluationData.verdict === 'Good Effort'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-red-600 dark:text-red-400'
+                    }`}
+                  >
+                    {evaluationData.verdict === 'Strong Solution' ? (
                       <CheckCircle2 className="h-5 w-5" />
-                      <span className="text-lg font-semibold">Passed!</span>
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                    ) : (
                       <AlertCircle className="h-5 w-5" />
-                      <span className="text-lg font-semibold">Keep Trying</span>
-                    </div>
-                  )}
+                    )}
+                    <span className="text-lg font-semibold">{evaluationData.verdict}</span>
+                  </div>
                 </div>
+
+                {/* Breakdown */}
+                {evaluationData.breakdown && (
+                  <div className="rounded-xl bg-muted/40 border border-border/40 p-4 space-y-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Breakdown</p>
+                    {(
+                      [
+                        { key: 'clarity',     label: 'Clarity' },
+                        { key: 'strategy',    label: 'Strategy' },
+                        { key: 'feasibility', label: 'Feasibility' },
+                        { key: 'depth',       label: 'Depth' },
+                      ] as { key: keyof CaseEvaluationBreakdown; label: string }[]
+                    ).map(({ key, label }) => {
+                      const val = evaluationData.breakdown![key] ?? 0;
+                      return (
+                        <div key={key}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-muted-foreground">{label}</span>
+                            <span className="font-medium">{val}</span>
+                          </div>
+                          <Progress value={val} className="h-1.5" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Strengths */}
                 {(evaluationData.strengths ?? []).length > 0 && (

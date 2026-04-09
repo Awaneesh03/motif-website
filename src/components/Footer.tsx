@@ -26,9 +26,9 @@ export function Footer({ onNavigate }: FooterProps) {
   };
 
   return (
-    <footer className="bg-muted/30 border-border mt-20 border-t">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+    <footer className="bg-muted/40 border-border mt-12 border-t">
+      <div className="mx-auto max-w-6xl px-4 pt-10 pb-8 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4">
           {/* Logo + Tagline */}
           <div>
             <h3 className="text-gradient-lavender mb-4 font-['Poppins'] text-2xl font-bold">
@@ -106,7 +106,7 @@ export function Footer({ onNavigate }: FooterProps) {
           </div>
         </div>
 
-        <div className="border-border text-muted-foreground mt-8 border-t pt-8 text-center text-sm">
+        <div className="border-border text-muted-foreground mt-8 border-t pt-6 text-center text-sm">
           © {new Date().getFullYear()} Motif. All rights reserved.
         </div>
       </div>
