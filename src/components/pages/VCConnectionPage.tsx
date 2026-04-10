@@ -16,7 +16,6 @@ import {
   Loader2,
   RefreshCw,
   TrendingUp,
-  Clock,
   Search,
 } from 'lucide-react';
 
@@ -548,31 +547,43 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
 
                 {/* Stepper */}
                 {fundingStep < 5 && (
-                  <div className="relative flex items-start justify-center pb-4 max-w-sm mx-auto">
-                    <div className="absolute top-3.5 left-4 right-4 h-[2px] bg-border" />
-                    <div
-                      className="absolute top-3.5 left-4 h-[2px] bg-primary transition-all duration-500 ease-in-out"
-                      style={{ width: `calc(${((fundingStep - 1) / 3) * 100}% - 2rem)` }}
-                    />
-                    {STEP_LABELS.map((label, i) => {
-                      const n = i + 1;
-                      const isComplete = fundingStep > n;
-                      const isActive   = fundingStep === n;
-                      return (
-                        <div key={n} className="relative z-10 flex flex-1 flex-col items-center gap-1.5">
-                          <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 ${
-                            isComplete ? 'bg-primary text-primary-foreground'
-                            : isActive  ? 'bg-primary text-primary-foreground shadow-[0_0_0_3px] shadow-primary/20'
-                            : 'bg-background border-2 border-border text-muted-foreground'
-                          }`}>
-                            {isComplete ? <CheckCircle className="h-3.5 w-3.5" /> : n}
+                  <div className="pb-5">
+                    <div className="relative flex items-start justify-center max-w-xs mx-auto">
+                      {/* Track background */}
+                      <div className="absolute top-[13px] left-[13%] right-[13%] h-[2px] bg-border" />
+                      {/* Animated fill — grows from left as steps complete */}
+                      <div
+                        className="absolute top-[13px] left-[13%] h-[2px] bg-primary transition-all duration-500 ease-in-out"
+                        style={{ width: `calc(${((fundingStep - 1) / 3) * 74}%)` }}
+                      />
+                      {STEP_LABELS.map((label, i) => {
+                        const n = i + 1;
+                        const isComplete = fundingStep > n;
+                        const isActive   = fundingStep === n;
+                        return (
+                          <div key={n} className="relative z-10 flex flex-1 flex-col items-center gap-2">
+                            <motion.div
+                              animate={isActive ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                              transition={{ duration: 0.35 }}
+                              className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                                isComplete
+                                  ? 'bg-green-500 text-white shadow-sm'
+                                  : isActive
+                                  ? 'bg-primary text-primary-foreground ring-4 ring-primary/25'
+                                  : 'bg-background border-2 border-border text-muted-foreground'
+                              }`}
+                            >
+                              {isComplete ? <CheckCircle className="h-3.5 w-3.5" /> : n}
+                            </motion.div>
+                            <span className={`text-[10px] font-medium text-center leading-tight w-14 ${
+                              isActive    ? 'text-foreground font-semibold'
+                              : isComplete ? 'text-green-600 dark:text-green-400'
+                              : 'text-muted-foreground'
+                            }`}>{label}</span>
                           </div>
-                          <span className={`text-[10px] font-medium text-center leading-tight w-14 hidden sm:block ${
-                            isActive ? 'text-foreground' : isComplete ? 'text-primary' : 'text-muted-foreground'
-                          }`}>{label}</span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -742,170 +753,206 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
               </div>
             )}
 
-          {/* Step 2: Founder Qualification (persisted profile) */}
+          {/* Step 2: Founder Qualification */}
           {fundingStep === 2 && (
-            <div className="space-y-6 py-4">
-              {/* Skeleton loading state */}
-              {isLoadingQualification ? (
-                <div className="space-y-4 animate-pulse">
-                  <div className="h-4 bg-muted rounded w-2/5" />
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <div className="h-3 bg-muted rounded w-1/3" />
-                      <div className="h-10 bg-muted rounded-xl" />
+            <div className="space-y-5 py-2">
+
+              {/* Page header */}
+              <div className="space-y-0.5">
+                <h3 className="text-xl font-semibold tracking-tight">Your founder profile</h3>
+                <p className="text-sm text-muted-foreground">
+                  Help investors understand who's behind the idea.
+                </p>
+              </div>
+
+              {/* ── Error banner — inline, never blocks the form ─────────── */}
+              {qualFetchError && (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">
+                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Couldn't auto-fill your details</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">You can continue manually or retry below.</p>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={fetchAndPrefillQualification}
+                    className="h-7 px-2.5 text-xs text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/40 shrink-0">
+                    <RefreshCw className="h-3 w-3 mr-1" />Retry
+                  </Button>
+                </div>
+              )}
+
+              {/* ── Saved banner ──────────────────────────────────────────── */}
+              {qualificationSaved && !qualFetchError && (
+                <div className="flex items-center gap-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10 px-4 py-3">
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                  <p className="text-sm text-green-800 dark:text-green-200 flex-1">
+                    Saved profile loaded
+                    {qualUpdatedAt && (
+                      <span className="text-xs text-green-600 dark:text-green-400 ml-2 font-normal">
+                        · {formatRelativeDate(qualUpdatedAt)}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {/* ── SECTION 1: Basic Info ─────────────────────────────────── */}
+              <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                <div className="px-5 py-2.5 border-b border-border/60 bg-muted/40">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Basic Info</p>
+                </div>
+                <div className="p-5">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="qual-full-name" className="text-sm font-medium">
+                        Full Name <span className="text-destructive">*</span>
+                      </Label>
+                      {isLoadingQualification ? (
+                        <div className="h-11 bg-muted animate-pulse rounded-lg" />
+                      ) : (
+                        <Input
+                          id="qual-full-name"
+                          value={fundingQualForm.fullName}
+                          onChange={e => {
+                            setFundingQualForm({ ...fundingQualForm, fullName: e.target.value });
+                            setQualFormDirty(true);
+                            if (qualErrors.fullName) setQualErrors(prev => ({ ...prev, fullName: '' }));
+                          }}
+                          placeholder="Jane Founder"
+                          className={`h-11 rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/30 ${
+                            qualErrors.fullName ? 'border-destructive focus-visible:ring-destructive' : ''
+                          }`}
+                        />
+                      )}
+                      {qualErrors.fullName && (
+                        <p className="text-destructive text-xs flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />{qualErrors.fullName}
+                        </p>
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-muted rounded w-1/4" />
-                      <div className="h-10 bg-muted rounded-xl" />
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="qual-email-step2" className="text-sm font-medium">
+                        Email <span className="text-destructive">*</span>
+                      </Label>
+                      {isLoadingQualification ? (
+                        <div className="h-11 bg-muted animate-pulse rounded-lg" />
+                      ) : (
+                        <Input
+                          id="qual-email-step2"
+                          type="email"
+                          value={fundingQualForm.email}
+                          onChange={e => {
+                            setFundingQualForm({ ...fundingQualForm, email: e.target.value });
+                            setQualFormDirty(true);
+                            if (qualErrors.email) setQualErrors(prev => ({ ...prev, email: '' }));
+                          }}
+                          placeholder="jane@startup.com"
+                          className={`h-11 rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/30 ${
+                            qualErrors.email ? 'border-destructive focus-visible:ring-destructive' : ''
+                          }`}
+                        />
+                      )}
+                      {qualErrors.email && (
+                        <p className="text-destructive text-xs flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />{qualErrors.email}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-muted rounded w-1/3" />
-                    <div className="h-10 bg-muted rounded-xl" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-muted rounded w-1/4" />
-                    <div className="h-10 bg-muted rounded-xl" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-muted rounded w-2/5" />
-                    <div className="h-20 bg-muted rounded-xl" />
                   </div>
                 </div>
-              ) : (
-                /* Always show the form — inline error banner does NOT block the form */
-                <>
-                  {/* Inline fetch-error — user can still fill in the form manually */}
-                  {qualFetchError && (
-                    <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
-                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                      <p className="flex-1 text-xs text-amber-700 dark:text-amber-300">{qualFetchError}</p>
-                      <Button size="sm" variant="ghost" onClick={fetchAndPrefillQualification}
-                        className="text-xs h-7 px-2 text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/40 shrink-0">
-                        <RefreshCw className="h-3 w-3 mr-1" />Retry
-                      </Button>
-                    </div>
-                  )}
-                  {/* "Saved info loaded" banner with last-updated timestamp */}
-                  {qualificationSaved && (
-                    <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium text-green-800 dark:text-green-200">Saved info loaded</p>
-                          <p className="text-sm text-green-700 dark:text-green-300">
-                            Your previous qualification details have been pre-filled. Review and update as needed.
-                          </p>
-                          {qualUpdatedAt && (
-                            <p className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 mt-1">
-                              <Clock className="h-3 w-3" />
-                              Last updated: {formatRelativeDate(qualUpdatedAt)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+              </div>
 
-                  {/* Full Name + Email */}
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="qual-full-name">Full Name <span className="text-destructive">*</span></Label>
-                      <Input
-                        id="qual-full-name"
-                        value={fundingQualForm.fullName}
-                        onChange={e => {
-                          setFundingQualForm({ ...fundingQualForm, fullName: e.target.value });
+              {/* ── SECTION 2: Founder Profile ────────────────────────────── */}
+              <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                <div className="px-5 py-2.5 border-b border-border/60 bg-muted/40">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Founder Profile</p>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="experience-level" className="text-sm font-medium">
+                      Experience Level <span className="text-destructive">*</span>
+                    </Label>
+                    {isLoadingQualification ? (
+                      <div className="h-11 bg-muted animate-pulse rounded-lg" />
+                    ) : (
+                      <Select
+                        value={fundingQualForm.experienceLevel}
+                        onValueChange={value => {
+                          setFundingQualForm({ ...fundingQualForm, experienceLevel: value });
                           setQualFormDirty(true);
-                          if (qualErrors.fullName) setQualErrors(prev => ({ ...prev, fullName: '' }));
+                          if (qualErrors.experienceLevel) setQualErrors(prev => ({ ...prev, experienceLevel: '' }));
                         }}
-                        placeholder="Jane Founder"
-                        className={`rounded-xl ${qualErrors.fullName ? 'border-destructive focus-visible:ring-destructive' : ''}`}
-                      />
-                      {qualErrors.fullName && (
-                        <p className="text-destructive text-xs">{qualErrors.fullName}</p>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="qual-email-step2">Email <span className="text-destructive">*</span></Label>
-                      <Input
-                        id="qual-email-step2"
-                        type="email"
-                        value={fundingQualForm.email}
-                        onChange={e => {
-                          setFundingQualForm({ ...fundingQualForm, email: e.target.value });
-                          setQualFormDirty(true);
-                          if (qualErrors.email) setQualErrors(prev => ({ ...prev, email: '' }));
-                        }}
-                        placeholder="jane@startup.com"
-                        className={`rounded-xl ${qualErrors.email ? 'border-destructive focus-visible:ring-destructive' : ''}`}
-                      />
-                      {qualErrors.email && (
-                        <p className="text-destructive text-xs">{qualErrors.email}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Experience Level */}
-                  <div className="space-y-1">
-                    <Label htmlFor="experience-level">Founder Experience <span className="text-destructive">*</span></Label>
-                    <Select
-                      value={fundingQualForm.experienceLevel}
-                      onValueChange={value => {
-                        setFundingQualForm({ ...fundingQualForm, experienceLevel: value });
-                        setQualFormDirty(true);
-                        if (qualErrors.experienceLevel) setQualErrors(prev => ({ ...prev, experienceLevel: '' }));
-                      }}
-                    >
-                      <SelectTrigger
-                        id="experience-level"
-                        className={`h-11 rounded-xl ${qualErrors.experienceLevel ? 'border-destructive' : ''}`}
                       >
-                        <SelectValue placeholder="Select your experience level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="first_time">First-time founder</SelectItem>
-                        <SelectItem value="1_2_startups">1–2 previous startups</SelectItem>
-                        <SelectItem value="3_plus">3+ previous startups</SelectItem>
-                        <SelectItem value="serial">Serial entrepreneur (exited before)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                        <SelectTrigger
+                          id="experience-level"
+                          className={`h-11 rounded-lg transition-all duration-200 ${
+                            qualErrors.experienceLevel ? 'border-destructive' : ''
+                          }`}
+                        >
+                          <SelectValue placeholder="How many startups have you built?" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="first_time">First-time founder</SelectItem>
+                          <SelectItem value="1_2_startups">1–2 previous startups</SelectItem>
+                          <SelectItem value="3_plus">3+ previous startups</SelectItem>
+                          <SelectItem value="serial">Serial entrepreneur (exited before)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                     {qualErrors.experienceLevel && (
-                      <p className="text-destructive text-xs">{qualErrors.experienceLevel}</p>
+                      <p className="text-destructive text-xs flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />{qualErrors.experienceLevel}
+                      </p>
                     )}
                   </div>
 
-                  {/* LinkedIn + Previous Startups */}
-                  <div className="space-y-1">
-                    <Label htmlFor="linkedin-url">LinkedIn Profile URL</Label>
-                    <Input
-                      id="linkedin-url"
-                      value={fundingQualForm.linkedinUrl}
-                      onChange={e => { setFundingQualForm({ ...fundingQualForm, linkedinUrl: e.target.value }); setQualFormDirty(true); }}
-                      placeholder="https://linkedin.com/in/yourprofile"
-                      className="rounded-xl"
-                    />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="linkedin-url" className="text-sm font-medium">LinkedIn URL</Label>
+                    {isLoadingQualification ? (
+                      <div className="h-11 bg-muted animate-pulse rounded-lg" />
+                    ) : (
+                      <Input
+                        id="linkedin-url"
+                        value={fundingQualForm.linkedinUrl}
+                        onChange={e => { setFundingQualForm({ ...fundingQualForm, linkedinUrl: e.target.value }); setQualFormDirty(true); }}
+                        placeholder="https://linkedin.com/in/yourprofile"
+                        className="h-11 rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/30"
+                      />
+                    )}
                   </div>
+                </div>
+              </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor="previous-startups">Previous Startup Experience</Label>
-                    <Textarea
-                      id="previous-startups"
-                      value={fundingQualForm.previousStartups}
-                      onChange={e => { setFundingQualForm({ ...fundingQualForm, previousStartups: e.target.value }); setQualFormDirty(true); }}
-                      placeholder="Briefly describe any previous startups you've built, even if they didn't succeed..."
-                      className="rounded-xl min-h-[80px]"
-                    />
+              {/* ── SECTION 3: Background ─────────────────────────────────── */}
+              <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                <div className="px-5 py-2.5 border-b border-border/60 bg-muted/40">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Background</p>
+                </div>
+                <div className="p-5">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="previous-startups" className="text-sm font-medium">Previous Startup Experience</Label>
+                    <p className="text-xs text-muted-foreground">Optional — even failed startups count.</p>
+                    {isLoadingQualification ? (
+                      <div className="h-24 bg-muted animate-pulse rounded-lg" />
+                    ) : (
+                      <Textarea
+                        id="previous-startups"
+                        value={fundingQualForm.previousStartups}
+                        onChange={e => { setFundingQualForm({ ...fundingQualForm, previousStartups: e.target.value }); setQualFormDirty(true); }}
+                        placeholder="Briefly describe any previous startups you've built..."
+                        className="rounded-lg min-h-[96px] resize-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/30"
+                      />
+                    )}
                   </div>
+                </div>
+              </div>
 
-                  {/* Inline saving indicator */}
-                  {isSavingQualification && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Saving your details…
-                    </div>
-                  )}
-                </>
+              {/* Saving indicator */}
+              {isSavingQualification && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Saving your details…
+                </div>
               )}
             </div>
           )}
@@ -1598,13 +1645,12 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 (fundingStep === 1 && !selectedIdea) ||
                 (fundingStep === 2 && (
                   isSavingQualification ||
-                  isLoadingQualification ||
-                  !!qualFetchError
+                  isLoadingQualification
                 )) ||
                 (fundingStep === 3 && (!pitchOption || (pitchOption === 'upload' && !pitchFile))) ||
                 (fundingStep === 4 && (!founderQualificationForm.startupStage || isSubmitting))
               }
-              className="gradient-lavender text-white px-8"
+              className="gradient-lavender text-white px-8 transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
               data-primary-action
             >
               {isSavingQualification ? (
