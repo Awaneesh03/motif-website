@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
-import { TrendingUp, Clock, MessageCircle, Send, Lightbulb, Loader2, Sparkles, MessageSquare, Filter, ThumbsUp } from 'lucide-react';
+import { TrendingUp, Clock, MessageCircle, Send, Lightbulb, Loader2, Sparkles, MessageSquare, Filter, ThumbsUp, ArrowLeft, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '../ui/button';
@@ -371,6 +371,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
   // Post Idea form state
   const [postFormOpen, setPostFormOpen] = useState(false);
+  const [postSearch, setPostSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postForm, setPostForm] = useState({
     title: '',
@@ -1442,173 +1443,281 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
                 </DialogContent>
               </Dialog>
 
-              {/* Post Form Dialog */}
-              <Dialog open={postFormOpen} onOpenChange={open => { setPostFormOpen(open); if (!open) { setSelectedAnalyzedIdeaId(null); setPostForm({ title: '', description: '', tags: '' }); setFormErrors({}); submitAttemptRef.current = 0; } }}>
-                <DialogContent className="sm:max-w-lg p-0 gap-0 max-h-[90vh] flex flex-col">
-                  <DialogHeader className="px-6 pt-6 pb-3 flex-shrink-0">
-                    <DialogTitle>Share Your Startup Idea</DialogTitle>
-                  </DialogHeader>
+              {/* ── Post Form — fullscreen overlay ───────────────────────── */}
+              {postFormOpen && (() => {
+                const closeOverlay = () => {
+                  setPostFormOpen(false);
+                  setSelectedAnalyzedIdeaId(null);
+                  setPostForm({ title: '', description: '', tags: '' });
+                  setFormErrors({});
+                  setPostSearch('');
+                  submitAttemptRef.current = 0;
+                };
 
-                  {/* Scroll area */}
-                  <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
-                    {isLoadingIdeas ? (
-                      <div className="flex flex-col items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="mt-4 text-sm text-muted-foreground">Loading your ideas...</p>
-                      </div>
-                    ) : analyzedIdeas.length === 0 ? (
-                      /* ── Manual form when user has no analyzed ideas ── */
-                      <div className="space-y-4 py-2">
-                        <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
-                          <Lightbulb className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-amber-700">
-                            You haven't analyzed any ideas yet. You can still post manually, or{' '}
-                            <button
-                              className="underline font-medium"
-                              onClick={() => { setPostFormOpen(false); onNavigate?.('Idea Analyser'); }}
-                            >
-                              analyze an idea first
-                            </button>{' '}
-                            for AI-powered insights.
-                          </p>
-                        </div>
+                const filteredIdeas = analyzedIdeas.filter(idea =>
+                  idea.idea_title.toLowerCase().includes(postSearch.toLowerCase()) ||
+                  (idea.idea_description ?? '').toLowerCase().includes(postSearch.toLowerCase())
+                );
 
-                        <div className="space-y-1">
-                          <Label htmlFor="post-title">
-                            Title <span className="text-muted-foreground text-xs">(min 10 chars)</span>
-                          </Label>
-                          <Input
-                            id="post-title"
-                            placeholder="e.g. AI-powered scheduling tool for freelancers"
-                            value={postForm.title}
-                            onChange={e => { setPostForm(f => ({ ...f, title: e.target.value })); if (formErrors.title) setFormErrors(prev => ({ ...prev, title: undefined })); }}
-                            maxLength={200}
-                            className={formErrors.title ? 'border-destructive focus-visible:ring-destructive' : ''}
-                          />
-                          {formErrors.title ? (
-                            <p className="text-xs text-destructive">{formErrors.title}</p>
-                          ) : postForm.title.length > 0 && !isPostTitleValid ? (
-                            <p className="text-xs text-muted-foreground">{10 - postForm.title.trim().length} more characters needed</p>
-                          ) : null}
-                        </div>
+                const selectedIdea = analyzedIdeas.find(i => i.id === selectedAnalyzedIdeaId);
 
-                        <div className="space-y-1">
-                          <Label htmlFor="post-description">
-                            Description <span className="text-muted-foreground text-xs">(min 30 chars)</span>
-                          </Label>
-                          <Textarea
-                            id="post-description"
-                            placeholder="Describe your idea, the problem it solves, and your target audience..."
-                            value={postForm.description}
-                            onChange={e => { setPostForm(f => ({ ...f, description: e.target.value })); if (formErrors.description) setFormErrors(prev => ({ ...prev, description: undefined })); }}
-                            className={`min-h-[100px] resize-none${formErrors.description ? ' border-destructive focus-visible:ring-destructive' : ''}`}
-                            maxLength={2000}
-                          />
-                          {formErrors.description ? (
-                            <p className="text-xs text-destructive">{formErrors.description}</p>
-                          ) : postForm.description.length > 0 && !isPostDescriptionValid ? (
-                            <p className="text-xs text-muted-foreground">{30 - postForm.description.trim().length} more characters needed</p>
-                          ) : null}
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label htmlFor="post-tags">
-                            Tags <span className="text-muted-foreground text-xs">(optional, comma-separated)</span>
-                          </Label>
-                          <Input
-                            id="post-tags"
-                            placeholder="e.g. AI, SaaS, HealthTech"
-                            value={postForm.tags}
-                            onChange={e => setPostForm(f => ({ ...f, tags: e.target.value }))}
-                          />
+                return (
+                  <motion.div
+                    key="idea-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Share your startup idea"
+                  >
+                    {/* ── Sticky header ───────────────────────────────────── */}
+                    <div className="flex-shrink-0 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                      <div className="mx-auto max-w-2xl px-4 sm:px-6">
+                        <div className="flex items-center justify-between h-14">
+                          <button
+                            onClick={closeOverlay}
+                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Close"
+                          >
+                            <ArrowLeft className="h-4 w-4" />
+                            Back
+                          </button>
+                          <h2 className="text-sm font-semibold">Share Your Startup Idea</h2>
+                          <button
+                            onClick={() => { closeOverlay(); onNavigate?.('Idea Analyser'); }}
+                            className="text-xs text-primary hover:underline font-medium"
+                          >
+                            + New Idea
+                          </button>
                         </div>
                       </div>
-                    ) : (
-                      /* ── Analyzed ideas selector ── */
-                      <div className="space-y-2">
-                        <Label>Select an idea to share</Label>
-                        <div className="space-y-2 pr-1">
-                          {analyzedIdeas.map((idea) => (
-                            <Card
-                              key={idea.id}
-                              className={`cursor-pointer transition-all hover:border-primary ${
-                                selectedAnalyzedIdeaId === idea.id
-                                  ? 'border-primary bg-primary/5'
-                                  : 'border-border'
-                              }`}
-                              onClick={() => setSelectedAnalyzedIdeaId(idea.id)}
-                            >
-                              <CardContent className="p-4">
-                                <div className="flex items-start gap-3">
-                                  <div className="flex-shrink-0 mt-1">
-                                    <div
-                                      className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
-                                        selectedAnalyzedIdeaId === idea.id
-                                          ? 'border-primary bg-primary'
-                                          : 'border-muted-foreground'
+                    </div>
+
+                    {/* ── Scrollable body ──────────────────────────────────── */}
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="mx-auto max-w-2xl px-4 sm:px-6 py-6 space-y-5">
+
+                        {isLoadingIdeas ? (
+                          /* Loading skeletons */
+                          <div className="space-y-3">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2 animate-pulse">
+                                <div className="h-4 w-2/3 rounded bg-muted" />
+                                <div className="h-3 w-full rounded bg-muted" />
+                                <div className="h-3 w-1/2 rounded bg-muted" />
+                                <div className="flex gap-2 mt-1">
+                                  <div className="h-5 w-16 rounded-full bg-muted" />
+                                  <div className="h-5 w-20 rounded-full bg-muted" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                        ) : analyzedIdeas.length === 0 ? (
+                          /* ── Manual form — no analyzed ideas ── */
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-5"
+                          >
+                            <div className="flex items-start gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
+                              <Lightbulb className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <p className="text-sm text-amber-700 dark:text-amber-400">
+                                You haven't analyzed any ideas yet. Post manually below, or{' '}
+                                <button
+                                  className="underline font-medium"
+                                  onClick={() => { closeOverlay(); onNavigate?.('Idea Analyser'); }}
+                                >
+                                  analyze one first
+                                </button>{' '}
+                                for AI-powered insights.
+                              </p>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <Label htmlFor="post-title" className="text-sm font-medium">
+                                Title <span className="text-muted-foreground font-normal text-xs">(min 10 chars)</span>
+                              </Label>
+                              <Input
+                                id="post-title"
+                                placeholder="e.g. AI-powered scheduling tool for freelancers"
+                                value={postForm.title}
+                                onChange={e => { setPostForm(f => ({ ...f, title: e.target.value })); if (formErrors.title) setFormErrors(prev => ({ ...prev, title: undefined })); }}
+                                maxLength={200}
+                                className={`h-11 rounded-xl${formErrors.title ? ' border-destructive focus-visible:ring-destructive' : ''}`}
+                              />
+                              {formErrors.title ? (
+                                <p className="text-xs text-destructive">{formErrors.title}</p>
+                              ) : postForm.title.length > 0 && !isPostTitleValid ? (
+                                <p className="text-xs text-muted-foreground">{10 - postForm.title.trim().length} more characters needed</p>
+                              ) : null}
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <Label htmlFor="post-description" className="text-sm font-medium">
+                                Description <span className="text-muted-foreground font-normal text-xs">(min 30 chars)</span>
+                              </Label>
+                              <Textarea
+                                id="post-description"
+                                placeholder="Describe your idea, the problem it solves, and your target audience..."
+                                value={postForm.description}
+                                onChange={e => { setPostForm(f => ({ ...f, description: e.target.value })); if (formErrors.description) setFormErrors(prev => ({ ...prev, description: undefined })); }}
+                                className={`min-h-[120px] resize-none rounded-xl${formErrors.description ? ' border-destructive focus-visible:ring-destructive' : ''}`}
+                                maxLength={2000}
+                              />
+                              {formErrors.description ? (
+                                <p className="text-xs text-destructive">{formErrors.description}</p>
+                              ) : postForm.description.length > 0 && !isPostDescriptionValid ? (
+                                <p className="text-xs text-muted-foreground">{30 - postForm.description.trim().length} more characters needed</p>
+                              ) : null}
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <Label htmlFor="post-tags" className="text-sm font-medium">
+                                Tags <span className="text-muted-foreground font-normal text-xs">(optional, comma-separated)</span>
+                              </Label>
+                              <Input
+                                id="post-tags"
+                                placeholder="e.g. AI, SaaS, HealthTech"
+                                value={postForm.tags}
+                                onChange={e => setPostForm(f => ({ ...f, tags: e.target.value }))}
+                                className="h-11 rounded-xl"
+                              />
+                            </div>
+                          </motion.div>
+
+                        ) : (
+                          /* ── Analyzed ideas selector ── */
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-4"
+                          >
+                            <div>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                {analyzedIdeas.length} idea{analyzedIdeas.length !== 1 ? 's' : ''} available — pick one to share with the community.
+                              </p>
+                              {/* Search */}
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  placeholder="Search ideas…"
+                                  value={postSearch}
+                                  onChange={e => setPostSearch(e.target.value)}
+                                  className="pl-9 h-10 rounded-xl"
+                                />
+                              </div>
+                            </div>
+
+                            {filteredIdeas.length === 0 ? (
+                              <div className="text-center py-16">
+                                <Lightbulb className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                                <p className="text-sm text-muted-foreground">No ideas match your search.</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-2 pb-32">
+                                {filteredIdeas.map(idea => {
+                                  const isSelected = selectedAnalyzedIdeaId === idea.id;
+                                  return (
+                                    <button
+                                      key={idea.id}
+                                      type="button"
+                                      role="option"
+                                      aria-selected={isSelected}
+                                      onClick={() => setSelectedAnalyzedIdeaId(isSelected ? null : idea.id)}
+                                      className={`w-full text-left rounded-xl border p-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                                        isSelected
+                                          ? 'border-primary bg-primary/5 shadow-sm'
+                                          : 'border-border bg-card hover:border-primary/50 hover:bg-muted/30'
                                       }`}
                                     >
-                                      {selectedAnalyzedIdeaId === idea.id && (
-                                        <div className="h-2 w-2 rounded-full bg-white" />
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-sm mb-1 line-clamp-2">
-                                      {idea.idea_title}
-                                    </h4>
-                                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                                      {idea.idea_description}
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                      {idea.score && (
-                                        <Badge variant="secondary" className="text-xs">
-                                          Score: {idea.score}/100
-                                        </Badge>
-                                      )}
-                                      <span className="text-xs text-muted-foreground">
-                                        {new Date(idea.created_at).toLocaleDateString()}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
+                                      <div className="flex items-start gap-3">
+                                        {/* Radio indicator */}
+                                        <div className="flex-shrink-0 mt-0.5">
+                                          <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                            isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/40'
+                                          }`}>
+                                            {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
+                                          </div>
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                          <p className="font-semibold text-sm leading-snug mb-1 line-clamp-2">
+                                            {idea.idea_title}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2.5 leading-relaxed">
+                                            {idea.idea_description}
+                                          </p>
+                                          <div className="flex items-center flex-wrap gap-2">
+                                            {idea.score != null && (
+                                              <Badge
+                                                variant="secondary"
+                                                className={`text-xs font-medium ${
+                                                  idea.score >= 70
+                                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                                    : idea.score >= 45
+                                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                                    : 'bg-muted text-muted-foreground'
+                                                }`}
+                                              >
+                                                Score {idea.score}/100
+                                              </Badge>
+                                            )}
+                                            <span className="text-xs text-muted-foreground">
+                                              {new Date(idea.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* ── Sticky bottom action bar ─────────────────────────── */}
+                    {!isLoadingIdeas && (
+                      <div className="flex-shrink-0 border-t border-border bg-background/95 backdrop-blur">
+                        <div className="mx-auto max-w-2xl px-4 sm:px-6 py-4">
+                          {analyzedIdeas.length > 0 && selectedIdea && (
+                            <p className="text-xs text-muted-foreground mb-2 truncate">
+                              Selected: <span className="font-medium text-foreground">{selectedIdea.idea_title}</span>
+                            </p>
+                          )}
+                          {analyzedIdeas.length > 0 && !selectedAnalyzedIdeaId && (
+                            <p className="text-xs text-center text-muted-foreground mb-2">
+                              Select an idea above to continue
+                            </p>
+                          )}
+                          <Button
+                            onClick={handleSubmitIdea}
+                            disabled={isSubmitting || (analyzedIdeas.length > 0 && !selectedAnalyzedIdeaId)}
+                            className="gradient-lavender shadow-lavender w-full h-11 rounded-xl hover:opacity-90 font-semibold"
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Posting…
+                              </>
+                            ) : analyzedIdeas.length > 0 ? (
+                              'Share Selected Idea'
+                            ) : (
+                              'Post Idea'
+                            )}
+                          </Button>
                         </div>
                       </div>
                     )}
-                  </div>
-
-                  {/* Footer — always visible */}
-                  {!isLoadingIdeas && (
-                    <div className="px-6 py-4 border-t border-border space-y-2">
-                      {/* Hint when nothing selected */}
-                      {analyzedIdeas.length > 0 && !selectedAnalyzedIdeaId && (
-                        <p className="text-xs text-center text-muted-foreground">
-                          Select an idea above to enable posting
-                        </p>
-                      )}
-                      <Button
-                        onClick={handleSubmitIdea}
-                        disabled={isSubmitting}
-                        className="gradient-lavender shadow-lavender w-full rounded-[16px] hover:opacity-90"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Posting...
-                          </>
-                        ) : analyzedIdeas.length > 0 ? (
-                          'Share Selected Idea'
-                        ) : (
-                          'Post Idea'
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </DialogContent>
-              </Dialog>
+                  </motion.div>
+                );
+              })()}
             </div>
           </motion.div>
         </div>
