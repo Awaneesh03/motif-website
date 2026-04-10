@@ -160,6 +160,31 @@ function ApplicationRow({ app }: { app: VcApplicationResponse }) {
             className="overflow-hidden"
           >
             <div className="px-4 pb-5 space-y-3">
+              {/* Score badge */}
+              {app.ideaScore != null && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Idea Score</span>
+                  <span className="text-sm font-bold text-primary">{app.ideaScore}%</span>
+                </div>
+              )}
+
+              {/* Pitch preview */}
+              {app.pitchPdfUrl ? (
+                <div className="rounded-lg bg-background/60 border border-border/50 p-3 flex items-center gap-3">
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <span className="flex-1 text-sm truncate">{app.pitchFileName || 'pitch.pdf'}</span>
+                  <a href={app.pitchPdfUrl} target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-primary underline hover:opacity-80 shrink-0">
+                    View PDF
+                  </a>
+                </div>
+              ) : app.pitchText ? (
+                <div className="rounded-lg bg-background/60 border border-border/50 p-3">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Your Pitch</p>
+                  <p className="text-sm leading-relaxed line-clamp-3">{app.pitchText}</p>
+                </div>
+              ) : null}
+
               {app.vcNotes && (
                 <div className="rounded-lg bg-background/60 border border-border/50 p-3">
                   <p className="text-xs font-semibold text-muted-foreground mb-1">Reviewer Notes</p>

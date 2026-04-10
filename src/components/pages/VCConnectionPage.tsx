@@ -9,6 +9,7 @@ import {
   Users,
   BarChart3,
   ArrowRight,
+  ArrowLeft,
   MessageCircle,
   FileText,
   Upload,
@@ -16,11 +17,13 @@ import {
   RefreshCw,
   TrendingUp,
   Clock,
+  Search,
 } from 'lucide-react';
 
 import { useUser } from '../../contexts/UserContext';
-import { supabase } from '../../lib/supabase';
+import { supabase, uploadPitchPdf } from '../../lib/supabase';
 import { getQualification, saveQualification } from '../../lib/fundingService';
+import { submitApplication } from '../../lib/vcApplicationService';
 import { logActivity } from '../../lib/activityService';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -134,6 +137,9 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   const [qualFetchError, setQualFetchError] = useState<string | null>(null);
   const [qualUpdatedAt, setQualUpdatedAt] = useState<string | null>(null);
   const [qualErrors, setQualErrors] = useState({ fullName: '', email: '', experienceLevel: '' });
+
+  // ── Search within Step 1 idea list ───────────────────────────────────────
+  const [fundingSearch, setFundingSearch] = useState('');
 
   // ── Final submit guard ────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -444,24 +450,18 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
         </div>
       </section>
 
-      {/* Raise Funding Modal */}
-      <Dialog open={fundingModalOpen} onOpenChange={(open: boolean) => {
-        if (!open) {
-          // If user is mid-edit on the qualification form and hasn't saved yet,
-          // show a confirmation dialog instead of closing immediately (Part 5).
-          if (fundingStep === 2 && qualFormDirty && !isSavingQualification) {
-            setCloseConfirmOpen(true);
-            return; // keep modal open — confirmation dialog will decide
-          }
-        }
-        setFundingModalOpen(open);
-        if (!open) {
-          // Cancel any in-flight fetch so it won't clobber the reset (Part 2)
+      {/* Raise Funding Fullscreen Overlay */}
+      {fundingModalOpen && (() => {
+        const STEP_LABELS = ['Select Idea', 'Qualification', 'Pitch Deck', 'Submit'] as const;
+
+        const resetAndClose = () => {
           fetchCancelledRef.current = true;
+          setFundingModalOpen(false);
           setFundingStep(1);
           setSelectedIdea(null);
           setPitchFile(null);
           setPitchOption(null);
+          setFundingSearch('');
           setFundingQualForm({ fullName: '', email: '', experienceLevel: '', linkedinUrl: '', previousStartups: '' });
           setQualificationSaved(false);
           setQualFetchError(null);
@@ -470,233 +470,260 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
           setQualFormDirty(false);
           setIsSubmitting(false);
           setFounderQualificationForm({
-            startupStage: '',
-            companyName: '',
-            websiteUrl: '',
-            monthlyRevenue: '',
-            revenueGrowthRate: '',
-            customerCount: '',
-            avgRevenuePerCustomer: '',
-            grossMargin: '',
-            burnRate: '',
-            runway: '',
-            teamSize: '',
-            fundingRaised: '',
-            fundingAsk: '',
-            useOfFunds: '',
-            industry: '',
-            businessModel: '',
-            competitiveAdvantage: '',
-            keyMetrics: '',
+            startupStage: '', companyName: '', websiteUrl: '',
+            monthlyRevenue: '', revenueGrowthRate: '', customerCount: '',
+            avgRevenuePerCustomer: '', grossMargin: '', burnRate: '',
+            runway: '', teamSize: '', fundingRaised: '', fundingAsk: '',
+            useOfFunds: '', industry: '', businessModel: '',
+            competitiveAdvantage: '', keyMetrics: '',
           });
-        }
-      }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          {/* Scroll anchor — scrolled into view on every step change */}
-          <div ref={modalScrollRef} />
-          <DialogHeader className="pb-2">
-            <DialogTitle className="text-2xl">
-              {fundingStep === 5 ? 'Request Submitted' : 'Raise Funding'}
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              {fundingStep < 5
-                ? 'Complete the steps below to submit your funding request to our VC network.'
-                : 'Your funding request has been submitted successfully.'}
-            </DialogDescription>
-          </DialogHeader>
+        };
 
-          {/* ── Stepper ─────────────────────────────────────────────────── */}
-          {fundingStep < 5 && (
-            <div className="relative flex items-start justify-between pb-6 pt-2 px-1">
-              {/* Track — background (always full width) */}
-              <div className="absolute top-4 left-5 right-5 h-[2px] bg-border" />
-              {/* Track — filled (advances with step) */}
-              <div
-                className="absolute top-4 left-5 h-[2px] bg-primary transition-all duration-500 ease-in-out"
-                style={{ width: `calc(${((fundingStep - 1) / 3) * 100}% - 2.5rem)` }}
-              />
-              {([
-                { n: 1, label: 'Select Idea' },
-                { n: 2, label: 'Qualification' },
-                { n: 3, label: 'Pitch Deck' },
-                { n: 4, label: 'Submit' },
-              ] as const).map(({ n, label }) => {
-                const isComplete = fundingStep > n;
-                const isActive   = fundingStep === n;
-                return (
-                  <div key={n} className="relative z-10 flex flex-col items-center gap-2">
-                    <div
-                      className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 ${
-                        isComplete
-                          ? 'bg-primary text-primary-foreground'
-                          : isActive
-                          ? 'bg-primary text-primary-foreground shadow-[0_0_0_4px] shadow-primary/20'
-                          : 'bg-background border-2 border-border text-muted-foreground'
-                      }`}
-                    >
-                      {isComplete ? <CheckCircle className="h-3.5 w-3.5" /> : n}
-                    </div>
-                    <span
-                      className={`text-[10px] font-medium text-center leading-tight w-14 hidden sm:block ${
-                        isActive ? 'text-foreground' : isComplete ? 'text-primary' : 'text-muted-foreground'
-                      }`}
-                    >
-                      {label}
-                    </span>
+        const closeOverlay = () => {
+          if (fundingStep === 2 && qualFormDirty && !isSavingQualification) {
+            setCloseConfirmOpen(true);
+            return;
+          }
+          resetAndClose();
+        };
+
+        const filteredIdeas = fundingEligibleIdeas.filter(idea =>
+          idea.idea_title.toLowerCase().includes(fundingSearch.toLowerCase()) ||
+          idea.idea_description.toLowerCase().includes(fundingSearch.toLowerCase()) ||
+          (idea.target_market?.toLowerCase().includes(fundingSearch.toLowerCase()) ?? false)
+        );
+
+        return (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 z-50 bg-background flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Start Funding Request"
+          >
+            {/* ── Sticky Header ──────────────────────────────────────────── */}
+            <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm shrink-0">
+              <div className="mx-auto max-w-5xl px-4 sm:px-6">
+                <div className="flex items-center gap-3 py-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={closeOverlay}
+                    className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground shrink-0"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline">Back</span>
+                  </Button>
+                  <div className="flex-1 text-center">
+                    <h2 className="text-base font-semibold leading-tight">
+                      {fundingStep === 5 ? 'Request Submitted' : 'Raise Funding'}
+                    </h2>
+                    {fundingStep < 5 && (
+                      <p className="text-xs text-muted-foreground">
+                        Step {fundingStep} of 4 — {STEP_LABELS[fundingStep - 1]}
+                      </p>
+                    )}
                   </div>
-                );
-              })}
+                  <div className="w-16 shrink-0" />
+                </div>
+
+                {/* Stepper */}
+                {fundingStep < 5 && (
+                  <div className="relative flex items-start justify-center pb-4 max-w-sm mx-auto">
+                    <div className="absolute top-3.5 left-4 right-4 h-[2px] bg-border" />
+                    <div
+                      className="absolute top-3.5 left-4 h-[2px] bg-primary transition-all duration-500 ease-in-out"
+                      style={{ width: `calc(${((fundingStep - 1) / 3) * 100}% - 2rem)` }}
+                    />
+                    {STEP_LABELS.map((label, i) => {
+                      const n = i + 1;
+                      const isComplete = fundingStep > n;
+                      const isActive   = fundingStep === n;
+                      return (
+                        <div key={n} className="relative z-10 flex flex-1 flex-col items-center gap-1.5">
+                          <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 ${
+                            isComplete ? 'bg-primary text-primary-foreground'
+                            : isActive  ? 'bg-primary text-primary-foreground shadow-[0_0_0_3px] shadow-primary/20'
+                            : 'bg-background border-2 border-border text-muted-foreground'
+                          }`}>
+                            {isComplete ? <CheckCircle className="h-3.5 w-3.5" /> : n}
+                          </div>
+                          <span className={`text-[10px] font-medium text-center leading-tight w-14 hidden sm:block ${
+                            isActive ? 'text-foreground' : isComplete ? 'text-primary' : 'text-muted-foreground'
+                          }`}>{label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
 
-          {/* ── Animated step content ───────────────────────────────────── */}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={fundingStep}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
-            >
+            {/* ── Scrollable Content ─────────────────────────────────────── */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={fundingStep}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                  >
 
-          {/* Step 1: Select Validated Idea */}
-          {fundingStep === 1 && (
-            <div className="space-y-6 py-4">
-              {/* Loading State */}
-              {isLoadingIdeas ? (
-                <Card className="border-dashed border-2 border-muted-foreground/30">
-                  <CardContent className="text-center py-10">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
-                    <p className="text-muted-foreground">Loading your analyzed ideas...</p>
-                  </CardContent>
-                </Card>
-              ) : ideasLoadError ? (
-                /* Error State */
-                <Card className="border-dashed border-2 border-red-300 bg-red-50 dark:bg-red-900/10">
-                  <CardContent className="text-center py-10">
-                    <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-3" />
-                    <p className="text-red-700 dark:text-red-400 mb-3">{ideasLoadError}</p>
+            {/* Step 1: Select Idea */}
+            {fundingStep === 1 && (
+              <div className="space-y-5">
+                {/* Hero Eligibility Card */}
+                {!isLoadingIdeas && !ideasLoadError && user && fundingEligibleIdeas.length > 0 && (
+                  <div className="rounded-2xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10 p-5">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-xl bg-green-100 dark:bg-green-800/30 flex items-center justify-center shrink-0">
+                        <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-green-800 dark:text-green-200">
+                          {fundingEligibleIdeas.length} idea{fundingEligibleIdeas.length !== 1 ? 's' : ''} eligible for funding
+                        </p>
+                        <p className="text-sm text-green-700 dark:text-green-300">
+                          Ideas with score 85+ qualify for VC introductions
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Loading skeletons */}
+                {isLoadingIdeas ? (
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="rounded-xl border border-border bg-muted/20 p-5 animate-pulse">
+                        <div className="flex items-start gap-4">
+                          <div className="flex-1 space-y-2.5">
+                            <div className="h-4 bg-muted rounded w-1/2" />
+                            <div className="h-3 bg-muted rounded w-3/4" />
+                            <div className="h-3 bg-muted rounded w-1/3" />
+                          </div>
+                          <div className="h-12 w-12 rounded-full bg-muted shrink-0" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : ideasLoadError ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+                    <AlertCircle className="h-10 w-10 text-destructive" />
+                    <p className="text-destructive">{ideasLoadError}</p>
                     <Button onClick={loadUserIdeas} variant="outline" className="rounded-xl">
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Retry
+                      <RefreshCw className="h-4 w-4 mr-2" />Retry
                     </Button>
-                  </CardContent>
-                </Card>
-              ) : !user ? (
-                /* Not Logged In State */
-                <Card className="border-dashed border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/10">
-                  <CardContent className="text-center py-10">
-                    <AlertCircle className="h-8 w-8 text-amber-500 mx-auto mb-3" />
-                    <p className="text-amber-700 dark:text-amber-400 mb-3">Please sign in to view your ideas</p>
-                    <Button onClick={() => {
-                      setFundingModalOpen(false);
-                      onNavigate?.('Auth');
-                    }} className="rounded-xl">
-                      Sign In
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : fundingEligibleIdeas.length === 0 ? (
-                /* No Eligible Ideas State - Score < 85 */
-                <Card className="border-dashed border-2 border-muted-foreground/30">
-                  <CardContent className="text-center py-10">
+                  </div>
+                ) : !user ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+                    <AlertCircle className="h-10 w-10 text-amber-500" />
+                    <p className="text-amber-700 dark:text-amber-400">Please sign in to view your ideas</p>
+                    <Button onClick={() => { resetAndClose(); onNavigate?.('Auth'); }} className="rounded-xl">Sign In</Button>
+                  </div>
+                ) : fundingEligibleIdeas.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
                     {validatedIdeas.length > 0 ? (
                       <>
-                        <Target className="h-12 w-12 text-amber-500 mx-auto mb-3" />
-                        <p className="text-lg font-semibold mb-2">Almost There!</p>
-                        <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                          You have {validatedIdeas.length} validated idea{validatedIdeas.length > 1 ? 's' : ''}, but 
-                          funding eligibility requires a score of <strong>{FUNDING_ELIGIBILITY_SCORE}+</strong>.
-                        </p>
-                        <div className="bg-muted/50 rounded-lg p-4 mb-4 max-w-md mx-auto">
-                          <p className="text-sm text-muted-foreground">Your highest score: <strong>{Math.max(...validatedIdeas.map(i => i.score))}%</strong></p>
-                          <p className="text-xs text-muted-foreground mt-1">Improve your idea description or try a new analysis</p>
+                        <div className="h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
+                          <Target className="h-8 w-8 text-amber-500" />
                         </div>
-                        <Button onClick={() => {
-                          setFundingModalOpen(false);
-                          onNavigate?.('Idea Analyser');
-                        }} className="rounded-xl">
+                        <div className="space-y-1.5 max-w-sm">
+                          <p className="text-lg font-semibold">Almost There!</p>
+                          <p className="text-muted-foreground text-sm">
+                            Your highest score is <strong>{Math.max(...validatedIdeas.map(i => i.score))}%</strong>. Reach 85+ to unlock VC introductions.
+                          </p>
+                        </div>
+                        <Button onClick={() => { resetAndClose(); onNavigate?.('Idea Analyser'); }} className="rounded-xl">
                           Improve Your Ideas
                         </Button>
                       </>
                     ) : (
                       <>
-                        <p className="text-muted-foreground mb-3">You don't have any validated ideas yet.</p>
-                        <Button onClick={() => {
-                          setFundingModalOpen(false);
-                          onNavigate?.('Idea Analyser');
-                        }} className="rounded-xl">
+                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                          <Target className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-muted-foreground">No analyzed ideas yet.</p>
+                        <Button onClick={() => { resetAndClose(); onNavigate?.('Idea Analyser'); }} className="rounded-xl">
                           Analyze Your First Idea
                         </Button>
                       </>
                     )}
-                  </CardContent>
-                </Card>
-              ) : (
-                <>
-                  {/* Funding Eligibility Notice */}
-                  <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-green-800 dark:text-green-200">
-                          {fundingEligibleIdeas.length} idea{fundingEligibleIdeas.length > 1 ? 's' : ''} eligible for funding
-                        </p>
-                        <p className="text-sm text-green-700 dark:text-green-300">
-                          Ideas with a score of {FUNDING_ELIGIBILITY_SCORE}+ qualify for VC introductions
-                        </p>
-                      </div>
-                    </div>
                   </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm text-muted-foreground">Select an eligible idea (score ≥ {FUNDING_ELIGIBILITY_SCORE})</p>
+                ) : (
+                  <>
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Search by title, description, or market..."
+                        value={fundingSearch}
+                        onChange={e => setFundingSearch(e.target.value)}
+                        className="w-full rounded-xl border border-border bg-background pl-9 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      />
+                    </div>
+
+                    {/* Idea list */}
+                    <div className="space-y-3">
+                      {filteredIdeas.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">No ideas match your search.</div>
+                      ) : filteredIdeas.map(idea => (
+                        <button
+                          key={idea.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selectedIdea?.id === idea.id}
+                          onClick={() => setSelectedIdea(idea)}
+                          className={`w-full text-left rounded-xl border p-5 transition-all duration-200 hover:shadow-md active:scale-[0.99] ${
+                            selectedIdea?.id === idea.id
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'border-border hover:border-primary/40 hover:bg-muted/30'
+                          }`}
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="font-semibold text-foreground">{idea.idea_title}</span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-400">
+                                  <CheckCircle className="h-2.5 w-2.5" />Eligible
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground line-clamp-2">{idea.idea_description}</p>
+                              {idea.target_market && (
+                                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                  <Users className="h-3 w-3 shrink-0" />{idea.target_market}
+                                </p>
+                              )}
+                            </div>
+                            <div className={`shrink-0 h-12 w-12 rounded-full flex items-center justify-center text-sm font-bold ${
+                              idea.score >= 90 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : idea.score >= 85 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                            }`}>
+                              {idea.score}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setFundingModalOpen(false);
-                        onNavigate?.('Idea Analyser');
-                      }}
+                      onClick={() => { resetAndClose(); onNavigate?.('Idea Analyser'); }}
                       className="rounded-xl"
                     >
                       + Analyze New Idea
                     </Button>
-                  </div>
-                  <div className="grid gap-4 max-h-[300px] overflow-y-auto pr-2">
-                    {fundingEligibleIdeas.map((idea) => (
-                      <Card
-                        key={idea.id}
-                        className={`cursor-pointer border transition-all ${selectedIdea?.id === idea.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
-                        onClick={() => setSelectedIdea(idea)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold">{idea.idea_title}</h4>
-                              <p className="text-muted-foreground text-sm line-clamp-2">{idea.idea_description}</p>
-                              {idea.target_market && (
-                                <p className="text-xs text-muted-foreground mt-1">Target: {idea.target_market}</p>
-                              )}
-                            </div>
-                            <div className="flex-shrink-0 flex flex-col items-center">
-                              <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                                idea.score >= 90 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                idea.score >= 85 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                              }`}>
-                                {idea.score}
-                              </div>
-                              <span className="text-[10px] text-muted-foreground mt-1">Score</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+                  </>
+                )}
+              </div>
+            )}
 
           {/* Step 2: Founder Qualification (persisted profile) */}
           {fundingStep === 2 && (
@@ -1359,69 +1386,43 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
           )}
 
             </motion.div>
-          </AnimatePresence>
+                  </AnimatePresence>
+                </div>
+              </div>
 
-          {fundingStep < 5 && (
-          <DialogFooter className="pt-6 gap-3">
-            {fundingStep > 1 && (
-              <Button
-                variant="outline"
-                onClick={() => setFundingStep(fundingStep - 1)}
-                disabled={isSubmitting || isSavingQualification}
-                className="px-6"
-              >
-                Back
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              disabled={isSubmitting}
-              onClick={() => {
-                // Same dirty-check as onOpenChange — Cancel also warns mid-edit (Part 5)
-                if (fundingStep === 2 && qualFormDirty && !isSavingQualification) {
-                  setCloseConfirmOpen(true);
-                  return;
-                }
-                fetchCancelledRef.current = true;
-                setFundingModalOpen(false);
-                setFundingStep(1);
-                setSelectedIdea(null);
-                setPitchFile(null);
-                setPitchOption(null);
-                setFundingQualForm({ fullName: '', email: '', experienceLevel: '', linkedinUrl: '', previousStartups: '' });
-                setQualificationSaved(false);
-                setQualFetchError(null);
-                setQualUpdatedAt(null);
-                setQualErrors({ fullName: '', email: '', experienceLevel: '' });
-                setQualFormDirty(false);
-                setIsSubmitting(false);
-                setFounderQualificationForm({
-                  startupStage: '',
-                  companyName: '',
-                  websiteUrl: '',
-                  monthlyRevenue: '',
-                  revenueGrowthRate: '',
-                  customerCount: '',
-                  avgRevenuePerCustomer: '',
-                  grossMargin: '',
-                  burnRate: '',
-                  runway: '',
-                  teamSize: '',
-                  fundingRaised: '',
-                  fundingAsk: '',
-                  useOfFunds: '',
-                  industry: '',
-                  businessModel: '',
-                  competitiveAdvantage: '',
-                  keyMetrics: '',
-                });
-              }}
-              className="px-6"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={async () => {
+              {/* ── Sticky Bottom Action Bar ───────────────────────────── */}
+              {fundingStep < 5 && (
+                <div className="sticky bottom-0 z-10 shrink-0 border-t border-border bg-background/95 backdrop-blur-sm">
+                  <div className="mx-auto max-w-3xl px-4 sm:px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      {/* Selected idea preview on Step 1 */}
+                      {fundingStep === 1 && selectedIdea && (
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Selected</p>
+                          <p className="text-sm font-medium truncate">{selectedIdea.idea_title}</p>
+                        </div>
+                      )}
+                      {fundingStep > 1 && (
+                        <Button
+                          variant="outline"
+                          onClick={() => setFundingStep(fundingStep - 1)}
+                          disabled={isSubmitting || isSavingQualification}
+                          className="rounded-xl px-5"
+                        >
+                          Back
+                        </Button>
+                      )}
+                      <div className="flex items-center gap-2 ml-auto">
+                        <Button
+                          variant="ghost"
+                          disabled={isSubmitting}
+                          onClick={closeOverlay}
+                          className="px-4"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={async () => {
                 // ── Step 1 → Step 2 ──────────────────────────────────────────
                 if (fundingStep === 1) {
                   if (!selectedIdea) return;
@@ -1493,7 +1494,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                     toast.error('Please select an idea first.');
                     return;
                   }
-                  if (!pitchFile) {
+                  if (pitchOption === 'upload' && !pitchFile) {
                     setFundingStep(3);
                     toast.error('Please upload your pitch deck first.');
                     return;
@@ -1526,23 +1527,31 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
 
                   setIsSubmitting(true);
                   try {
-                    const { error } = await supabase.from('vc_form_submissions').insert({
-                      user_id: user?.id || null,
-                      form_type: 'funding',
-                      payload: {
-                        ideaId: selectedIdea?.id,
-                        ideaTitle: selectedIdea?.idea_title,
-                        ideaScore: selectedIdea?.score,
-                        pitchType: pitchOption,
-                        pitchFileName: pitchOption === 'upload' ? pitchFile?.name : 'ai-generated',
-                        pitchFileSize: pitchOption === 'upload' ? pitchFile?.size : null,
-                        founderQualification: founderQualificationForm,
-                        founderProfile: fundingQualForm,
-                        createdAt: new Date().toISOString(),
-                      },
+                    // Upload PDF to Supabase Storage if file was chosen
+                    let pitchPdfUrl: string | undefined;
+                    if (pitchOption === 'upload' && pitchFile && user) {
+                      try {
+                        pitchPdfUrl = await uploadPitchPdf(pitchFile, user.id);
+                      } catch (uploadErr: any) {
+                        toast.error(`Upload failed: ${uploadErr?.message ?? 'Unknown error'}. Please try again.`);
+                        setIsSubmitting(false);
+                        return;
+                      }
+                    }
+
+                    // Submit to the real funding pipeline via Java backend
+                    await submitApplication({
+                      ideaId: selectedIdea!.id,
+                      ideaTitle: selectedIdea!.idea_title,
+                      ideaScore: selectedIdea!.score,
+                      pitchText: pitchOption === 'ai' ? 'AI-generated pitch (from Pitch Generator)' : undefined,
+                      pitchPdfUrl,
+                      pitchFileName: pitchOption === 'upload' ? pitchFile?.name : undefined,
+                      startupStage: founderQualificationForm.startupStage,
+                      companyName: founderQualificationForm.companyName,
+                      fundingAsk: founderQualificationForm.fundingAsk,
                     });
-                    if (error) throw error;
-                    // Show in-modal success screen
+
                     setFundingStep(5);
                   } catch (err) {
                     console.error('Funding request submission failed:', err);
@@ -1574,11 +1583,15 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
               ) : (
                 <>Submit Request <ArrowRight className="ml-2 h-4 w-4" /></>
               )}
-            </Button>
-          </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          );
+        })()}
 
       {/* Unsaved qualification changes — confirm discard */}
       <AlertDialog open={closeConfirmOpen} onOpenChange={setCloseConfirmOpen}>
@@ -1603,6 +1616,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 setSelectedIdea(null);
                 setPitchFile(null);
                 setPitchOption(null);
+                setFundingSearch('');
                 setFundingQualForm({ fullName: '', email: '', experienceLevel: '', linkedinUrl: '', previousStartups: '' });
                 setQualificationSaved(false);
                 setQualFetchError(null);
@@ -1611,24 +1625,12 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
                 setQualFormDirty(false);
                 setIsSubmitting(false);
                 setFounderQualificationForm({
-                  startupStage: '',
-                  companyName: '',
-                  websiteUrl: '',
-                  monthlyRevenue: '',
-                  revenueGrowthRate: '',
-                  customerCount: '',
-                  avgRevenuePerCustomer: '',
-                  grossMargin: '',
-                  burnRate: '',
-                  runway: '',
-                  teamSize: '',
-                  fundingRaised: '',
-                  fundingAsk: '',
-                  useOfFunds: '',
-                  industry: '',
-                  businessModel: '',
-                  competitiveAdvantage: '',
-                  keyMetrics: '',
+                  startupStage: '', companyName: '', websiteUrl: '',
+                  monthlyRevenue: '', revenueGrowthRate: '', customerCount: '',
+                  avgRevenuePerCustomer: '', grossMargin: '', burnRate: '',
+                  runway: '', teamSize: '', fundingRaised: '', fundingAsk: '',
+                  useOfFunds: '', industry: '', businessModel: '',
+                  competitiveAdvantage: '', keyMetrics: '',
                 });
               }}
             >

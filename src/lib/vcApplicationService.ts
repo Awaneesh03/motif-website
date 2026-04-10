@@ -25,6 +25,10 @@ export interface VcApplicationResponse {
   founderId: string | null;
   ideaId: string | null;
   ideaTitle: string | null;
+  ideaScore: number | null;
+  pitchText: string | null;
+  pitchPdfUrl: string | null;
+  pitchFileName: string | null;
   status: ApplicationStatus;
   vcNotes: string | null;
   reviewedAt: string | null;
@@ -90,6 +94,20 @@ export function canTransitionTo(current: ApplicationStatus, next: ApplicationSta
   return allowed.includes(next);
 }
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface CreateApplicationRequest {
+  ideaId: string;
+  ideaTitle: string;
+  ideaScore: number;
+  pitchText?: string;
+  pitchPdfUrl?: string;
+  pitchFileName?: string;
+  startupStage?: string;
+  companyName?: string;
+  fundingAsk?: string;
+}
+
 // ── API calls ─────────────────────────────────────────────────────────────────
 
 const TIMEOUT_MS = 10_000;
@@ -121,6 +139,13 @@ export async function getAllApplications(
     `/api/vc/applications?page=${page}&size=${size}${statusQ}`,
     TIMEOUT_MS,
   );
+}
+
+/** Founder: submit a new funding application (pitch + idea). */
+export async function submitApplication(
+  req: CreateApplicationRequest,
+): Promise<VcApplicationResponse> {
+  return apiClient.post<VcApplicationResponse>('/api/funding/apply', req, TIMEOUT_MS);
 }
 
 /** VC/admin: update an application's status and/or notes. */

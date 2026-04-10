@@ -118,3 +118,40 @@ export function getCaseStudyImageUrl(image?: string | null): string | null {
   const path = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
   return `${supabaseUrl}/storage/v1/object/public/case-studies/${path}`;
 }
+
+/**
+ * Uploads a pitch PDF to Supabase Storage (bucket: "pitches").
+ * Returns the public URL on success, throws on failure.
+ *
+ * Path: pitches/{userId}/{timestamp}-{filename}
+ *
+ * Prerequisites — run once in Supabase dashboard:
+ *   1. Create storage bucket named "pitches" (private or public)
+ *   2. Add RLS policy: authenticated users can INSERT their own files
+ *      (path starts with their user ID)
+ */
+export async function uploadPitchPdf(
+  file: File,
+  userId: string,
+): Promise<string> {
+  const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+  if (file.size > MAX_SIZE_BYTES) {
+    throw new Error('File too large. Maximum size is 5 MB.');
+  }
+  if (file.type !== 'application/pdf') {
+    throw new Error('Only PDF files are allowed.');
+  }
+
+  const timestamp = Date.now();
+  const safeName  = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path      = `${userId}/${timestamp}-${safeName}`;
+
+  const { error } = await supabase.storage
+    .from('pitches')
+    .upload(path, file, { contentType: 'application/pdf', upsert: false });
+
+  if (error) throw new Error(`Upload failed: ${error.message}`);
+
+  const { data } = supabase.storage.from('pitches').getPublicUrl(path);
+  return data.publicUrl;
+}

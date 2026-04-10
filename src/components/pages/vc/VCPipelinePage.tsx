@@ -174,6 +174,12 @@ function AppCard({ app, onUpdated }: AppCardProps) {
                     <p className="font-mono text-xs truncate">{app.founderId}</p>
                   </div>
                 )}
+                {app.ideaScore != null && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Idea Score</p>
+                    <p className="text-sm font-bold text-primary">{app.ideaScore}%</p>
+                  </div>
+                )}
                 {app.reviewedAt && (
                   <div>
                     <p className="text-xs text-muted-foreground mb-0.5">Last Reviewed</p>
@@ -183,6 +189,30 @@ function AppCard({ app, onUpdated }: AppCardProps) {
                   </div>
                 )}
               </div>
+
+              {/* Pitch content */}
+              {app.pitchPdfUrl ? (
+                <div className="rounded-lg border border-border/50 bg-background/60 p-3 flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-muted-foreground mb-0.5">Pitch Deck</p>
+                    <p className="text-sm truncate">{app.pitchFileName || 'pitch.pdf'}</p>
+                  </div>
+                  <a
+                    href={app.pitchPdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-xs text-primary underline hover:opacity-80"
+                  >
+                    Open PDF
+                  </a>
+                </div>
+              ) : app.pitchText ? (
+                <div className="rounded-lg border border-border/50 bg-background/60 p-3">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Pitch</p>
+                  <p className="text-sm leading-relaxed line-clamp-4">{app.pitchText}</p>
+                </div>
+              ) : null}
 
               {/* Notes with auto-save */}
               <div>
