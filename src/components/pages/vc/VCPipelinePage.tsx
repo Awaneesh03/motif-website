@@ -4,7 +4,7 @@ import {
   Users, Clock, CheckCircle2, XCircle, FileText, Sparkles,
   Loader2, AlertCircle, RefreshCw, ChevronDown, ChevronUp,
   Search, SlidersHorizontal, MessageSquare, Send,
-  ChevronLeft, ChevronRight, Zap, Timer,
+  ChevronLeft, ChevronRight, Zap, Timer, Download, ExternalLink, X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -25,6 +25,51 @@ import {
   canTransitionTo,
 } from '@/lib/vcApplicationService';
 import { useUser } from '@/contexts/UserContext';
+import { supabase } from '@/lib/supabase';
+
+// ── PDF Preview Modal ─────────────────────────────────────────────────────────
+
+function PdfPreviewModal({ url, filename, onClose }: { url: string; filename: string; onClose: () => void }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[60] flex flex-col bg-background/95 backdrop-blur-sm">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+        <FileText className="h-4 w-4 text-primary shrink-0" />
+        <span className="flex-1 font-medium text-sm truncate">{filename}</span>
+        <a href={url} target="_blank" rel="noopener noreferrer" download
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <Download className="h-3.5 w-3.5" />Download
+        </a>
+        <a href={url} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <ExternalLink className="h-3.5 w-3.5" />Open
+        </a>
+        <button onClick={onClose} className="ml-2 p-1.5 rounded-lg hover:bg-muted transition-colors">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        {failed ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-4">
+            <AlertCircle className="h-10 w-10 text-muted-foreground" />
+            <p className="text-muted-foreground text-sm">Could not preview this PDF in your browser.</p>
+            <a href={url} target="_blank" rel="noopener noreferrer" download
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
+              <Download className="h-4 w-4" />Download PDF
+            </a>
+          </div>
+        ) : (
+          <iframe src={url} className="w-full h-full" title={filename} onError={() => setFailed(true)} />
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── Skeleton loader ────────────────────────────────────────────────────────────
 
@@ -87,6 +132,7 @@ interface AppCardProps {
 
 function AppCard({ app, onUpdated }: AppCardProps) {
   const [expanded,  setExpanded]  = useState(false);
+  const [pdfOpen,   setPdfOpen]   = useState(false);
   const [notes,     setNotes]     = useState(app.vcNotes ?? '');
   const [saving,    setSaving]    = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -192,21 +238,28 @@ function AppCard({ app, onUpdated }: AppCardProps) {
 
               {/* Pitch content */}
               {app.pitchPdfUrl ? (
-                <div className="rounded-lg border border-border/50 bg-background/60 p-3 flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-primary shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-muted-foreground mb-0.5">Pitch Deck</p>
-                    <p className="text-sm truncate">{app.pitchFileName || 'pitch.pdf'}</p>
+                <>
+                  <div className="rounded-lg border border-border/50 bg-background/60 p-3 flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-muted-foreground mb-0.5">Pitch Deck</p>
+                      <p className="text-sm truncate">{app.pitchFileName || 'pitch.pdf'}</p>
+                    </div>
+                    <button
+                      onClick={() => setPdfOpen(true)}
+                      className="shrink-0 text-xs text-primary underline hover:opacity-80"
+                    >
+                      View Pitch Deck
+                    </button>
                   </div>
-                  <a
-                    href={app.pitchPdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 text-xs text-primary underline hover:opacity-80"
-                  >
-                    Open PDF
-                  </a>
-                </div>
+                  {pdfOpen && (
+                    <PdfPreviewModal
+                      url={app.pitchPdfUrl}
+                      filename={app.pitchFileName || 'pitch.pdf'}
+                      onClose={() => setPdfOpen(false)}
+                    />
+                  )}
+                </>
               ) : app.pitchText ? (
                 <div className="rounded-lg border border-border/50 bg-background/60 p-3">
                   <p className="text-xs font-semibold text-muted-foreground mb-1">Pitch</p>
@@ -390,6 +443,43 @@ export default function VCPipelinePage() {
     setPage(0);
     load(0, statusFilter);
   }, [statusFilter, load]);
+
+  // ── Realtime: update in-place when a VC changes an application's status ─────
+  useEffect(() => {
+    const channel = supabase
+      .channel('vc-pipeline-apps')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'vc_applications' },
+        (payload) => {
+          const updated = payload.new as Record<string, unknown>;
+          if (!updated?.id) return;
+          setPaged(prev => {
+            if (!prev) return prev;
+            const items: VcApplicationResponse[] = prev.items.map(a =>
+              a.id === updated.id
+                ? {
+                    ...a,
+                    status:     ((updated.status as string) ?? a.status) as ApplicationStatus,
+                    vcNotes:    (updated.vc_notes as string | null) ?? a.vcNotes,
+                    reviewedAt: (updated.reviewed_at as string | null) ?? a.reviewedAt,
+                    updatedAt:  (updated.updated_at as string) ?? a.updatedAt,
+                  }
+                : a
+            );
+            return { ...prev, items };
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'vc_applications' },
+        () => { load(page, statusFilter); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [page, statusFilter, load]);
 
   const handlePage = (p: number) => {
     setPage(p);

@@ -4,9 +4,11 @@ import {
   FileText, Clock, CheckCircle2, XCircle, Sparkles,
   AlertCircle, RefreshCw, ChevronDown, ChevronUp,
   Banknote, ArrowRight, ChevronLeft, ChevronRight,
+  Download, X, ExternalLink,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +24,61 @@ import {
   type ApplicationStatus,
 } from '@/lib/vcApplicationService';
 import { useUser } from '@/contexts/UserContext';
+
+// ── PDF Preview Modal ─────────────────────────────────────────────────────────
+
+function PdfPreviewModal({ url, filename, onClose }: { url: string; filename: string; onClose: () => void }) {
+  const [failed, setFailed] = useState(false);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex flex-col bg-background/95 backdrop-blur-sm">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+        <FileText className="h-4 w-4 text-primary shrink-0" />
+        <span className="flex-1 font-medium text-sm truncate">{filename}</span>
+        <a href={url} target="_blank" rel="noopener noreferrer" download
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <Download className="h-3.5 w-3.5" />Download
+        </a>
+        <a href={url} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <ExternalLink className="h-3.5 w-3.5" />Open
+        </a>
+        <button onClick={onClose} className="ml-2 p-1.5 rounded-lg hover:bg-muted transition-colors">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* PDF iframe or fallback */}
+      <div className="flex-1 overflow-hidden">
+        {failed ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-4">
+            <AlertCircle className="h-10 w-10 text-muted-foreground" />
+            <p className="text-muted-foreground text-sm">Could not preview this PDF in your browser.</p>
+            <a href={url} target="_blank" rel="noopener noreferrer" download
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
+              <Download className="h-4 w-4" />Download PDF
+            </a>
+          </div>
+        ) : (
+          <iframe
+            src={url}
+            className="w-full h-full"
+            title={filename}
+            onError={() => setFailed(true)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── Skeleton loader ────────────────────────────────────────────────────────────
 
@@ -125,10 +182,19 @@ function StatusTimeline({ app }: { app: VcApplicationResponse }) {
 
 // ── Application Row ────────────────────────────────────────────────────────────
 
+const STATUS_CONTEXT_MSG: Partial<Record<ApplicationStatus, string>> = {
+  under_review: '👀 An investor is reviewing your pitch',
+  interested:   '🎉 An investor is interested in your startup',
+  funded:       '🚀 Congratulations — your application has been funded!',
+  rejected:     'Your application was not selected at this time.',
+};
+
 function ApplicationRow({ app }: { app: VcApplicationResponse }) {
   const [expanded, setExpanded] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
   const label = STATUS_LABELS[app.status as ApplicationStatus] ?? app.status;
   const color = STATUS_COLORS[app.status as ApplicationStatus] ?? '';
+  const contextMsg = STATUS_CONTEXT_MSG[app.status as ApplicationStatus];
 
   return (
     <motion.div layout className="rounded-xl border border-border/50 bg-muted/20 overflow-hidden">
@@ -160,6 +226,19 @@ function ApplicationRow({ app }: { app: VcApplicationResponse }) {
             className="overflow-hidden"
           >
             <div className="px-4 pb-5 space-y-3">
+              {/* Status context message */}
+              {contextMsg && (
+                <div className={`rounded-lg border p-3 text-sm ${
+                  app.status === 'interested' || app.status === 'funded'
+                    ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
+                    : app.status === 'rejected'
+                    ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+                    : 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                }`}>
+                  {contextMsg}
+                </div>
+              )}
+
               {/* Score badge */}
               {app.ideaScore != null && (
                 <div className="flex items-center gap-2">
@@ -170,14 +249,24 @@ function ApplicationRow({ app }: { app: VcApplicationResponse }) {
 
               {/* Pitch preview */}
               {app.pitchPdfUrl ? (
-                <div className="rounded-lg bg-background/60 border border-border/50 p-3 flex items-center gap-3">
-                  <FileText className="h-4 w-4 text-primary shrink-0" />
-                  <span className="flex-1 text-sm truncate">{app.pitchFileName || 'pitch.pdf'}</span>
-                  <a href={app.pitchPdfUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-primary underline hover:opacity-80 shrink-0">
-                    View PDF
-                  </a>
-                </div>
+                <>
+                  <div className="rounded-lg bg-background/60 border border-border/50 p-3 flex items-center gap-3">
+                    <FileText className="h-4 w-4 text-primary shrink-0" />
+                    <span className="flex-1 text-sm truncate">{app.pitchFileName || 'pitch.pdf'}</span>
+                    <button
+                      onClick={() => setPdfOpen(true)}
+                      className="text-xs text-primary underline hover:opacity-80 shrink-0">
+                      View Pitch Deck
+                    </button>
+                  </div>
+                  {pdfOpen && (
+                    <PdfPreviewModal
+                      url={app.pitchPdfUrl}
+                      filename={app.pitchFileName || 'pitch.pdf'}
+                      onClose={() => setPdfOpen(false)}
+                    />
+                  )}
+                </>
               ) : app.pitchText ? (
                 <div className="rounded-lg bg-background/60 border border-border/50 p-3">
                   <p className="text-xs font-semibold text-muted-foreground mb-1">Your Pitch</p>
@@ -270,6 +359,50 @@ export function FundingDashboardPage() {
   }, []);
 
   useEffect(() => { load(page); }, [load, page]);
+
+  // ── Realtime subscription: refresh list when any of the user's apps change ──
+  useEffect(() => {
+    if (!profile?.id) return;
+    const channel = supabase
+      .channel(`founder-apps-${profile.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'vc_applications', filter: `founder_id=eq.${profile.id}` },
+        (payload) => {
+          // Update the changed row in-place first for instant feedback
+          const updated = payload.new as Record<string, unknown>;
+          if (updated && payload.eventType === 'UPDATE') {
+            setPaged(prev => {
+              if (!prev) return prev;
+              const items: VcApplicationResponse[] = prev.items.map(a =>
+                a.id === updated.id
+                  ? {
+                      ...a,
+                      status:     ((updated.status as string) ?? a.status) as ApplicationStatus,
+                      vcNotes:    (updated.vc_notes as string | null) ?? a.vcNotes,
+                      reviewedAt: (updated.reviewed_at as string | null) ?? a.reviewedAt,
+                      updatedAt:  (updated.updated_at as string) ?? a.updatedAt,
+                    }
+                  : a
+              );
+              // Show a toast with status context
+              const changed = items.find(a => a.id === updated.id);
+              if (changed) {
+                const msg = STATUS_CONTEXT_MSG[changed.status as ApplicationStatus];
+                if (msg) toast.info('Application updated', { description: msg });
+              }
+              return { ...prev, items };
+            });
+          } else {
+            // INSERT or DELETE — full refresh
+            load(page);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.id, page, load]);
 
   const handlePage = (p: number) => {
     setPage(p);

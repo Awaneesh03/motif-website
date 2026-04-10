@@ -215,12 +215,13 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
     }
   };
 
-  // Fetch + pre-fill qualification when the user enters Step 2
+  // Preload qualification data as soon as the modal opens — data is ready before step 2
   useEffect(() => {
-    if (fundingStep === 2 && fundingModalOpen && user) {
+    if (fundingModalOpen && user) {
       fetchAndPrefillQualification();
     }
-  }, [fundingStep, fundingModalOpen, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fundingModalOpen, user]);
 
   // Scroll the modal back to the top whenever the active step changes
   useEffect(() => {
@@ -248,42 +249,58 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
   }, [fundingModalOpen, fundingStep, isSubmitting, isSavingQualification]);
 
   const fetchAndPrefillQualification = async () => {
-    // Reset the cancel flag — this is a fresh intentional fetch
     fetchCancelledRef.current = false;
     setIsLoadingQualification(true);
     setQualFetchError(null);
-    try {
-      const data = await getQualification();
-      // Modal may have closed while the request was in flight — bail out
-      // so we don't overwrite the post-close state reset with stale data.
-      if (fetchCancelledRef.current) return;
-      if (data.found) {
-        setFundingQualForm({
-          fullName: data.fullName || '',
-          email: data.email || '',
-          experienceLevel: data.experienceLevel || '',
-          linkedinUrl: data.linkedinUrl || '',
-          previousStartups: data.previousStartups || '',
-        });
-        setQualUpdatedAt(data.updatedAt || null);
-        setQualificationSaved(true);
-      } else {
-        setFundingQualForm(prev => ({ ...prev, email: user?.email || '' }));
-        setQualUpdatedAt(null);
-        setQualificationSaved(false);
+
+    let lastErr: unknown = null;
+
+    // Auto-retry once before surfacing the error
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const data = await getQualification();
+        // Modal may have closed while the request was in flight — bail out
+        if (fetchCancelledRef.current) return;
+        if (data.found) {
+          setFundingQualForm({
+            fullName: data.fullName || '',
+            email: data.email || '',
+            experienceLevel: data.experienceLevel || '',
+            linkedinUrl: data.linkedinUrl || '',
+            previousStartups: data.previousStartups || '',
+          });
+          setQualUpdatedAt(data.updatedAt || null);
+          setQualificationSaved(true);
+        } else {
+          setFundingQualForm(prev => ({ ...prev, email: user?.email || '' }));
+          setQualUpdatedAt(null);
+          setQualificationSaved(false);
+        }
+        setQualFormDirty(false);
+        if (!fetchCancelledRef.current) setIsLoadingQualification(false);
+        return; // success — exit loop
+      } catch (err: unknown) {
+        if (fetchCancelledRef.current) return;
+        lastErr = err;
+        if (attempt === 0) {
+          // Brief pause before the auto-retry
+          await new Promise<void>(resolve => setTimeout(resolve, 800));
+          if (fetchCancelledRef.current) return;
+        }
       }
-      // Mark clean — the form now matches the server state
-      setQualFormDirty(false);
-    } catch (err: any) {
-      if (fetchCancelledRef.current) return;
-      const isTimeout = err?.name === 'AbortError' || err?.message?.includes('timed out');
+    }
+
+    // Both attempts failed — surface a non-blocking error, pre-fill email as best-effort
+    if (!fetchCancelledRef.current) {
+      const e = lastErr as { name?: string; message?: string } | null;
+      const isTimeout = e?.name === 'AbortError' || e?.message?.includes('timed out');
       setQualFetchError(
         isTimeout
           ? 'Request timed out. Check your connection and try again.'
-          : 'Failed to load your profile. Check your connection and try again.'
+          : 'Could not load your saved profile. You can fill in the form manually.'
       );
-    } finally {
-      if (!fetchCancelledRef.current) setIsLoadingQualification(false);
+      setFundingQualForm(prev => ({ ...prev, email: user?.email || '' }));
+      setIsLoadingQualification(false);
     }
   };
 
@@ -728,31 +745,47 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
           {/* Step 2: Founder Qualification (persisted profile) */}
           {fundingStep === 2 && (
             <div className="space-y-6 py-4">
-              {/* Loading state */}
+              {/* Skeleton loading state */}
               {isLoadingQualification ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-3">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-muted-foreground text-sm">Loading your profile...</p>
-                </div>
-              ) : qualFetchError ? (
-                /* Fetch error — show retry instead of silent empty form */
-                <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
-                  <AlertCircle className="h-10 w-10 text-destructive" />
-                  <div>
-                    <p className="font-medium text-foreground mb-1">Could not load your profile</p>
-                    <p className="text-sm text-muted-foreground">{qualFetchError}</p>
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-4 bg-muted rounded w-2/5" />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="h-3 bg-muted rounded w-1/3" />
+                      <div className="h-10 bg-muted rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-3 bg-muted rounded w-1/4" />
+                      <div className="h-10 bg-muted rounded-xl" />
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={fetchAndPrefillQualification}
-                    className="rounded-xl"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Try again
-                  </Button>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-muted rounded w-1/3" />
+                    <div className="h-10 bg-muted rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-muted rounded w-1/4" />
+                    <div className="h-10 bg-muted rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-muted rounded w-2/5" />
+                    <div className="h-20 bg-muted rounded-xl" />
+                  </div>
                 </div>
               ) : (
+                /* Always show the form — inline error banner does NOT block the form */
                 <>
+                  {/* Inline fetch-error — user can still fill in the form manually */}
+                  {qualFetchError && (
+                    <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <p className="flex-1 text-xs text-amber-700 dark:text-amber-300">{qualFetchError}</p>
+                      <Button size="sm" variant="ghost" onClick={fetchAndPrefillQualification}
+                        className="text-xs h-7 px-2 text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/40 shrink-0">
+                        <RefreshCw className="h-3 w-3 mr-1" />Retry
+                      </Button>
+                    </div>
+                  )}
                   {/* "Saved info loaded" banner with last-updated timestamp */}
                   {qualificationSaved && (
                     <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4">
