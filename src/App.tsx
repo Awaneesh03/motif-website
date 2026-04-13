@@ -27,6 +27,7 @@ import { NotFoundPage } from './components/pages/NotFoundPage';
 import { NotificationsPage } from './components/pages/NotificationsPage';
 import { supabase } from './lib/supabase';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { serverWarmup } from './lib/serverWarmup';
 
 // Role-based routing
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -65,6 +66,12 @@ function AppContent() {
 
   // isLoggedIn is now derived from UserContext's user state
   const isLoggedIn = !!user;
+
+  // Pre-warm the backend on every page load so cold starts never hit users mid-action.
+  // The singleton ensures this runs at most once per browser session.
+  useEffect(() => {
+    serverWarmup.start();
+  }, []);
 
   useEffect(() => {
     if (isDark) {

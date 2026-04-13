@@ -44,6 +44,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { startAnalysis, pollAnalysisStatusSafe, generateIdea, improveDescription } from '../../lib/aiAnalysis';
+import { serverWarmup, type WarmupStatus } from '../../lib/serverWarmup';
 import type { SafeAnalysisResult, GeneratedIdea } from '../../lib/aiAnalysis';
 import { fromLegacyResult } from '../../lib/analysisValidator';
 import type { Competitor } from '../../lib/analysisValidator';
@@ -173,7 +174,13 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const [serverStatus, setServerStatus] = useState<WarmupStatus>(serverWarmup.getStatus());
+
+  // Keep serverStatus in sync with the global warmup singleton
+  useEffect(() => {
+    return serverWarmup.subscribe(setServerStatus);
+  }, []);
+
   // Persist form data to sessionStorage whenever it changes (cleared on new tab)
   useEffect(() => {
     const formData = {
@@ -818,13 +825,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const handleGenerateIdea = async () => {
     setIsGenerating(true);
 
-    // Show a helpful message if the server takes more than 10s (Render cold-start)
-    const coldStartToastId = setTimeout(() => {
-      toast.info('Server is waking up — this can take up to 60 seconds on the first request…');
-    }, 10000);
-
     const applyIdea = (generatedIdea: GeneratedIdea) => {
-      clearTimeout(coldStartToastId);
       setIdeaTitle(generatedIdea.title);
       setIdeaDescription(generatedIdea.description);
       const generatedMarkets = generatedIdea.targetMarket?.split(/[,&]/).map((m: string) => m.trim()) || [];
@@ -836,7 +837,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     };
 
     try {
-      // First attempt — 120s covers Render cold-start (≤90s) + OpenAI latency (≤20s)
       applyIdea(await generateIdea(120000));
     } catch (err) {
       console.error('[IdeaAnalyser] Generate idea attempt 1 failed:', err);
@@ -845,27 +845,22 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       const isNetwork = msg.includes('Failed to fetch') || msg.includes('unavailable');
 
       if (isTimeout || isNetwork) {
-        // Server was cold — retry now that it's warm (60s is plenty for a warm server)
+        // Server was still cold on first attempt — retry once now that it has had time to boot
         try {
           applyIdea(await generateIdea(60000));
-          return; // success — finally will clean up
+          return;
         } catch (retryErr) {
           console.error('[IdeaAnalyser] Generate idea attempt 2 failed:', retryErr);
-          clearTimeout(coldStartToastId);
-          toast.error('Server is taking too long to respond. Please wait 30 seconds and try again.');
+          toast.error('Server is taking too long to respond. Please try again in a moment.');
         }
       } else if (msg.includes('Rate limit') || msg.includes('429')) {
-        clearTimeout(coldStartToastId);
         toast.error('Rate limit reached — please wait a moment and try again.');
       } else if (msg.includes('Authentication') || msg.includes('401') || msg.includes('login')) {
-        clearTimeout(coldStartToastId);
         toast.error('Session expired — please log out and log back in.');
       } else {
-        clearTimeout(coldStartToastId);
         toast.error('Failed to generate idea. Please try again in a moment.');
       }
     } finally {
-      clearTimeout(coldStartToastId);
       setIsGenerating(false);
     }
   };
@@ -1353,6 +1348,23 @@ Powered by Motif - Your AI-Powered Startup Companion
                       </p>
                     )}
                   </div>
+
+                  {/* Server warm-up status banner */}
+                  {(serverStatus === 'warming' || serverStatus === 'unknown') && (
+                    <div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 mt-2">
+                      <svg className="h-3.5 w-3.5 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                      </svg>
+                      <span>Server is starting up — this takes ~30 s on first load. Analysis will work immediately after.</span>
+                    </div>
+                  )}
+                  {serverStatus === 'unavailable' && (
+                    <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-3 py-2 text-xs text-red-700 dark:text-red-400 mt-2">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>Server is unreachable. Please refresh the page and try again.</span>
+                    </div>
+                  )}
 
                   {/* Analyze Button */}
                   <div className="flex gap-2 mt-2">
