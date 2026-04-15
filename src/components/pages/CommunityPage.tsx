@@ -707,9 +707,10 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         }
       }
 
-      // updated_at guard: if a locally-applied optimistic update (e.g. upvote) is
-      // newer than the incoming DB row, preserve the local counters so the UI does
-      // not briefly flicker back to the pre-update value.
+      // While an upvote operation is in flight for an idea, any re-fetch must not
+      // overwrite the optimistic counters — the DB row may not yet reflect the
+      // trigger-updated upvotes_count. We use upvotingIdsRef (a Set of idea IDs
+      // currently mid-upvote) as the sole guard. No clock comparison needed.
       setSupabaseIdeas(prev => {
         const existingById = new Map(
           prev.filter(i => i.id && !i.id.startsWith('optimistic-')).map(i => [i.id!, i])
@@ -718,21 +719,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
           if (!incoming.id) return incoming;
           const existing = existingById.get(incoming.id);
           if (!existing) return incoming;
-          // Parse both timestamps explicitly — either value may be absent or
-          // unparseable (e.g. DB returns null for a newly-created row before a
-          // trigger fires). Number.isFinite rejects NaN so we never compare
-          // garbage values and never accidentally suppress a real DB update.
-          const existingTs = existing.updatedAt
-            ? new Date(existing.updatedAt).getTime()
-            : NaN;
-          const incomingTs = incoming.updatedAt
-            ? new Date(incoming.updatedAt).getTime()
-            : NaN;
-          // +200ms skew tolerance: server clocks and JS Date parsing can drift by a
-          // few milliseconds. Only treat local state as "newer" when the gap is
-          // meaningful, so a same-millisecond tick never suppresses a real DB update.
-          if (Number.isFinite(existingTs) && Number.isFinite(incomingTs) && existingTs > incomingTs + 200) {
-            // Local state is meaningfully newer — keep existing interactive counters
+          // Preserve local upvote state for any idea whose upvote operation is still
+          // in flight — the DB trigger may not have committed yet at this point.
+          if (upvotingIdsRef.current.has(incoming.id)) {
             return { ...incoming, upvotes: existing.upvotes, hasUpvoted: existing.hasUpvoted };
           }
           return incoming;
@@ -761,6 +750,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     }
   };
 
+  // Tracks idea IDs currently mid-upvote so:
+  //   1. Double-clicks cannot spawn a concurrent INSERT + DELETE race.
+  //   2. fetchCommunityIdeas skips overwriting upvote counters while in flight.
+  const upvotingIdsRef = useRef<Set<string>>(new Set());
+
   // Handle upvote with optimistic UI
   const handleUpvote = async (ideaId: string) => {
     if (!user) {
@@ -768,7 +762,9 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       return;
     }
 
-    // Find the idea in supabaseIdeas (only Supabase ideas can be upvoted)
+    // Double-click guard — one operation per idea at a time
+    if (upvotingIdsRef.current.has(ideaId)) return;
+
     const idea = supabaseIdeas.find(i => i.id === ideaId);
     if (!idea) {
       toast.error('This idea cannot be upvoted');
@@ -777,48 +773,51 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
     const wasUpvoted = idea.hasUpvoted;
 
-    // Optimistic UI update
+    // Lock this idea — fetchCommunityIdeas will skip overwriting its counters
+    upvotingIdsRef.current.add(ideaId);
+
+    // Optimistic UI update — instant feedback while DB operation runs
     setSupabaseIdeas(prev =>
       prev.map(i =>
         i.id === ideaId
-          ? {
-              ...i,
-              upvotes: wasUpvoted ? i.upvotes - 1 : i.upvotes + 1,
-              hasUpvoted: !wasUpvoted,
-            }
+          ? { ...i, upvotes: wasUpvoted ? i.upvotes - 1 : i.upvotes + 1, hasUpvoted: !wasUpvoted }
           : i
       )
     );
 
     try {
       if (wasUpvoted) {
-        // Remove upvote
         const { error } = await supabase
           .from('community_upvotes')
           .delete()
           .eq('idea_id', ideaId)
           .eq('user_id', user.id);
-
-        if (error) {
-          console.error('Delete upvote error:', error);
-          throw error;
-        }
+        if (error) throw error;
       } else {
-        // Add upvote
         const { error } = await supabase
           .from('community_upvotes')
-          .insert({
-            idea_id: ideaId,
-            user_id: user.id,
-          });
-
-        if (error) {
-          console.error('Insert upvote error:', error);
-          throw error;
-        }
+          .insert({ idea_id: ideaId, user_id: user.id });
+        if (error) throw error;
       }
-      
-      // Success - no toast needed as optimistic UI already updated
+
+      // Give the DB trigger ~400ms to commit the updated upvotes_count,
+      // then fetch the single authoritative row and apply it to state.
+      await new Promise(r => setTimeout(r, 400));
+      const { data: freshRow } = await supabase
+        .from('community_ideas')
+        .select('upvotes_count, updated_at')
+        .eq('id', ideaId)
+        .single();
+
+      if (freshRow) {
+        setSupabaseIdeas(prev =>
+          prev.map(i =>
+            i.id === ideaId
+              ? { ...i, upvotes: freshRow.upvotes_count ?? i.upvotes, updatedAt: freshRow.updated_at }
+              : i
+          )
+        );
+      }
     } catch (error: any) {
       console.error('Error toggling upvote:', error);
 
@@ -826,16 +825,11 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       setSupabaseIdeas(prev =>
         prev.map(i =>
           i.id === ideaId
-            ? {
-                ...i,
-                upvotes: wasUpvoted ? i.upvotes + 1 : i.upvotes - 1,
-                hasUpvoted: wasUpvoted,
-              }
+            ? { ...i, upvotes: wasUpvoted ? i.upvotes + 1 : i.upvotes - 1, hasUpvoted: wasUpvoted }
             : i
         )
       );
 
-      // Show specific error messages
       if (error.code === '23505') {
         toast.error('You have already upvoted this idea');
       } else if (error.code === '42P01') {
@@ -847,6 +841,8 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       } else {
         toast.error('Failed to update upvote. Please try again.');
       }
+    } finally {
+      upvotingIdsRef.current.delete(ideaId);
     }
   };
 
@@ -1336,8 +1332,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     // replica identity and network conditions.  To keep the UI always correct:
     //
     //   1. Optimistic increment — updates the card count instantly (no waiting).
-    //      Does NOT touch updatedAt, so the updated_at guard in setSupabaseIdeas
-    //      won't suppress the real DB value when the refetch arrives.
     //
     //   2. Explicit fetchCommunityIdeas() — guaranteed sync with the DB regardless
     //      of whether realtime delivers the event.  The trigger has already fired

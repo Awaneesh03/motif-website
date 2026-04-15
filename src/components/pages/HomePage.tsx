@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 
 import { fetchCaseStudies, subscribeToCaseStudies } from '@/lib/caseStudyService';
 import type { CaseStudy } from '@/lib/caseStudyService';
+import { fetchTrendingIdeas, subscribeTrendingIdeas } from '@/lib/communityService';
+import type { TrendingIdea } from '@/lib/communityService';
 
 import { Button } from '../ui/button';
 import { FeatureCard } from '../FeatureCard';
@@ -49,29 +51,6 @@ const features = [
 ];
 
 
-const communityIdeas = [
-  {
-    title: 'AI-powered meal planning app for busy professionals',
-    upvotes: 234,
-    comments_count: 45,
-    tags: ['AI', 'HealthTech', 'Mobile'],
-    author: 'Alex Kim',
-  },
-  {
-    title: 'Blockchain-based freelancer marketplace with escrow',
-    upvotes: 189,
-    comments_count: 32,
-    tags: ['Web3', 'Marketplace', 'Fintech'],
-    author: 'Jordan Lee',
-  },
-  {
-    title: 'No-code platform for building internal tools',
-    upvotes: 156,
-    comments_count: 28,
-    tags: ['SaaS', 'No-Code', 'B2B'],
-    author: 'Sam Patel',
-  },
-];
 
 interface HomePageProps {
   onNavigate?: (page: string, caseId?: string) => void;
@@ -107,6 +86,25 @@ function FeaturedCaseImage({ logo, company }: { logo: string | null; company: st
   );
 }
 
+// Skeleton for one trending idea card
+function TrendingIdeaSkeleton() {
+  return (
+    <div className="rounded-[10px] border border-border/60 bg-card p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="h-14 w-14 flex-shrink-0 rounded-lg" />
+        <div className="flex-1 space-y-2 pt-1">
+          <Skeleton className="h-4 w-3/4 rounded" />
+          <div className="flex gap-2">
+            <Skeleton className="h-4 w-14 rounded-full" />
+            <Skeleton className="h-4 w-16 rounded-full" />
+          </div>
+        </div>
+        <Skeleton className="h-14 w-14 flex-shrink-0 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
 // Skeleton for one featured case card
 function FeaturedCaseSkeleton() {
   return (
@@ -138,6 +136,12 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
   const [casesLoading, setCasesLoading] = useState(true);
   const [casesError, setCasesError] = useState<string | null>(null);
 
+  // Trending ideas state
+  const [trendingIdeas, setTrendingIdeas] = useState<TrendingIdea[]>([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
+  const [trendingLastUpdated, setTrendingLastUpdated] = useState<Date | null>(null);
+  const [trendingAnimKey, setTrendingAnimKey] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -155,6 +159,31 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
     // The full dataset is received; we slice to the same limit used above.
     const unsubscribe = subscribeToCaseStudies((fresh) => {
       if (!cancelled) setFeaturedCases(fresh.slice(0, 3));
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTrending() {
+      const { data } = await fetchTrendingIdeas(3);
+      if (cancelled) return;
+      setTrendingIdeas(data);
+      setTrendingLoading(false);
+      setTrendingLastUpdated(new Date());
+      setTrendingAnimKey(k => k + 1);
+    }
+
+    loadTrending();
+
+    // Realtime: re-fetch whenever community_ideas changes
+    const unsubscribe = subscribeTrendingIdeas(() => {
+      if (!cancelled) loadTrending();
     });
 
     return () => {
@@ -485,7 +514,7 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
         </div>
       </section>
 
-      {/* Community Preview Section */}
+      {/* Community Preview Section — live trending from Supabase */}
       <section className="bg-muted/20 py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -495,21 +524,70 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
             className="mb-8 text-center"
           >
             <h2 className="mb-2">Trending Ideas in the Community</h2>
-            <p className="text-muted-foreground text-sm">See what other founders are building</p>
+            <div className="flex items-center justify-center gap-2">
+              <p className="text-muted-foreground text-sm">See what other founders are building</p>
+              {trendingLastUpdated && !trendingLoading && (
+                <span className="flex items-center gap-1 text-xs text-emerald-500 font-medium">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Updated just now
+                </span>
+              )}
+            </div>
           </motion.div>
+
           <div className="mx-auto mb-8 max-w-2xl space-y-3">
-            {communityIdeas.map((idea, index) => (
-              <motion.div
-                key={idea.title}
-                initial={{ opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <IdeaCard {...idea} onCommentClick={() => handleCommentClick(idea)} />
-              </motion.div>
-            ))}
+            {trendingLoading ? (
+              <><TrendingIdeaSkeleton /><TrendingIdeaSkeleton /><TrendingIdeaSkeleton /></>
+            ) : trendingIdeas.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border py-16 text-center">
+                <TrendingUp className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+                <p className="text-muted-foreground text-sm">
+                  No trending ideas yet — be the first to share
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 rounded-[12px]"
+                  onClick={() => onNavigate?.('Community')}
+                >
+                  Post an idea
+                </Button>
+              </div>
+            ) : (
+              trendingIdeas.map((idea, index) => (
+                <motion.div
+                  key={`${trendingAnimKey}-${idea.id}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="relative"
+                >
+                  {/* 🔥 Trending badge for top 3 */}
+                  {index < 3 && (
+                    <span className="absolute -top-2 -right-2 z-10 flex items-center gap-0.5 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                      #{index + 1}
+                    </span>
+                  )}
+                  <IdeaCard
+                    title={idea.title}
+                    tags={idea.tags}
+                    author={idea.authorName}
+                    authorAvatar={idea.authorAvatar}
+                    upvotes={idea.upvotes}
+                    comments_count={idea.commentsCount}
+                    onCommentClick={() => handleCommentClick({
+                      id: idea.id,
+                      title: idea.title,
+                      author: idea.authorName,
+                      authorAvatar: idea.authorAvatar,
+                      comments_count: idea.commentsCount,
+                    })}
+                  />
+                </motion.div>
+              ))
+            )}
           </div>
+
           <div className="text-center">
             <Button
               variant="outline"
@@ -519,83 +597,6 @@ export function HomePage({ onNavigate, isLoggedIn = false }: HomePageProps) {
             >
               Join the Community
             </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Best Startups Section */}
-      <section className="bg-muted/30 py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-8 text-center"
-          >
-            <h2 className="mb-4">Best Startups Grown from Our Platform</h2>
-            <p className="text-muted-foreground">Success stories from founders who started here</p>
-          </motion.div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                name: 'CloudNest',
-                logo: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=200&h=200&fit=crop',
-                tagline: 'Cloud infrastructure for startups',
-                description: 'Started on Motif, now powering 500+ businesses',
-                metrics: { users: '75K+', funding: '$12M', growth: '+520%' },
-              },
-              {
-                name: 'EduVerse',
-                logo: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=200&h=200&fit=crop',
-                tagline: 'Virtual learning platform',
-                description: 'Validated idea here, serving 200K+ students globally',
-                metrics: { users: '200K+', funding: '$15M', growth: '+680%' },
-              },
-              {
-                name: 'FinTrack',
-                logo: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=200&h=200&fit=crop',
-                tagline: 'AI-powered expense tracking',
-                description: 'From concept to market leader in 24 months',
-                metrics: { users: '150K+', funding: '$20M', growth: '+750%' },
-              },
-            ].map((startup, index) => (
-              <motion.div
-                key={startup.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="glass-surface border-border/50 hover:shadow-lavender h-full transition-all">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col items-center text-center">
-                      <img
-                        src={startup.logo}
-                        alt={startup.name}
-                        className="mb-4 h-20 w-20 rounded-2xl object-cover"
-                      />
-                      <h3 className="mb-2">{startup.name}</h3>
-                      <p className="text-muted-foreground mb-4">{startup.tagline}</p>
-                      <p className="text-muted-foreground mb-6 text-sm">{startup.description}</p>
-                      <div className="border-border grid w-full grid-cols-3 gap-4 border-t pt-4">
-                        <div>
-                          <div className="text-primary">{startup.metrics.users}</div>
-                          <div className="text-muted-foreground text-xs">Users</div>
-                        </div>
-                        <div>
-                          <div className="text-primary">{startup.metrics.funding}</div>
-                          <div className="text-muted-foreground text-xs">Funding</div>
-                        </div>
-                        <div>
-                          <div className="text-primary">{startup.metrics.growth}</div>
-                          <div className="text-muted-foreground text-xs">Growth</div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
           </div>
         </div>
       </section>
