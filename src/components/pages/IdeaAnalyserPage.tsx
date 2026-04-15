@@ -49,17 +49,6 @@ import type { SafeAnalysisResult, GeneratedIdea } from '../../lib/aiAnalysis';
 import { fromLegacyResult } from '../../lib/analysisValidator';
 import type { Competitor } from '../../lib/analysisValidator';
 
-interface CommunityIdea {
-  title: string;
-  description: string;
-  upvotes: number;
-  comments_count: number;
-  tags: string[];
-  author: string;
-  authorAvatar?: string;
-  createdAt: string;
-}
-
 interface IdeaAnalyserPageProps {
   onNavigate?: (page: string) => void;
 }
@@ -150,6 +139,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     if (saved.score !== undefined) return fromLegacyResult(saved);   // legacy → new
     return null;
   });
+  const [analysisId, setAnalysisId] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
   const [showDemoReportModal, setShowDemoReportModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isImprovingDescription, setIsImprovingDescription] = useState(false);
@@ -404,8 +395,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     { label: 'Generating VC-grade insights', detail: 'Compiling strengths, weaknesses and recommendations', Icon: Sparkles },
   ] as const;
 
-  const COMMUNITY_STORAGE_KEY = 'motif-community-ideas';
-
   const normalizeIdeaValue = (value: string) =>
     value.trim().replace(/\s+/g, ' ').toLowerCase();
 
@@ -557,31 +546,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     toast.success('Form cleared');
   };
 
-  const saveCommunityIdea = (idea: CommunityIdea) => {
-    if (typeof window === 'undefined') return false;
-
-    try {
-      const stored = localStorage.getItem(COMMUNITY_STORAGE_KEY);
-      const existing: CommunityIdea[] = stored ? JSON.parse(stored) : [];
-      const normalizedTitle = normalizeIdeaValue(idea.title);
-      const normalizedDescription = normalizeIdeaValue(idea.description);
-
-      const duplicate = existing.some(
-        existingIdea =>
-          normalizeIdeaValue(existingIdea.title) === normalizedTitle &&
-          normalizeIdeaValue(existingIdea.description) === normalizedDescription
-      );
-
-      if (duplicate) return false;
-
-      localStorage.setItem(COMMUNITY_STORAGE_KEY, JSON.stringify([idea, ...existing]));
-      return true;
-    } catch (error) {
-      console.error('Failed to save community idea:', error);
-      return false;
-    }
-  };
-
   // Validation checks
   const isTitleValid = ideaTitle.trim().length >= 5;
   const isDescriptionValid = ideaDescription.trim().length >= 20;
@@ -663,6 +627,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               heuristicScores: match.heuristic_scores || undefined,
               investorAnalysis: match.investor_analysis || undefined,
             };
+            setAnalysisId(match.id);
             setAnalysisResult(fromLegacyResult(legacyCached as any));
             setIsAnalyzing(false);
             toast.success('Loaded your saved analysis from the vault.');
@@ -1003,39 +968,60 @@ Powered by Motif - Your AI-Powered Startup Companion
     handleDownloadReport(false);
   };
 
-  const handleShareToCommunity = () => {
+  const handleShareToCommunity = async () => {
     if (!user) {
       toast.error('Please login to share your idea');
       return;
     }
-
     if (!analysisResult) {
       toast.error('Analyze your idea before sharing');
       return;
     }
-
     if (!isFormValid) {
       toast.error('Please fill in all required fields before sharing');
       return;
     }
+    if (isSharing) return;
 
+    setIsSharing(true);
     const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
-    const newIdea: CommunityIdea = {
-      title: ideaTitle.trim(),
-      description: ideaDescription.trim(),
-      tags: buildTagsFromTargetMarket(selectedMarkets),
-      upvotes: 0,
-      comments_count: 0,
-      author: authorName,
-      authorAvatar: profile?.avatar || undefined,
-      createdAt: new Date().toISOString(),
-    };
+    const tags = buildTagsFromTargetMarket(selectedMarkets);
 
-    const saved = saveCommunityIdea(newIdea);
-    if (saved) {
-      toast.success('Shared to the community!');
-    } else {
-      toast.info('This idea is already shared in the community.');
+    try {
+      // Duplicate guard — same author + same title
+      const { data: existing } = await supabase
+        .from('community_ideas')
+        .select('id')
+        .eq('author_id', user.id)
+        .eq('title', ideaTitle.trim())
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        toast.info('This idea is already shared in the community.');
+        return;
+      }
+
+      const { error } = await supabase.from('community_ideas').insert({
+        title: ideaTitle.trim(),
+        description: ideaDescription.trim(),
+        tags,
+        author_name: authorName,
+        author_avatar: profile?.avatar || null,
+        author_id: user.id,
+      });
+
+      if (error) throw error;
+      console.log('[Share] Posted to community — analysisId:', analysisId);
+      toast.success('Idea shared to the community!');
+    } catch (err: any) {
+      console.error('[Share] Failed to post to community:', err);
+      if (err?.code === '42501' || err?.message?.includes('policy')) {
+        toast.error('Permission denied. Please check your login status.');
+      } else {
+        toast.error('Failed to share. Please try again.');
+      }
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -1910,11 +1896,18 @@ Powered by Motif - Your AI-Powered Startup Companion
                       </Button>
                       <Button
                         onClick={handleShareToCommunity}
-                        disabled={!analysisResult}
+                        disabled={!analysisResult || isSharing}
                         title={!analysisResult ? 'Analyze your idea to enable sharing.' : undefined}
                         className="gradient-lavender rounded-xl"
                       >
-                        Share in Community
+                        {isSharing ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Sharing…
+                          </>
+                        ) : (
+                          'Share in Community'
+                        )}
                       </Button>
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   ArrowLeft,
   Shield,
@@ -14,6 +15,7 @@ import {
   DollarSign,
   Lightbulb,
   Users,
+  Share2,
 } from 'lucide-react';
 
 import { Button } from '../ui/button';
@@ -86,11 +88,12 @@ interface SavedAnalysisPageProps {
 export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, profile, displayName } = useUser();
   const [raw, setRaw] = useState<SavedAnalysisData | null>(null);
   const [result, setResult] = useState<SafeAnalysisResult | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   const goBack = () => {
     if (onNavigate) {
@@ -105,6 +108,50 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
       onNavigate('Idea Analyser');
     } else {
       navigate('/idea-analyser');
+    }
+  };
+
+  const handleShareToCommunity = async () => {
+    if (!user || !raw) return;
+    if (isSharing) return;
+
+    setIsSharing(true);
+    const authorName = profile?.name?.trim() || displayName?.trim() || 'Founder';
+    const tags = raw.targetMarket
+      ? raw.targetMarket.split(/[,;]/).map(t => t.trim()).filter(Boolean).slice(0, 3)
+      : ['General'];
+
+    try {
+      // Duplicate guard
+      const { data: existing } = await supabase
+        .from('community_ideas')
+        .select('id')
+        .eq('author_id', user.id)
+        .eq('title', raw.title.trim())
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        toast.info('This idea is already shared in the community.');
+        return;
+      }
+
+      const { error } = await supabase.from('community_ideas').insert({
+        title: raw.title.trim(),
+        description: raw.description.trim(),
+        tags,
+        author_name: authorName,
+        author_avatar: profile?.avatar || null,
+        author_id: user.id,
+      });
+
+      if (error) throw error;
+      console.log('[Share] Posted to community — ideaId:', id);
+      toast.success('Idea shared to the community!');
+    } catch (err: any) {
+      console.error('[Share] Failed to post to community:', err);
+      toast.error('Failed to share. Please try again.');
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -658,16 +705,31 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
           <CardContent className="pt-6 pb-5">
             <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
               <div className="text-center md:text-left">
-                <h3 className="text-base font-semibold mb-1">Want a fresh analysis?</h3>
-                <p className="text-sm text-muted-foreground">Re-run the analyser to get updated market data and AI insights.</p>
+                <h3 className="text-base font-semibold mb-1">What's next?</h3>
+                <p className="text-sm text-muted-foreground">Share with fellow founders or re-run the analyser for fresh insights.</p>
               </div>
-              <Button
-                className="gradient-lavender rounded-xl"
-                onClick={goToAnalyser}
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Re-Analyze Idea
-              </Button>
+              <div className="flex gap-3 flex-shrink-0">
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={handleShareToCommunity}
+                  disabled={isSharing || !user}
+                >
+                  {isSharing ? (
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Share2 className="mr-2 h-4 w-4" />
+                  )}
+                  {isSharing ? 'Sharing…' : 'Share in Community'}
+                </Button>
+                <Button
+                  className="gradient-lavender rounded-xl"
+                  onClick={goToAnalyser}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Re-Analyze
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
