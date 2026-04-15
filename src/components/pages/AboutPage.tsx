@@ -25,24 +25,28 @@ const timeline = [
     title: 'Motif Founded',
     desc: 'Two founders, one belief: every great startup begins with a validated idea. Motif was born to give founders the AI tools they deserve.',
     color: 'from-[#C9A7EB] to-[#B084E8]',
+    icon: Sparkles,
   },
   {
     date: 'Dec 2025',
     title: 'AI Analyser Launched',
     desc: 'Shipped the first version of our AI Idea Analyser — instant market, competitor, and viability scoring for any startup concept.',
     color: 'from-[#B084E8] to-[#8B5CF6]',
+    icon: BrainCircuit,
   },
   {
     date: 'Jan 2026',
     title: 'Community Goes Live',
     desc: 'Founders started sharing, voting, and shaping ideas together. The community became the beating heart of the product.',
     color: 'from-[#8B5CF6] to-[#A9F5D0]',
+    icon: Users,
   },
   {
     date: 'Today',
     title: 'Building the Future',
     desc: 'VC connections, funding pipelines, pitch tools — we\'re assembling every layer a founder needs to go from spark to series A.',
     color: 'from-[#A9F5D0] to-[#7FD4B3]',
+    icon: Rocket,
   },
 ];
 
@@ -265,42 +269,48 @@ export function AboutPage() {
             </h2>
           </motion.div>
 
-          <div className="relative max-w-2xl mx-auto px-4">
-            {/* Vertical line — theme-aware, anchored to dot centre */}
-            <div className="absolute left-[35px] top-0 h-full w-px bg-border" />
+          {/* Timeline — dot centre is 24px (half of w-12 = 48px) from container left */}
+          <div className="relative max-w-3xl mx-auto">
+            {/* Connector line — starts/ends at dot centres of first/last items */}
+            <div className="absolute left-[24px] top-6 bottom-6 w-px bg-border" />
 
-            <div className="space-y-8">
+            <div className="space-y-5">
               {timeline.map((item, i) => (
                 <motion.div
                   key={item.date}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-40px' }}
-                  transition={{ delay: i * 0.08, duration: 0.4, ease: 'easeOut' }}
-                  className="relative flex items-start gap-5"
+                  transition={{ delay: i * 0.1, duration: 0.45, ease: 'easeOut' }}
+                  className="flex items-start gap-5"
                 >
-                  {/* Dot — theme-aware outer ring + solid primary inner */}
-                  <div className="relative z-10 flex-shrink-0 w-[38px] h-[38px] rounded-full border bg-background flex items-center justify-center shadow-sm">
-                    <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                  {/* Icon dot — 48px square, theme-aware */}
+                  <div className="relative z-10 flex-shrink-0 w-12 h-12 rounded-2xl border-2 border-primary/20 bg-background flex items-center justify-center shadow-sm">
+                    <item.icon className="w-5 h-5 text-primary/70" />
                   </div>
 
                   {/* Card */}
                   <motion.div
-                    className="relative flex-1 min-w-0 max-w-full rounded-2xl border bg-card shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/30"
-                    whileHover={{ y: -4 }}
+                    className="relative flex-1 min-w-0 rounded-2xl border bg-card shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:border-primary/25 group"
+                    whileHover={{ y: -3 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {/* Left accent bar */}
-                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary/40 rounded-full" />
+                    {/* Coloured top accent strip */}
+                    <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${item.color}`} />
 
-                    <div className="p-5 sm:p-6 pl-6 sm:pl-7">
-                      <span className={`mb-3 inline-block rounded-full bg-gradient-to-r ${item.color} px-3 py-0.5 text-xs font-bold text-foreground/90`}>
-                        {item.date}
-                      </span>
-                      <div className="space-y-1">
-                        <h3 className="text-lg font-semibold">{item.title}</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed mt-1">{item.desc}</p>
+                    <div className="p-5 sm:p-6 pt-6">
+                      {/* Row: date badge + step number */}
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <span className={`inline-flex items-center rounded-full bg-gradient-to-r ${item.color} px-2.5 py-0.5 text-[11px] font-semibold text-foreground/80`}>
+                          {item.date}
+                        </span>
+                        <span className="text-[26px] font-black leading-none select-none text-muted-foreground/10 tabular-nums">
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
                       </div>
+
+                      <h3 className="text-base font-semibold mb-1.5">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
                     </div>
                   </motion.div>
                 </motion.div>
