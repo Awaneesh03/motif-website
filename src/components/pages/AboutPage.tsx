@@ -253,8 +253,9 @@ export function AboutPage() {
       </section>
 
       {/* ── 4. STORY TIMELINE ────────────────────────────────────────────────── */}
-      <section className="py-20 md:py-24">
+      <section className="border-y border-border/40 bg-muted/20 py-20 md:py-24">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -264,59 +265,53 @@ export function AboutPage() {
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[#B084E8]">
               Our Story
             </p>
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+            <h2 className="mb-3 text-3xl font-semibold tracking-tight md:text-4xl">
               The journey from idea to impact
             </h2>
+            <p className="mx-auto max-w-xl text-base text-muted-foreground">
+              From a spark of conviction to a platform used by founders worldwide.
+            </p>
           </motion.div>
 
-          {/* Timeline — dot centre is 24px (half of w-12 = 48px) from container left */}
-          <div className="relative max-w-3xl mx-auto">
-            {/* Connector line — starts/ends at dot centres of first/last items */}
-            <div className="absolute left-[24px] top-6 bottom-6 w-px bg-border" />
+          {/* 2×2 milestone cards — no connector line, no alignment bugs */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {timeline.map((item, i) => (
+              <motion.div
+                key={item.date}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ delay: i * 0.1, duration: 0.4, ease: 'easeOut' }}
+                whileHover={{ y: -4 }}
+                className="group"
+              >
+                <div className="relative flex h-full flex-col rounded-2xl border bg-card p-6 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/25">
 
-            <div className="space-y-5">
-              {timeline.map((item, i) => (
-                <motion.div
-                  key={item.date}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-40px' }}
-                  transition={{ delay: i * 0.1, duration: 0.45, ease: 'easeOut' }}
-                  className="flex items-start gap-5"
-                >
-                  {/* Icon dot — 48px square, theme-aware */}
-                  <div className="relative z-10 flex-shrink-0 w-12 h-12 rounded-2xl border-2 border-primary/20 bg-background flex items-center justify-center shadow-sm">
-                    <item.icon className="w-5 h-5 text-primary/70" />
+                  {/* Coloured top accent strip */}
+                  <div className={`absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r ${item.color}`} />
+
+                  {/* Icon box + ghost step number */}
+                  <div className="mb-5 mt-1 flex items-start justify-between">
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <item.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="select-none font-black leading-none tabular-nums text-muted-foreground/10 text-[44px]">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
                   </div>
 
-                  {/* Card */}
-                  <motion.div
-                    className="relative flex-1 min-w-0 rounded-2xl border bg-card shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:border-primary/25 group"
-                    whileHover={{ y: -3 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {/* Coloured top accent strip */}
-                    <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${item.color}`} />
+                  {/* Date — gradient text */}
+                  <p className={`mb-2 text-[11px] font-bold uppercase tracking-widest bg-gradient-to-r ${item.color} bg-clip-text text-transparent`}>
+                    {item.date}
+                  </p>
 
-                    <div className="p-5 sm:p-6 pt-6">
-                      {/* Row: date badge + step number */}
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <span className={`inline-flex items-center rounded-full bg-gradient-to-r ${item.color} px-2.5 py-0.5 text-[11px] font-semibold text-foreground/80`}>
-                          {item.date}
-                        </span>
-                        <span className="text-[26px] font-black leading-none select-none text-muted-foreground/10 tabular-nums">
-                          {String(i + 1).padStart(2, '0')}
-                        </span>
-                      </div>
-
-                      <h3 className="text-base font-semibold mb-1.5">{item.title}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              ))}
-            </div>
+                  <h3 className="mb-2 text-[15px] font-semibold leading-snug">{item.title}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
+
         </div>
       </section>
 
