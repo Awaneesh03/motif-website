@@ -265,9 +265,9 @@ export function AboutPage() {
             </h2>
           </motion.div>
 
-          <div className="relative max-w-3xl mx-auto overflow-hidden">
-            {/* Vertical line — exactly centred on the 38px dot (left: 19px) */}
-            <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-primary/20 via-border to-transparent opacity-70" />
+          <div className="relative max-w-2xl mx-auto px-4">
+            {/* Vertical line — theme-aware, anchored to dot centre */}
+            <div className="absolute left-[35px] top-0 h-full w-px bg-border" />
 
             <div className="space-y-8">
               {timeline.map((item, i) => (
@@ -279,14 +279,14 @@ export function AboutPage() {
                   transition={{ delay: i * 0.08, duration: 0.4, ease: 'easeOut' }}
                   className="relative flex items-start gap-5"
                 >
-                  {/* Dot — outer ring + inner solid point */}
-                  <div className="relative z-10 flex-shrink-0 w-[38px] h-[38px] rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
-                    <div className="w-2.5 h-2.5 bg-primary rounded-full" />
+                  {/* Dot — theme-aware outer ring + solid primary inner */}
+                  <div className="relative z-10 flex-shrink-0 w-[38px] h-[38px] rounded-full border bg-background flex items-center justify-center shadow-sm">
+                    <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                   </div>
 
                   {/* Card */}
                   <motion.div
-                    className="relative flex-1 min-w-0 rounded-2xl border bg-card shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+                    className="relative flex-1 min-w-0 max-w-full rounded-2xl border bg-card shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/30"
                     whileHover={{ y: -4 }}
                     transition={{ duration: 0.2 }}
                   >
@@ -294,7 +294,7 @@ export function AboutPage() {
                     <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary/40 rounded-full" />
 
                     <div className="p-5 sm:p-6 pl-6 sm:pl-7">
-                      <span className={`mb-3 inline-block rounded-full bg-gradient-to-r ${item.color} px-3 py-0.5 text-xs font-bold text-white`}>
+                      <span className={`mb-3 inline-block rounded-full bg-gradient-to-r ${item.color} px-3 py-0.5 text-xs font-bold text-foreground/90`}>
                         {item.date}
                       </span>
                       <div className="space-y-1">
@@ -361,14 +361,14 @@ export function AboutPage() {
                     <div className="relative">
                       <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-[#C9A7EB] to-[#B084E8] opacity-20 blur-xl" />
                       <Avatar className="relative h-32 w-32 border-4 border-background ring-4 ring-[#C9A7EB]/30 transition-all duration-300 group-hover:ring-[#C9A7EB]/50">
-                        <AvatarFallback className="bg-gradient-to-br from-[#C9A7EB] to-[#B084E8] text-3xl font-bold text-gray-900 dark:text-white">
+                        <AvatarFallback className="bg-gradient-to-br from-[#C9A7EB] to-[#B084E8] text-3xl font-bold text-foreground">
                           AG
                         </AvatarFallback>
                       </Avatar>
                     </div>
                   </div>
                   <h3 className="mb-2 text-xl font-bold">Agrima Gupta</h3>
-                  <Badge className="mb-4 rounded-full bg-gradient-to-r from-[#C9A7EB] to-[#B084E8] px-4 py-1 text-xs font-semibold text-gray-900 shadow-md dark:text-white">
+                  <Badge className="mb-4 rounded-full bg-gradient-to-r from-[#C9A7EB] to-[#B084E8] px-4 py-1 text-xs font-semibold text-foreground shadow-md">
                     Co-Founder &amp; CEO
                   </Badge>
                   <p className="text-sm leading-relaxed text-muted-foreground">
@@ -397,14 +397,14 @@ export function AboutPage() {
                     <div className="relative">
                       <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-[#A9F5D0] to-[#7FD4B3] opacity-20 blur-xl" />
                       <Avatar className="relative h-32 w-32 border-4 border-background ring-4 ring-[#A9F5D0]/30 transition-all duration-300 group-hover:ring-[#A9F5D0]/50">
-                        <AvatarFallback className="bg-gradient-to-br from-[#A9F5D0] to-[#7FD4B3] text-3xl font-bold text-gray-900 dark:text-white">
+                        <AvatarFallback className="bg-gradient-to-br from-[#A9F5D0] to-[#7FD4B3] text-3xl font-bold text-foreground">
                           AW
                         </AvatarFallback>
                       </Avatar>
                     </div>
                   </div>
                   <h3 className="mb-2 text-xl font-bold">Awaneesh Gupta</h3>
-                  <Badge className="mb-4 rounded-full bg-gradient-to-r from-[#A9F5D0] to-[#7FD4B3] px-4 py-1 text-xs font-semibold text-gray-900 shadow-md dark:text-white">
+                  <Badge className="mb-4 rounded-full bg-gradient-to-r from-[#A9F5D0] to-[#7FD4B3] px-4 py-1 text-xs font-semibold text-foreground shadow-md">
                     Co-Founder &amp; CTO
                   </Badge>
                   <p className="text-sm leading-relaxed text-muted-foreground">
@@ -421,8 +421,8 @@ export function AboutPage() {
       </section>
 
       {/* ── 6. CTA ───────────────────────────────────────────────────────────── */}
-      <section className="border-t border-border/40 bg-muted/30 py-20 md:py-24">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+      <section className="border-t border-border py-20">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -430,24 +430,24 @@ export function AboutPage() {
             transition={{ duration: 0.6 }}
             className="text-center space-y-6"
           >
-            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#C9A7EB] to-[#B084E8] shadow-lg shadow-[#C9A7EB]/30 mx-auto">
-              <Rocket className="h-7 w-7 text-white" />
+            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 mx-auto">
+              <Rocket className="h-7 w-7 text-primary" />
             </div>
 
             <div className="space-y-3">
-              <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
                 Start your journey with Motif
               </h2>
-              <p className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground">
+              <p className="mx-auto max-w-lg text-base leading-relaxed text-muted-foreground">
                 Get AI-powered analysis, community feedback, and the tools you need
                 to turn your idea into a fundable startup — in minutes.
               </p>
             </div>
 
-            <div className="flex justify-center gap-4 pt-4 flex-col sm:flex-row items-center">
+            <div className="flex flex-wrap justify-center gap-4 pt-4 items-center">
               <Button
                 size="lg"
-                className="gradient-lavender rounded-xl px-6 shadow-md hover:shadow-lg transition-shadow duration-200 hover:scale-[1.02]"
+                className="gradient-lavender rounded-xl px-6 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
                 onClick={() => navigate('/idea-analyser')}
               >
                 <Zap className="mr-2 h-4 w-4" />
@@ -456,7 +456,7 @@ export function AboutPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-xl px-6 hover:bg-muted transition-colors duration-200"
+                className="rounded-xl px-6 border border-border hover:bg-muted transition-colors duration-200"
                 onClick={() => navigate('/case-studies')}
               >
                 Explore case studies
