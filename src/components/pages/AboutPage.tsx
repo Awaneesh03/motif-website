@@ -265,46 +265,44 @@ export function AboutPage() {
             </h2>
           </motion.div>
 
-          <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-[19px] top-0 h-full w-px bg-gradient-to-b from-[#C9A7EB]/60 via-[#A9F5D0]/60 to-transparent md:left-1/2 md:-translate-x-px" />
+          <div className="relative max-w-3xl mx-auto overflow-hidden">
+            {/* Vertical line — exactly centred on the 38px dot (left: 19px) */}
+            <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-primary/20 via-border to-transparent opacity-70" />
 
-            <div className="space-y-10">
+            <div className="space-y-8">
               {timeline.map((item, i) => (
                 <motion.div
                   key={item.date}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, margin: '-40px' }}
-                  transition={{ delay: i * 0.12, duration: 0.5 }}
-                  className={`relative flex gap-6 md:gap-0 ${
-                    i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
-                  }`}
+                  transition={{ delay: i * 0.08, duration: 0.4, ease: 'easeOut' }}
+                  className="relative flex items-start gap-5"
                 >
-                  {/* Dot */}
-                  <div className="relative z-10 mt-5 flex-shrink-0 md:absolute md:left-1/2 md:top-6 md:-translate-x-1/2">
-                    <div className={`h-10 w-10 rounded-full bg-gradient-to-br ${item.color} p-[3px] shadow-lg`}>
-                      <div className="h-full w-full rounded-full bg-background" />
-                    </div>
+                  {/* Dot — outer ring + inner solid point */}
+                  <div className="relative z-10 flex-shrink-0 w-[38px] h-[38px] rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
+                    <div className="w-2.5 h-2.5 bg-primary rounded-full" />
                   </div>
 
-                  {/* Card — alternates left/right on desktop */}
-                  <div className={`md:w-[46%] ${i % 2 === 0 ? 'md:ml-0' : 'md:ml-auto'}`}>
-                    <motion.div
-                      whileHover={{ y: -3 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Card className="group border-border/50 transition-all duration-300 hover:border-[#C9A7EB]/40 hover:shadow-lg hover:shadow-[#C9A7EB]/5">
-                        <CardContent className="p-5 sm:p-6">
-                          <span className={`mb-3 inline-block rounded-full bg-gradient-to-r ${item.color} px-3 py-0.5 text-xs font-bold text-white`}>
-                            {item.date}
-                          </span>
-                          <h3 className="mb-2 text-lg font-semibold">{item.title}</h3>
-                          <p className="text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </div>
+                  {/* Card */}
+                  <motion.div
+                    className="relative flex-1 min-w-0 rounded-2xl border bg-card shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+                    whileHover={{ y: -4 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {/* Left accent bar */}
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary/40 rounded-full" />
+
+                    <div className="p-5 sm:p-6 pl-6 sm:pl-7">
+                      <span className={`mb-3 inline-block rounded-full bg-gradient-to-r ${item.color} px-3 py-0.5 text-xs font-bold text-white`}>
+                        {item.date}
+                      </span>
+                      <div className="space-y-1">
+                        <h3 className="text-lg font-semibold">{item.title}</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed mt-1">{item.desc}</p>
+                      </div>
+                    </div>
+                  </motion.div>
                 </motion.div>
               ))}
             </div>
@@ -423,31 +421,33 @@ export function AboutPage() {
       </section>
 
       {/* ── 6. CTA ───────────────────────────────────────────────────────────── */}
-      <section className="border-t border-border/40 py-20 md:py-24">
-        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
+      <section className="border-t border-border/40 bg-muted/30 py-20 md:py-24">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="space-y-6"
+            className="text-center space-y-6"
           >
             <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#C9A7EB] to-[#B084E8] shadow-lg shadow-[#C9A7EB]/30 mx-auto">
               <Rocket className="h-7 w-7 text-white" />
             </div>
 
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-              Start your journey with Motif
-            </h2>
-            <p className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground">
-              Get AI-powered analysis, community feedback, and the tools you need
-              to turn your idea into a fundable startup — in minutes.
-            </p>
+            <div className="space-y-3">
+              <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+                Start your journey with Motif
+              </h2>
+              <p className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground">
+                Get AI-powered analysis, community feedback, and the tools you need
+                to turn your idea into a fundable startup — in minutes.
+              </p>
+            </div>
 
-            <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
+            <div className="flex justify-center gap-4 pt-4 flex-col sm:flex-row items-center">
               <Button
                 size="lg"
-                className="gradient-lavender rounded-xl px-6 shadow-lg shadow-[#C9A7EB]/20"
+                className="gradient-lavender rounded-xl px-6 shadow-md hover:shadow-lg transition-shadow duration-200 hover:scale-[1.02]"
                 onClick={() => navigate('/idea-analyser')}
               >
                 <Zap className="mr-2 h-4 w-4" />
@@ -456,7 +456,7 @@ export function AboutPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-xl px-6"
+                className="rounded-xl px-6 hover:bg-muted transition-colors duration-200"
                 onClick={() => navigate('/case-studies')}
               >
                 Explore case studies
