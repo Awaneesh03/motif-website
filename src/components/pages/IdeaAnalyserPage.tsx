@@ -574,6 +574,18 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
     setIsAnalyzing(true);
 
+    // If server is still waking up, wait for it automatically instead of failing
+    if (serverStatus === 'warming' || serverStatus === 'unknown') {
+      toast.info('Server is starting up — your analysis will begin automatically once ready (≈30s).');
+      try {
+        await serverWarmup.waitUntilWarm(90_000);
+      } catch {
+        setIsAnalyzing(false);
+        toast.error('Server is unreachable. Please check your connection and try again.');
+        return;
+      }
+    }
+
     try {
       const normalizedTitle = normalizeIdeaValue(ideaTitle);
       const normalizedDescription = normalizeIdeaValue(ideaDescription);
