@@ -649,28 +649,24 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         return;
       }
 
-      // Fetch ALL upvote rows so we can:
-      //   a) compute per-idea counts directly (no trigger dependency)
-      //   b) know which ideas the current user has upvoted
-      const { data: allUpvotes } = await supabase
-        .from('community_upvotes')
-        .select('idea_id, user_id');
-
-      // Per-idea authoritative count from actual rows
-      const upvoteCountById: Record<string, number> = {};
-      const userUpvotes: string[] = [];
-      (allUpvotes || []).forEach(u => {
-        upvoteCountById[u.idea_id] = (upvoteCountById[u.idea_id] ?? 0) + 1;
-        if (user && u.user_id === user.id) userUpvotes.push(u.idea_id);
-      });
+      // Only fetch the current user's upvotes — the trigger keeps upvotes_count
+      // accurate on community_ideas, so we don't need to pull every user's rows.
+      let userUpvotes: string[] = [];
+      if (user) {
+        const { data: myUpvotes } = await supabase
+          .from('community_upvotes')
+          .select('idea_id')
+          .eq('user_id', user.id);
+        userUpvotes = myUpvotes?.map(u => u.idea_id) ?? [];
+      }
 
       // Stale-response guard — discard if a newer fetch has already applied
       if (generation !== fetchGenerationRef.current) return;
 
       const mappedIdeas = (ideas || []).map(row => ({
         ...mapRowToIdea(row, userUpvotes.includes(row.id)),
-        // Use the real count from community_upvotes rows, not the trigger column
-        upvotes: upvoteCountById[row.id] ?? row.upvotes_count ?? 0,
+        // upvotes_count on the row is kept accurate by the DB trigger
+        upvotes: row.upvotes_count ?? 0,
       }));
 
       // Late-delivery detection: a submission that timed out may have actually
@@ -802,17 +798,18 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
         if (error) throw error;
       }
 
-      // Count directly from community_upvotes — authoritative regardless of
-      // whether the DB trigger has run yet. No delay needed.
-      const { count: freshCount } = await supabase
-        .from('community_upvotes')
-        .select('id', { count: 'exact', head: true })
-        .eq('idea_id', ideaId);
+      // Read the trigger-maintained count from the idea row — single PK lookup,
+      // much cheaper than counting every community_upvotes row.
+      const { data: ideaRow } = await supabase
+        .from('community_ideas')
+        .select('upvotes_count')
+        .eq('id', ideaId)
+        .single();
 
-      if (freshCount !== null) {
+      if (ideaRow?.upvotes_count !== undefined) {
         setSupabaseIdeas(prev =>
           prev.map(i =>
-            i.id === ideaId ? { ...i, upvotes: freshCount } : i
+            i.id === ideaId ? { ...i, upvotes: ideaRow.upvotes_count } : i
           )
         );
       }
