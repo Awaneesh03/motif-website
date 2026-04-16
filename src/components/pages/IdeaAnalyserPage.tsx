@@ -664,17 +664,58 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
             setIsAnalyzing(false);
             toast.success('Analysis complete!');
-            void logActivity('idea_analyzed', ideaTitle || 'Untitled idea',
-              status.analysisId ? { analysisId: status.analysisId } : undefined);
 
-            // Navigate to the detail page when the backend persisted the row.
-            // Falls back to inline display when analysisId is absent (e.g. validation
-            // skipped the save because a required field was missing from the AI response).
-            if (status.analysisId) {
-              navigate(`/idea/${status.analysisId}`);
+            // ── Guarantee the analysis row exists in Supabase ────────────────
+            // The backend saves to idea_analyses, but can fail silently when
+            // Render is cold-starting. We upsert the core fields directly from
+            // the frontend so "Post an Existing Idea" always finds the row.
+            // The unique constraint on (user_id, normalized_idea) makes this
+            // idempotent — a second upsert just refreshes updated_at.
+            let resolvedAnalysisId = status.analysisId ?? null;
+            if (user) {
+              try {
+                const normalizedTitle = ideaTitle.trim().toLowerCase().replace(/\s+/g, ' ');
+                const now = new Date().toISOString();
+                const upsertPayload: Record<string, any> = {
+                  user_id: user.id,
+                  idea_title: ideaTitle,
+                  normalized_idea: normalizedTitle,
+                  idea_description: ideaDescription,
+                  target_market: selectedMarkets.length > 0 ? selectedMarkets.join(', ') : null,
+                  score: status.safeResult.score ?? 0,
+                  updated_at: now,
+                };
+                // Include optional rich fields when available
+                if (status.safeResult.recommendations?.length) {
+                  upsertPayload.recommendations = status.safeResult.recommendations;
+                }
+                if (status.safeResult.idea_summary) {
+                  upsertPayload.idea_summary = status.safeResult.idea_summary;
+                }
+                if (status.safeResult.confidence_score != null) {
+                  upsertPayload.confidence_score = status.safeResult.confidence_score;
+                }
+                const { data: saved, error: saveError } = await supabase
+                  .from('idea_analyses')
+                  .upsert(upsertPayload, { onConflict: 'user_id,normalized_idea' })
+                  .select('id')
+                  .single();
+                if (!saveError && saved?.id) {
+                  resolvedAnalysisId = resolvedAnalysisId ?? saved.id;
+                }
+              } catch {
+                // Best-effort — do not block navigation on a save error
+              }
+            }
+
+            void logActivity('idea_analyzed', ideaTitle || 'Untitled idea',
+              resolvedAnalysisId ? { analysisId: resolvedAnalysisId } : undefined);
+
+            if (resolvedAnalysisId) {
+              navigate(`/idea/${resolvedAnalysisId}`);
               return;
             }
-            // Inline fallback — show result on this page if no id available
+            // Inline fallback — should rarely happen now
             setAnalysisResult(status.safeResult);
 
           } else if (status.status === 'FAILED') {
