@@ -1,6 +1,20 @@
-# Motif
+<div align="center">
 
-A production-ready platform that helps founders turn startup ideas into fundable ventures, connecting them with VCs through an admin-curated pipeline.
+# 🚀 Motif
+
+**An AI-powered platform that helps founders turn startup ideas into fundable ventures — and connects them with VCs through an admin-curated pipeline.**
+
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Visit_Site-000000?style=for-the-badge&logo=googlechrome&logoColor=white)](https://motif-website.vercel.app)
+
+![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+![Groq AI](https://img.shields.io/badge/Groq_AI-F55036?style=flat-square)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
+
+</div>
 
 ---
 
@@ -18,7 +32,7 @@ A production-ready platform that helps founders turn startup ideas into fundable
 - [Debugging & Lessons Learned](#debugging--lessons-learned)
 - [Current Status](#current-status)
 - [Future Improvements](#future-improvements)
-- [Author](#author)
+- [Author](#-author)
 
 ---
 
@@ -489,9 +503,9 @@ Add the same environment variables from your `.env` file in Vercel's project set
 
 ---
 
-## Author
+## 👤 Author
 
-Built by **Awaneesh Gupta**.
+Built by **Awaneesh Gupta** — [GitHub](https://github.com/Awaneesh03) · [LinkedIn](https://linkedin.com/in/awaneesh-gupta)
 
 This project started as an idea to solve a real problem I observed in the startup ecosystem — founders struggling to get noticed, and VCs drowning in noise. Motif is my attempt to build a quality filter between the two.
 
@@ -503,4 +517,4 @@ This is not a finished product. It's a work in progress — just like any real s
 
 ## License
 
-Private repository. All rights reserved.
+© Awaneesh Gupta. All rights reserved.
