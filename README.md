@@ -4,7 +4,7 @@
 
 **An AI-powered platform that helps founders turn startup ideas into fundable ventures — and connects them with VCs through an admin-curated pipeline.**
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Visit_Site-000000?style=for-the-badge&logo=googlechrome&logoColor=white)](https://motif-website.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Visit_Site-000000?style=for-the-badge&logo=googlechrome&logoColor=white)](https://motif-website-master.vercel.app)
 
 ![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)

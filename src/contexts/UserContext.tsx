@@ -112,7 +112,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
           }
         } else {
           // Profile doesn't exist - create one with default founder role
-          console.log('[UserContext] Profile not found, creating default profile...');
 
           const avatarValue = authUser.user_metadata?.avatar_url || '';
           const defaultProfile = {
@@ -139,7 +138,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
             .single();
 
           if (!insertError && newProfile) {
-            console.log('✅ Profile auto-created successfully');
             // Map avatar_url from DB to avatar for internal use
             newProfile.avatar = newProfile.avatar_url || avatarValue;
             if (!checkMounted()) return;

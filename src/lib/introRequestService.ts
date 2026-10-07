@@ -2,8 +2,13 @@
 // Maps to vc_applications table with joins for VC and startup names
 
 import { supabase } from './supabase';
-import { verifyVCRole, verifyFounderRole, verifyAdminRole, getCurrentUserRole } from './roleVerification';
-import { safeFetchList, safeFetchCount, safeFetchExists } from './safeFetch';
+import {
+  verifyVCRole,
+  verifyFounderRole,
+  verifyAdminRole,
+  getCurrentUserRole,
+} from './roleVerification';
+import { safeFetchList, safeFetchExists } from './safeFetch';
 
 export type IntroRequestStatus = 'requested' | 'approved' | 'rejected';
 
@@ -53,11 +58,13 @@ export const getAllIntroRequests = async (): Promise<IntroRequest[]> => {
   try {
     const { data, error } = await supabase
       .from('vc_applications')
-      .select(`
+      .select(
+        `
         *,
         vc_profile:profiles!vc_id(name, full_name),
         idea:idea_analyses!idea_id(idea_title)
-      `)
+      `
+      )
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -68,36 +75,6 @@ export const getAllIntroRequests = async (): Promise<IntroRequest[]> => {
     }
     return [];
   }
-};
-
-// Get intro requests by VC
-export const getIntroRequestsByVC = async (vcId: string): Promise<IntroRequest[]> => {
-  // Guard: Only VCs and admins can fetch VC intro requests
-  const role = await getCurrentUserRole();
-  if (!role || (role !== 'vc' && role !== 'super_admin')) {
-    return [];
-  }
-
-  // Guard: VC ID required
-  if (!vcId) {
-    return [];
-  }
-
-  const data = await safeFetchList(
-    () =>
-      supabase
-        .from('vc_applications')
-        .select(`
-          *,
-          vc_profile:profiles!vc_id(name, full_name),
-          idea:idea_analyses!idea_id(idea_title)
-        `)
-        .eq('vc_id', vcId)
-        .order('created_at', { ascending: false }),
-    { serviceName: 'introRequestService.getIntroRequestsByVC' }
-  );
-
-  return data.map(mapRow);
 };
 
 // Get intro requests by startup (idea)
@@ -117,11 +94,13 @@ export const getIntroRequestsByStartup = async (startupId: string): Promise<Intr
     () =>
       supabase
         .from('vc_applications')
-        .select(`
+        .select(
+          `
           *,
           vc_profile:profiles!vc_id(name, full_name),
           idea:idea_analyses!idea_id(idea_title)
-        `)
+        `
+        )
         .eq('idea_id', startupId)
         .order('created_at', { ascending: false }),
     { serviceName: 'introRequestService.getIntroRequestsByStartup' }
@@ -266,7 +245,9 @@ export const updateIntroRequestStatus = async (
     // PERMISSION CHECK: Only admins can update intro request status
     const roleCheck = await verifyAdminRole();
     if (!roleCheck.valid) {
-      throw new Error(roleCheck.error || 'Admin privileges required to approve/reject intro requests');
+      throw new Error(
+        roleCheck.error || 'Admin privileges required to approve/reject intro requests'
+      );
     }
 
     const { data, error } = await supabase
@@ -301,13 +282,15 @@ export const getConnectedVCs = async (startupId: string): Promise<ConnectedVC[]>
     () =>
       supabase
         .from('vc_applications')
-        .select(`
+        .select(
+          `
           id,
           vc_id,
           created_at,
           updated_at,
           vc_id
-        `)
+        `
+        )
         .eq('idea_id', startupId)
         .eq('status', 'approved')
         .not('vc_id', 'is', null)
@@ -379,23 +362,5 @@ export const isConnected = async (vcId: string, startupId: string): Promise<bool
         .limit(1)
         .maybeSingle(),
     { serviceName: 'introRequestService.isConnected' }
-  );
-};
-
-// Get total number of connections for a VC (for credibility display)
-export const getVCConnectionCount = async (vcId: string): Promise<number> => {
-  // Guard: VC ID required
-  if (!vcId) {
-    return 0;
-  }
-
-  return safeFetchCount(
-    () =>
-      supabase
-        .from('vc_applications')
-        .select('*', { count: 'exact', head: true })
-        .eq('vc_id', vcId)
-        .eq('status', 'approved'),
-    { serviceName: 'introRequestService.getVCConnectionCount' }
   );
 };

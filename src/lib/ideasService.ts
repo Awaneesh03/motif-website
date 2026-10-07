@@ -62,7 +62,8 @@ export const getUserIdeas = async (userId: string): Promise<Idea[]> => {
       solution: idea.idea_description,
       industry: idea.target_market,
       // Prefer DB-level normalized_idea (post-migration); fall back to client-side normalization
-      _normalizedKey: (idea.normalized_idea as string | undefined) || normalizeTitle(idea.idea_title),
+      _normalizedKey:
+        (idea.normalized_idea as string | undefined) || normalizeTitle(idea.idea_title),
     }));
 
     // Deduplicate: rows are already ordered newest-first, so the first occurrence wins.
@@ -86,11 +87,7 @@ export const getUserIdeas = async (userId: string): Promise<Idea[]> => {
 // Get single idea by ID from idea_analyses table
 export const getIdeaById = async (id: string): Promise<Idea | null> => {
   try {
-    const { data, error } = await supabase
-      .from('idea_analyses')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await supabase.from('idea_analyses').select('*').eq('id', id).single();
 
     if (error) {
       console.error('Error fetching idea:', error);
@@ -122,11 +119,7 @@ export const getIdeaById = async (id: string): Promise<Idea | null> => {
 
 // Submit an idea for review — calls the backend PATCH endpoint which persists
 // status = "pending_review" in the DB, then re-fetches the row from Supabase.
-export const updateIdeaStatus = async (
-  id: string,
-  status: string,
-  _options?: { skipValidation?: boolean }
-): Promise<Idea | null> => {
+export const updateIdeaStatus = async (id: string, status: string): Promise<Idea | null> => {
   try {
     // Persist the status change via the backend (only 'pending_review' is supported for now)
     if (status === 'pending_review') {
@@ -134,11 +127,7 @@ export const updateIdeaStatus = async (
     }
 
     // Re-fetch the row so the returned Idea reflects the DB state
-    const { data, error } = await supabase
-      .from('idea_analyses')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await supabase.from('idea_analyses').select('*').eq('id', id).single();
 
     if (error) throw error;
 

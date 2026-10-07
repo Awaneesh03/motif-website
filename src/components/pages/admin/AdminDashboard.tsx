@@ -53,9 +53,6 @@ const AdminDashboard = () => {
     const loadStats = async () => {
       setIsLoading(true);
       try {
-        if (import.meta.env.DEV) {
-          console.log('[AdminDashboard] inner loadStats starting...');
-        }
         // Load all data in parallel
         const [startups, vcRequests, timeline, adminMetrics] = await Promise.all([
           getAllStartups().catch(err => {
@@ -70,7 +67,8 @@ const AdminDashboard = () => {
               .select('*')
               .order('created_at', { ascending: false })
               .limit(5)
-          ).then(({ data, error }) => {
+          )
+            .then(({ data, error }) => {
               if (error) throw error;
               return data;
             })
@@ -80,15 +78,14 @@ const AdminDashboard = () => {
               }
               return [] as any[];
             }),
-          (profile?.role === 'super_admin'
-            ? getAllNotifications(20)
-            : Promise.resolve([])
-          ).catch(err => {
-            if (import.meta.env.DEV) {
-              console.error('[AdminDashboard] Error fetching notifications:', err);
+          (profile?.role === 'super_admin' ? getAllNotifications(20) : Promise.resolve([])).catch(
+            err => {
+              if (import.meta.env.DEV) {
+                console.error('[AdminDashboard] Error fetching notifications:', err);
+              }
+              return [];
             }
-            return [];
-          }),
+          ),
           getAdminMetrics().catch(err => {
             if (import.meta.env.DEV) {
               console.error('[AdminDashboard] Error fetching metrics:', err);
@@ -96,10 +93,6 @@ const AdminDashboard = () => {
             return null;
           }),
         ]);
-
-        if (import.meta.env.DEV) {
-          console.log('[AdminDashboard] Data fetch complete');
-        }
 
         // Get pending startups for review
         const pending = (startups || [])
@@ -110,7 +103,6 @@ const AdminDashboard = () => {
         if (vcRequests) setRecentActivity(vcRequests);
         setAuditTimeline(timeline || []);
         if (adminMetrics) setMetrics(adminMetrics);
-
       } catch (error) {
         if (import.meta.env.DEV) {
           console.error('[AdminDashboard] Critical error loading stats:', error);
@@ -224,8 +216,8 @@ const AdminDashboard = () => {
                           Demo Mode - Example Metrics
                         </h4>
                         <p className="text-sm text-blue-700 dark:text-blue-300">
-                          These are example metrics to demonstrate the admin dashboard.
-                          Real platform data will appear as users join and startups are submitted.
+                          These are example metrics to demonstrate the admin dashboard. Real
+                          platform data will appear as users join and startups are submitted.
                         </p>
                       </div>
                     </div>
@@ -254,7 +246,9 @@ const AdminDashboard = () => {
                           <stat.icon className={`h-5 w-5 ${stat.color}`} />
                         </div>
                         <div className="mt-4">
-                          <p className="text-3xl font-bold tracking-tight text-foreground">{stat.value}</p>
+                          <p className="text-3xl font-bold tracking-tight text-foreground">
+                            {stat.value}
+                          </p>
                           <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
                         </div>
                       </CardContent>
@@ -370,11 +364,7 @@ const AdminDashboard = () => {
                               </p>
                             </div>
                             <Badge
-                              variant={
-                                activity.status === 'accepted'
-                                  ? 'default'
-                                  : 'secondary'
-                              }
+                              variant={activity.status === 'accepted' ? 'default' : 'secondary'}
                               className="capitalize"
                             >
                               {activity.status}
@@ -411,7 +401,9 @@ const AdminDashboard = () => {
               >
                 <Card className="rounded-xl border border-border bg-card shadow-sm">
                   <CardHeader className="p-6 pb-4">
-                    <CardTitle className="text-lg font-semibold text-foreground">Admin Actions</CardTitle>
+                    <CardTitle className="text-lg font-semibold text-foreground">
+                      Admin Actions
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3 px-6 pb-6 pt-0">
                     <Button
@@ -486,20 +478,23 @@ const AdminDashboard = () => {
               >
                 <Card className="rounded-xl border border-border bg-card shadow-sm">
                   <CardHeader className="p-6 pb-4">
-                    <CardTitle className="text-lg font-semibold text-foreground">Startup Approval</CardTitle>
+                    <CardTitle className="text-lg font-semibold text-foreground">
+                      Startup Approval
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="px-6 pb-6 pt-0">
                     <div className="text-center">
                       <p className="text-4xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
                         {displayMetrics && displayMetrics.totalStartups > 0
                           ? Math.round(
-                            (displayMetrics.approvedStartups / displayMetrics.totalStartups) * 100
-                          )
+                              (displayMetrics.approvedStartups / displayMetrics.totalStartups) * 100
+                            )
                           : 0}
                         %
                       </p>
                       <p className="mt-2 text-sm text-muted-foreground">
-                        {displayMetrics?.approvedStartups || 0} of {displayMetrics?.totalStartups || 0} approved
+                        {displayMetrics?.approvedStartups || 0} of{' '}
+                        {displayMetrics?.totalStartups || 0} approved
                       </p>
                     </div>
                   </CardContent>

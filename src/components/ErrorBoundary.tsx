@@ -1,7 +1,7 @@
 // Error Boundary Component for handling runtime errors gracefully
 // Catches errors from deleted resources, network issues, and other edge cases
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertCircle, RefreshCcw } from 'lucide-react';
 
 import { Button } from './ui/button';
@@ -73,9 +73,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <h2 className="mb-2 text-2xl font-bold">Something went wrong</h2>
 
-            <p className="text-muted-foreground mb-6">
-              {this.getErrorMessage(this.state.error)}
-            </p>
+            <p className="text-muted-foreground mb-6">{this.getErrorMessage(this.state.error)}</p>
 
             <div className="flex gap-4 justify-center">
               <Button onClick={this.handleReset} className="rounded-xl">
@@ -139,25 +137,4 @@ export class ErrorBoundary extends Component<Props, State> {
     // Default message
     return 'An unexpected error occurred. Please try refreshing the page or contact support if the issue persists.';
   }
-}
-
-/**
- * Higher-order component to wrap any component with ErrorBoundary
- *
- * @example
- * export default withErrorBoundary(MyComponent);
- */
-export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  errorBoundaryProps?: Omit<Props, 'children'>
-) {
-  const Wrapped = (props: P) => (
-    <ErrorBoundary {...errorBoundaryProps}>
-      <Component {...props} />
-    </ErrorBoundary>
-  );
-
-  Wrapped.displayName = `withErrorBoundary(${Component.displayName || Component.name || 'Component'})`;
-
-  return Wrapped;
 }

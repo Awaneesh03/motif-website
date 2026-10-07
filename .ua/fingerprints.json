@@ -1,0 +1,7380 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "95b65ea44879854da27329e03604a43de45177d7",
+  "generatedAt": "2026-10-07T12:51:43.979Z",
+  "files": {
+    ".env.example": {
+      "filePath": ".env.example",
+      "contentHash": "67115e69db145ae85f36398865af11a0303601db2106098d2b268a55a639e33f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 40,
+      "hasStructuralAnalysis": false
+    },
+    ".github/workflows/keep-alive.yml": {
+      "filePath": ".github/workflows/keep-alive.yml",
+      "contentHash": "60b2936834d4269a18a5015cd2190548125cf964e24cf4d2c964c9be3f6def96",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 22,
+      "hasStructuralAnalysis": false
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "e654a794d79e866b3456b81277199b8b35758286e3618b6295ad19d427a27f24",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 521,
+      "hasStructuralAnalysis": false
+    },
+    "REALTIME_SETUP.md": {
+      "filePath": "REALTIME_SETUP.md",
+      "contentHash": "e622f8204f31ceaea4b179530e2ae75ee6573f7b49ea6f54db3fcc9f67ca1797",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 265,
+      "hasStructuralAnalysis": false
+    },
+    "eslint.config.js": {
+      "filePath": "eslint.config.js",
+      "contentHash": "c69877d96c5b5793c8cb1a0603602354af3d53cef6a3394bce5187f4a1614a28",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@eslint/js",
+          "specifiers": [
+            "js"
+          ]
+        },
+        {
+          "source": "eslint-plugin-react",
+          "specifiers": [
+            "react"
+          ]
+        },
+        {
+          "source": "eslint-plugin-react-hooks",
+          "specifiers": [
+            "reactHooks"
+          ]
+        },
+        {
+          "source": "@typescript-eslint/eslint-plugin",
+          "specifiers": [
+            "typescript"
+          ]
+        },
+        {
+          "source": "@typescript-eslint/parser",
+          "specifiers": [
+            "typescriptParser"
+          ]
+        },
+        {
+          "source": "eslint-plugin-import",
+          "specifiers": [
+            "importPlugin"
+          ]
+        },
+        {
+          "source": "eslint-config-prettier",
+          "specifiers": [
+            "prettier"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 85,
+      "hasStructuralAnalysis": true
+    },
+    "index.html": {
+      "filePath": "index.html",
+      "contentHash": "6767f68eaa8080c734bb63e5e9843ac7aff849de9cab637330021af208dd89f5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 19,
+      "hasStructuralAnalysis": false
+    },
+    "package.json": {
+      "filePath": "package.json",
+      "contentHash": "9d95d56fa37cadf8532f3237dc4f179de59b7873eb6186a2a5902f5be8c9759f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 61,
+      "hasStructuralAnalysis": false
+    },
+    "src/App.tsx": {
+      "filePath": "src/App.tsx",
+      "contentHash": "7785b296bf225172093e56944bbc947699b6325fb162ff5ed3b5ec8d5f0bd8bf",
+      "functions": [
+        {
+          "name": "AppContent",
+          "params": [],
+          "exported": false,
+          "lineCount": 437
+        },
+        {
+          "name": "App",
+          "params": [],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Routes",
+            "Route",
+            "useLocation",
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "./contexts/UserContext",
+          "specifiers": [
+            "UserProvider",
+            "useUser"
+          ]
+        },
+        {
+          "source": "./components/ui/sonner",
+          "specifiers": [
+            "Toaster"
+          ]
+        },
+        {
+          "source": "./components/Navbar",
+          "specifiers": [
+            "Navbar"
+          ]
+        },
+        {
+          "source": "./components/Footer",
+          "specifiers": [
+            "Footer"
+          ]
+        },
+        {
+          "source": "./components/Chatbot",
+          "specifiers": [
+            "Chatbot"
+          ]
+        },
+        {
+          "source": "./components/pages/HomePage",
+          "specifiers": [
+            "HomePage"
+          ]
+        },
+        {
+          "source": "./components/pages/AboutPage",
+          "specifiers": [
+            "AboutPage"
+          ]
+        },
+        {
+          "source": "./components/pages/FeaturesPage",
+          "specifiers": [
+            "FeaturesPage"
+          ]
+        },
+        {
+          "source": "./components/pages/CommunityPage",
+          "specifiers": [
+            "CommunityPage"
+          ]
+        },
+        {
+          "source": "./components/pages/ResourcesPage",
+          "specifiers": [
+            "ResourcesPage"
+          ]
+        },
+        {
+          "source": "./components/pages/ContactPage",
+          "specifiers": [
+            "ContactPage"
+          ]
+        },
+        {
+          "source": "./components/pages/AuthPage",
+          "specifiers": [
+            "AuthPage"
+          ]
+        },
+        {
+          "source": "./components/pages/CaseStudiesPage",
+          "specifiers": [
+            "CaseStudiesPage"
+          ]
+        },
+        {
+          "source": "./components/pages/CaseDetailPage",
+          "specifiers": [
+            "CaseDetailPage"
+          ]
+        },
+        {
+          "source": "./components/pages/IdeaAnalyserPage",
+          "specifiers": [
+            "IdeaAnalyserPage"
+          ]
+        },
+        {
+          "source": "./components/pages/ProfilePage",
+          "specifiers": [
+            "ProfilePage"
+          ]
+        },
+        {
+          "source": "./components/pages/PricingPage",
+          "specifiers": [
+            "PricingPage"
+          ]
+        },
+        {
+          "source": "./components/pages/PitchCreatorPage",
+          "specifiers": [
+            "PitchCreatorPage"
+          ]
+        },
+        {
+          "source": "./components/pages/DashboardPage",
+          "specifiers": [
+            "DashboardPage"
+          ]
+        },
+        {
+          "source": "./components/pages/VCConnectionPage",
+          "specifiers": [
+            "VCConnectionPage"
+          ]
+        },
+        {
+          "source": "./components/pages/SavedIdeasPage",
+          "specifiers": [
+            "SavedIdeasPage"
+          ]
+        },
+        {
+          "source": "./components/pages/SavedAnalysisPage",
+          "specifiers": [
+            "SavedAnalysisPage"
+          ]
+        },
+        {
+          "source": "./components/pages/NotFoundPage",
+          "specifiers": [
+            "NotFoundPage"
+          ]
+        },
+        {
+          "source": "./components/pages/NotificationsPage",
+          "specifiers": [
+            "NotificationsPage"
+          ]
+        },
+        {
+          "source": "./lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "./components/ErrorBoundary",
+          "specifiers": [
+            "ErrorBoundary"
+          ]
+        },
+        {
+          "source": "./lib/serverWarmup",
+          "specifiers": [
+            "serverWarmup"
+          ]
+        },
+        {
+          "source": "./components/ProtectedRoute",
+          "specifiers": [
+            "ProtectedRoute"
+          ]
+        },
+        {
+          "source": "./components/RoleRedirect",
+          "specifiers": [
+            "RoleRedirect"
+          ]
+        },
+        {
+          "source": "./types/roles",
+          "specifiers": [
+            "UserRole"
+          ]
+        },
+        {
+          "source": "./layouts/VCLayout",
+          "specifiers": [
+            "VCLayout"
+          ]
+        },
+        {
+          "source": "./layouts/AdminLayout",
+          "specifiers": [
+            "AdminLayout"
+          ]
+        },
+        {
+          "source": "./components/pages/vc/VCDashboard",
+          "specifiers": [
+            "VCDashboard"
+          ]
+        },
+        {
+          "source": "./components/pages/vc/VCStartups",
+          "specifiers": [
+            "VCStartups"
+          ]
+        },
+        {
+          "source": "./components/pages/vc/VCStartupDetail",
+          "specifiers": [
+            "VCStartupDetail"
+          ]
+        },
+        {
+          "source": "./components/pages/vc/VCPendingPage",
+          "specifiers": [
+            "VCPendingPage"
+          ]
+        },
+        {
+          "source": "./components/pages/vc/VCOnboarding",
+          "specifiers": [
+            "VCOnboarding"
+          ]
+        },
+        {
+          "source": "./components/pages/admin/AdminDashboard",
+          "specifiers": [
+            "AdminDashboard"
+          ]
+        },
+        {
+          "source": "./components/pages/admin/AdminStartups",
+          "specifiers": [
+            "AdminStartups"
+          ]
+        },
+        {
+          "source": "./components/pages/admin/AdminIntroRequests",
+          "specifiers": [
+            "AdminIntroRequests"
+          ]
+        },
+        {
+          "source": "./components/pages/admin/AdminCaseStudies",
+          "specifiers": [
+            "AdminCaseStudies"
+          ]
+        },
+        {
+          "source": "./components/pages/admin/AdminCaseStudyForm",
+          "specifiers": [
+            "AdminCaseStudyForm"
+          ]
+        },
+        {
+          "source": "./components/pages/SubmitStartupPage",
+          "specifiers": [
+            "SubmitStartupPage"
+          ]
+        },
+        {
+          "source": "./components/pages/StartupDetailPage",
+          "specifiers": [
+            "StartupDetailPage"
+          ]
+        },
+        {
+          "source": "./components/pages/founder/FundingDashboardPage",
+          "specifiers": [
+            "FundingDashboardPage"
+          ]
+        },
+        {
+          "source": "./components/pages/vc/VCPipelinePage",
+          "specifiers": [
+            "VCPipelinePage"
+          ]
+        }
+      ],
+      "exports": [
+        "App"
+      ],
+      "totalLines": 506,
+      "hasStructuralAnalysis": true
+    },
+    "src/Attributions.md": {
+      "filePath": "src/Attributions.md",
+      "contentHash": "9846aa487c2b6ebeef9dfcae9c9371a5561739dab3269401eaaf6a8666d3577c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4,
+      "hasStructuralAnalysis": false
+    },
+    "src/components/ActivityTimeline.tsx": {
+      "filePath": "src/components/ActivityTimeline.tsx",
+      "contentHash": "506c4cb577c8a29eeec32b2615309a76fd5aeb836593d6ca5e4c94b76ca63f74",
+      "functions": [
+        {
+          "name": "getActivityMetadata",
+          "params": [
+            "type"
+          ],
+          "returnType": "ActivityMetadata",
+          "exported": false,
+          "lineCount": 46
+        },
+        {
+          "name": "formatTimestamp",
+          "params": [
+            "timestamp"
+          ],
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "ActivityTimeline",
+          "params": [
+            "{\r\n  activities,\r\n  title = 'Recent Activity',\r\n  maxItems = 10,\r\n  compact = false,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 84
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "CheckCircle2",
+            "XCircle",
+            "Send",
+            "Clock",
+            "UserCheck",
+            "Inbox"
+          ]
+        },
+        {
+          "source": "../lib/notificationService",
+          "specifiers": [
+            "Notification",
+            "NotificationType"
+          ]
+        },
+        {
+          "source": "./ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "./ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        }
+      ],
+      "exports": [
+        "ActivityTimeline"
+      ],
+      "totalLines": 173,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/AdminToolsDropdown.tsx": {
+      "filePath": "src/components/AdminToolsDropdown.tsx",
+      "contentHash": "66c8bf167d945e2ac1e0e357a376060e4ef6aebfcae7bd6174afdb5d501a9594",
+      "functions": [
+        {
+          "name": "AdminToolsDropdown",
+          "params": [],
+          "exported": true,
+          "lineCount": 67
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link",
+            "useLocation"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Wrench",
+            "TrendingUp",
+            "BookOpen",
+            "Users",
+            "Shield"
+          ]
+        },
+        {
+          "source": "./ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./ui/dropdown-menu",
+          "specifiers": [
+            "DropdownMenu",
+            "DropdownMenuContent",
+            "DropdownMenuItem",
+            "DropdownMenuTrigger",
+            "DropdownMenuSeparator"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminToolsDropdown"
+      ],
+      "totalLines": 81,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/CaseCard.tsx": {
+      "filePath": "src/components/CaseCard.tsx",
+      "contentHash": "ffb8ad12f35694096fce893d744779ae0f6ac2535cace9ce82196ff0cb0eec57",
+      "functions": [
+        {
+          "name": "LogoFallback",
+          "params": [
+            "{ company }"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "CaseCard",
+          "params": [
+            "{\n  company,\n  logo,\n  title,\n  description,\n  difficulty,\n  category,\n  attempts,\n  onClick,\n}"
+          ],
+          "exported": true,
+          "lineCount": 51
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Users"
+          ]
+        },
+        {
+          "source": "./DifficultyBadge",
+          "specifiers": [
+            "DifficultyBadge"
+          ]
+        },
+        {
+          "source": "./ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        }
+      ],
+      "exports": [
+        "CaseCard"
+      ],
+      "totalLines": 85,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/Chatbot.tsx": {
+      "filePath": "src/components/Chatbot.tsx",
+      "contentHash": "fb7aaccfa651c1d1cb2419e41282b6a9ab8de05ca41aed10a471f3aa71c1b9ea",
+      "functions": [
+        {
+          "name": "Chatbot",
+          "params": [
+            "{ isDark }"
+          ],
+          "exported": true,
+          "lineCount": 632
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useRef",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "MessageCircle",
+            "Send",
+            "X",
+            "Settings",
+            "Bot",
+            "User",
+            "Sparkles",
+            "BrainCircuit"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "../contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "../lib/api-client",
+          "specifiers": [
+            "apiClient"
+          ]
+        },
+        {
+          "source": "./ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "./ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogHeader",
+            "DialogTitle",
+            "DialogTrigger"
+          ]
+        }
+      ],
+      "exports": [
+        "Chatbot"
+      ],
+      "totalLines": 656,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/ConfirmDialog.tsx": {
+      "filePath": "src/components/ConfirmDialog.tsx",
+      "contentHash": "64e4f74cd595f0ab8e48cdff439e90d4f57d67dd4af4880d01258fc9f4395378",
+      "functions": [
+        {
+          "name": "ConfirmDialog",
+          "params": [
+            "{\r\n  isOpen,\r\n  onClose,\r\n  onConfirm,\r\n  title,\r\n  message,\r\n  confirmText = 'Confirm',\r\n  cancelText = 'Cancel',\r\n  variant = 'danger',\r\n  isLoading = false,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 92
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "AlertCircle",
+            "CheckCircle"
+          ]
+        },
+        {
+          "source": "./ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./ui/card",
+          "specifiers": [
+            "Card"
+          ]
+        }
+      ],
+      "exports": [
+        "ConfirmDialog"
+      ],
+      "totalLines": 111,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/DifficultyBadge.tsx": {
+      "filePath": "src/components/DifficultyBadge.tsx",
+      "contentHash": "67741bbcdb102a8d81a8ce448a99d7431784ef32c4cc12b7731d534104c18904",
+      "functions": [
+        {
+          "name": "DifficultyBadge",
+          "params": [
+            "{ difficulty, className }"
+          ],
+          "exported": true,
+          "lineCount": 28
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        }
+      ],
+      "exports": [
+        "DifficultyBadge"
+      ],
+      "totalLines": 36,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/ErrorBoundary.tsx": {
+      "filePath": "src/components/ErrorBoundary.tsx",
+      "contentHash": "57202979ab84a3b4c1e7fc1a30de377daa8b39bbe01fec01c1aedc0a6cf27834",
+      "functions": [],
+      "classes": [
+        {
+          "name": "ErrorBoundary",
+          "methods": [
+            "getDerivedStateFromError",
+            "componentDidCatch",
+            "render",
+            "getErrorMessage"
+          ],
+          "properties": [
+            "state",
+            "handleReset"
+          ],
+          "exported": true,
+          "lineCount": 107
+        }
+      ],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "Component",
+            "ErrorInfo",
+            "ReactNode"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "AlertCircle",
+            "RefreshCcw"
+          ]
+        },
+        {
+          "source": "./ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        }
+      ],
+      "exports": [
+        "ErrorBoundary"
+      ],
+      "totalLines": 141,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/FeatureCard.tsx": {
+      "filePath": "src/components/FeatureCard.tsx",
+      "contentHash": "a6d139df591d709a7ac5dc086a0d5e124f4248f96140a7f454c7ebe10db4887f",
+      "functions": [
+        {
+          "name": "FeatureCard",
+          "params": [
+            "{ icon: Icon, title, description }"
+          ],
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "LucideIcon"
+          ]
+        },
+        {
+          "source": "./ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        }
+      ],
+      "exports": [
+        "FeatureCard"
+      ],
+      "totalLines": 24,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/FilterChip.tsx": {
+      "filePath": "src/components/FilterChip.tsx",
+      "contentHash": "0872f915a79c428d161b2c6ea2be1ad2cdfb0c0eab680282133bac5d870484cf",
+      "functions": [
+        {
+          "name": "FilterChip",
+          "params": [
+            "{ label, isActive, onClick }"
+          ],
+          "exported": true,
+          "lineCount": 16
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        }
+      ],
+      "exports": [
+        "FilterChip"
+      ],
+      "totalLines": 25,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/Footer.tsx": {
+      "filePath": "src/components/Footer.tsx",
+      "contentHash": "9e52302f6f1bc264d412e39a69bd706daf01d1a17801254384acece5ba5d9a8f",
+      "functions": [
+        {
+          "name": "Footer",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 114
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Linkedin",
+            "Instagram",
+            "Mail"
+          ]
+        },
+        {
+          "source": "./ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogHeader",
+            "DialogTitle",
+            "DialogDescription"
+          ]
+        },
+        {
+          "source": "./ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        }
+      ],
+      "exports": [
+        "Footer"
+      ],
+      "totalLines": 131,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/IdeaCard.tsx": {
+      "filePath": "src/components/IdeaCard.tsx",
+      "contentHash": "51f6ab138287ce635d496ed671bcacec20e7b0d9a0951b5de8c6d0d9769527d3",
+      "functions": [
+        {
+          "name": "IdeaCard",
+          "params": [
+            "{\r\n  title,\r\n  description,\r\n  upvotes,\r\n  comments_count,\r\n  tags,\r\n  author,\r\n  authorAvatar,\r\n  onCommentClick,\r\n  onUpvote,\r\n  hasUpvoted,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 149
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowUp",
+            "MessageCircle"
+          ]
+        },
+        {
+          "source": "./ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "./ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback",
+            "AvatarImage"
+          ]
+        }
+      ],
+      "exports": [
+        "IdeaCard"
+      ],
+      "totalLines": 168,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/LeaderboardWidget.tsx": {
+      "filePath": "src/components/LeaderboardWidget.tsx",
+      "contentHash": "0230b483ffb0e213e6153bd99bf2b7374eb150be6d49c74d739a07545a5fe50f",
+      "functions": [
+        {
+          "name": "RankIcon",
+          "params": [
+            "{ rank }"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "LeaderboardWidget",
+          "params": [
+            "{ entries, isLoading }"
+          ],
+          "exported": true,
+          "lineCount": 69
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Trophy",
+            "Medal",
+            "Award",
+            "Users"
+          ]
+        },
+        {
+          "source": "./ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "./ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback",
+            "AvatarImage"
+          ]
+        },
+        {
+          "source": "./ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "./ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        }
+      ],
+      "exports": [
+        "LeaderboardWidget"
+      ],
+      "totalLines": 98,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/Navbar.tsx": {
+      "filePath": "src/components/Navbar.tsx",
+      "contentHash": "7f046cab70ce2c84fc21aaa0036ba7e7601ca72e7143c10b0da6b1ae0921eb38",
+      "functions": [
+        {
+          "name": "Navbar",
+          "params": [
+            "{\r\n  isDark,\r\n  toggleTheme,\r\n  currentPage,\r\n  onNavigate,\r\n  isLoggedIn = false,\r\n  onLogout,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 222
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Moon",
+            "Sun",
+            "Sparkles",
+            "User",
+            "Menu",
+            "DollarSign"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "./ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback",
+            "AvatarImage"
+          ]
+        },
+        {
+          "source": "./NotificationBell",
+          "specifiers": [
+            "NotificationBell"
+          ]
+        },
+        {
+          "source": "./ui/dropdown-menu",
+          "specifiers": [
+            "DropdownMenu",
+            "DropdownMenuContent",
+            "DropdownMenuItem",
+            "DropdownMenuTrigger",
+            "DropdownMenuSeparator"
+          ]
+        },
+        {
+          "source": "./ui/sheet",
+          "specifiers": [
+            "Sheet",
+            "SheetContent",
+            "SheetTrigger"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        }
+      ],
+      "exports": [
+        "Navbar"
+      ],
+      "totalLines": 249,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/NotificationBell.tsx": {
+      "filePath": "src/components/NotificationBell.tsx",
+      "contentHash": "ea27b983fc81615d67bf84cdb53ebcfa35e5f431bcd2d092426b24dc965aefe1",
+      "functions": [
+        {
+          "name": "NotificationBell",
+          "params": [
+            "{ variant = 'default' }"
+          ],
+          "exported": true,
+          "lineCount": 231
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Bell"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "date-fns",
+          "specifiers": [
+            "formatDistanceToNow"
+          ]
+        },
+        {
+          "source": "../contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "../lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "../lib/notificationService",
+          "specifiers": [
+            "getUnreadCount",
+            "getAllNotifications",
+            "getUserNotifications"
+          ]
+        },
+        {
+          "source": "../lib/notificationService",
+          "specifiers": [
+            "Notification"
+          ]
+        },
+        {
+          "source": "./ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./ui/popover",
+          "specifiers": [
+            "Popover",
+            "PopoverContent",
+            "PopoverTrigger"
+          ]
+        },
+        {
+          "source": "./ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "./ui/scroll-area",
+          "specifiers": [
+            "ScrollArea"
+          ]
+        },
+        {
+          "source": "./ui/separator",
+          "specifiers": [
+            "Separator"
+          ]
+        }
+      ],
+      "exports": [
+        "NotificationBell"
+      ],
+      "totalLines": 253,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/ProtectedRoute.tsx": {
+      "filePath": "src/components/ProtectedRoute.tsx",
+      "contentHash": "829b046c37dfe8f0eeacaeb1818424d0999399d0fb758b45d069b0ce978a16e2",
+      "functions": [
+        {
+          "name": "ProtectedRoute",
+          "params": [
+            "{\r\n  children,\r\n  allowedRoles,\r\n  redirectTo,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 49
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Navigate",
+            "useLocation"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useRef"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/types/roles",
+          "specifiers": [
+            "UserRole",
+            "hasAccess",
+            "getRoleDefaultRoute"
+          ]
+        }
+      ],
+      "exports": [
+        "ProtectedRoute"
+      ],
+      "totalLines": 63,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/RoleRedirect.tsx": {
+      "filePath": "src/components/RoleRedirect.tsx",
+      "contentHash": "41bf200ae8f26cdf73e45a03c162899009ec4236addabd047780df236769ecc5",
+      "functions": [
+        {
+          "name": "RoleRedirect",
+          "params": [],
+          "exported": true,
+          "lineCount": 23
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Navigate"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/types/roles",
+          "specifiers": [
+            "getRoleDefaultRoute"
+          ]
+        }
+      ],
+      "exports": [
+        "RoleRedirect"
+      ],
+      "totalLines": 41,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/Timeline.tsx": {
+      "filePath": "src/components/Timeline.tsx",
+      "contentHash": "e70e23d6c18d8b912e22a436698b62c05171e0aa491c8a706dcf1f190186126c",
+      "functions": [
+        {
+          "name": "Timeline",
+          "params": [
+            "{ events }"
+          ],
+          "exported": true,
+          "lineCount": 73
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "CheckCircle2",
+            "Circle",
+            "Clock"
+          ]
+        }
+      ],
+      "exports": [
+        "Timeline"
+      ],
+      "totalLines": 89,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/figma/ImageWithFallback.tsx": {
+      "filePath": "src/components/figma/ImageWithFallback.tsx",
+      "contentHash": "4a4fc3a94bddfaf0ea4484beaf8e912a2426acb7235a325b8675b63b366f7742",
+      "functions": [
+        {
+          "name": "ImageWithFallback",
+          "params": [
+            "props"
+          ],
+          "exported": true,
+          "lineCount": 22
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "useState"
+          ]
+        }
+      ],
+      "exports": [
+        "ImageWithFallback"
+      ],
+      "totalLines": 28,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/AboutPage.tsx": {
+      "filePath": "src/components/pages/AboutPage.tsx",
+      "contentHash": "138ca63bc6aa18ff2cd6e08bb21638b3131b46027a39f72e8cd1298c141e6457",
+      "functions": [
+        {
+          "name": "AboutPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 385
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Target",
+            "Rocket",
+            "Users",
+            "Zap",
+            "Globe",
+            "BrainCircuit",
+            "ArrowRight",
+            "CheckCircle2",
+            "Sparkles"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "../ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        }
+      ],
+      "exports": [
+        "AboutPage"
+      ],
+      "totalLines": 477,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/AuthPage.tsx": {
+      "filePath": "src/components/pages/AuthPage.tsx",
+      "contentHash": "f22a62f73caaf81152dff71b2c90af637df9c0f67073032cb2d6e8537577c7bc",
+      "functions": [
+        {
+          "name": "AuthPage",
+          "params": [
+            "{ onLogin }"
+          ],
+          "exported": true,
+          "lineCount": 545
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "FormEvent"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Eye",
+            "EyeOff",
+            "Mail",
+            "Lock",
+            "User",
+            "AlertCircle",
+            "Linkedin"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "@react-oauth/google",
+          "specifiers": [
+            "GoogleLogin",
+            "CredentialResponse"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "../../lib/supabase",
+          "specifiers": [
+            "supabase",
+            "supabaseConfigured",
+            "setRememberMe",
+            "getRememberMe"
+          ]
+        },
+        {
+          "source": "../ui/checkbox",
+          "specifiers": [
+            "Checkbox"
+          ]
+        }
+      ],
+      "exports": [
+        "AuthPage"
+      ],
+      "totalLines": 569,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/CaseDetailPage.tsx": {
+      "filePath": "src/components/pages/CaseDetailPage.tsx",
+      "contentHash": "0ad8ddd8791b9e127ba2995a7dc3b9701f4781fc8625cbdf688fc1d73858e307",
+      "functions": [
+        {
+          "name": "fetchContributors",
+          "params": [
+            "caseId"
+          ],
+          "returnType": "Promise<ContributorEntry[]>",
+          "exported": false,
+          "lineCount": 36
+        },
+        {
+          "name": "CaseDetailPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 1221
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useCallback",
+            "useRef"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useParams"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "Clock",
+            "Trophy",
+            "Target",
+            "Save",
+            "Send",
+            "CheckCircle2",
+            "AlertCircle",
+            "Loader2",
+            "Lightbulb",
+            "BarChart2",
+            "Tag",
+            "Gauge",
+            "CalendarDays",
+            "Users"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "../ui/progress",
+          "specifiers": [
+            "Progress"
+          ]
+        },
+        {
+          "source": "../DifficultyBadge",
+          "specifiers": [
+            "DifficultyBadge"
+          ]
+        },
+        {
+          "source": "../LeaderboardWidget",
+          "specifiers": [
+            "LeaderboardWidget",
+            "ContributorEntry"
+          ]
+        },
+        {
+          "source": "../ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogHeader",
+            "DialogTitle",
+            "DialogDescription"
+          ]
+        },
+        {
+          "source": "../ui/star-rating",
+          "specifiers": [
+            "StarRating"
+          ]
+        },
+        {
+          "source": "../ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/lib/caseStudyService",
+          "specifiers": [
+            "mapDifficulty"
+          ]
+        },
+        {
+          "source": "@/lib/api-client",
+          "specifiers": [
+            "apiClient",
+            "CaseEvaluationResponse",
+            "CaseEvaluationBreakdown"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        }
+      ],
+      "exports": [
+        "CaseDetailPage"
+      ],
+      "totalLines": 1331,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/CaseStudiesPage.tsx": {
+      "filePath": "src/components/pages/CaseStudiesPage.tsx",
+      "contentHash": "e7aeddaff8df582fcca3630a7e279b33d7bf9c10a3bf47c2a8cdc72f3c889d33",
+      "functions": [
+        {
+          "name": "CaseCardSkeleton",
+          "params": [],
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "CaseStudiesPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 248
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Search",
+            "Trophy",
+            "Target",
+            "CheckCircle",
+            "BookOpen"
+          ]
+        },
+        {
+          "source": "../CaseCard",
+          "specifiers": [
+            "CaseCard"
+          ]
+        },
+        {
+          "source": "../FilterChip",
+          "specifiers": [
+            "FilterChip"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../ui/select",
+          "specifiers": [
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        },
+        {
+          "source": "@/lib/caseStudyService",
+          "specifiers": [
+            "fetchCaseStudies",
+            "subscribeToCaseStudies"
+          ]
+        },
+        {
+          "source": "@/lib/caseStudyService",
+          "specifiers": [
+            "CaseStudy"
+          ]
+        }
+      ],
+      "exports": [
+        "CaseStudiesPage"
+      ],
+      "totalLines": 288,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/CommunityPage.tsx": {
+      "filePath": "src/components/pages/CommunityPage.tsx",
+      "contentHash": "250f432c579cb0ba3bf7635668a1b300f412298f3f83f2ad2d630e1342231510",
+      "functions": [
+        {
+          "name": "logError",
+          "params": [
+            "action",
+            "error",
+            "ctx"
+          ],
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "withTimeout",
+          "params": [
+            "promise",
+            "ms"
+          ],
+          "returnType": "Promise<T>",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "fetchInsertedRow",
+          "params": [
+            "authorId",
+            "title",
+            "maxAttempts",
+            "baseDelayMs"
+          ],
+          "returnType": "Promise<Record<string, any> | null>",
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "fetchInsertedRowByRequestId",
+          "params": [
+            "authorId",
+            "requestId",
+            "maxAttempts",
+            "baseDelayMs"
+          ],
+          "returnType": "Promise<Record<string, any> | null>",
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "generateRequestId",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "nextSeq",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "latencyBucket",
+          "params": [
+            "ms"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "makeContentHash",
+          "params": [
+            "title",
+            "description"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "formatRelativeTime",
+          "params": [
+            "iso"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "mapRowToIdea",
+          "params": [
+            "row",
+            "hasUpvoted"
+          ],
+          "returnType": "CommunityIdea",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "createdAtTs",
+          "params": [
+            "idea"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "trendingScore",
+          "params": [
+            "idea",
+            "maxAgeHours"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "idTieBreak",
+          "params": [
+            "aId",
+            "bId"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "normalizeIdeaValue",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "parseTags",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "getIdeaKey",
+          "params": [
+            "idea"
+          ],
+          "exported": false,
+          "lineCount": 2
+        },
+        {
+          "name": "loadCommunityComments",
+          "params": [],
+          "returnType": "Record<string, CommunityComment[]>",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "persistCommunityComments",
+          "params": [
+            "comments"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "CommunityPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 1717
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useRef",
+            "useState"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "TrendingUp",
+            "Clock",
+            "MessageCircle",
+            "Send",
+            "Lightbulb",
+            "Loader2",
+            "Sparkles",
+            "MessageSquare",
+            "Filter",
+            "ThumbsUp",
+            "ArrowLeft",
+            "Search"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../IdeaCard",
+          "specifiers": [
+            "IdeaCard"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback",
+            "AvatarImage"
+          ]
+        },
+        {
+          "source": "../ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogDescription",
+            "DialogHeader",
+            "DialogTitle",
+            "DialogTrigger"
+          ]
+        },
+        {
+          "source": "../ui/sheet",
+          "specifiers": [
+            "Sheet",
+            "SheetContent",
+            "SheetHeader",
+            "SheetTitle"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "../ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "../../contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "../../lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        }
+      ],
+      "exports": [
+        "CommunityPage"
+      ],
+      "totalLines": 2073,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/ContactPage.tsx": {
+      "filePath": "src/components/pages/ContactPage.tsx",
+      "contentHash": "2aea6ba1552bde2187cca4a6336c0de77726660df1f03c832ae02000f8962415",
+      "functions": [
+        {
+          "name": "ContactPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 303
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Mail",
+            "AlertCircle",
+            "Instagram",
+            "Loader2"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "../../lib/api-client",
+          "specifiers": [
+            "apiClient"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "../ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        }
+      ],
+      "exports": [
+        "ContactPage"
+      ],
+      "totalLines": 328,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/DashboardPage.tsx": {
+      "filePath": "src/components/pages/DashboardPage.tsx",
+      "contentHash": "55c2007076d49ff7195f81e04cabc3fc5d9917c41e336d15c6c59472532171f2",
+      "functions": [
+        {
+          "name": "DashboardPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 62
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "AlertCircle",
+            "Loader2"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./founder/FounderDashboard",
+          "specifiers": [
+            "FounderDashboard"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        }
+      ],
+      "exports": [
+        "DashboardPage"
+      ],
+      "totalLines": 85,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/FeaturesPage.tsx": {
+      "filePath": "src/components/pages/FeaturesPage.tsx",
+      "contentHash": "98f81b65a3abb11e0675a94b7b77c556406d48dd462a252dd46759a45d1bfb62",
+      "functions": [
+        {
+          "name": "FeaturesPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 98
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Lightbulb",
+            "Target",
+            "Rocket",
+            "BarChart3",
+            "FileText"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../figma/ImageWithFallback",
+          "specifiers": [
+            "ImageWithFallback"
+          ]
+        }
+      ],
+      "exports": [
+        "FeaturesPage"
+      ],
+      "totalLines": 143,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/HomePage.tsx": {
+      "filePath": "src/components/pages/HomePage.tsx",
+      "contentHash": "763fc1d4edd00ca664c81d74e0e4e3cd6e8948c74e29f6e89f2d6337d86654a8",
+      "functions": [
+        {
+          "name": "FeaturedCaseImage",
+          "params": [
+            "{ logo, company }"
+          ],
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "TrendingIdeaSkeleton",
+          "params": [],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "FeaturedCaseSkeleton",
+          "params": [],
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "HomePage",
+          "params": [
+            "{ onNavigate, isLoggedIn = false }"
+          ],
+          "exported": true,
+          "lineCount": 619
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Lightbulb",
+            "Target",
+            "Rocket",
+            "Users",
+            "TrendingUp",
+            "Bot",
+            "CheckCircle2",
+            "Send",
+            "BookOpen"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "@/lib/caseStudyService",
+          "specifiers": [
+            "fetchCaseStudies",
+            "subscribeToCaseStudies"
+          ]
+        },
+        {
+          "source": "@/lib/caseStudyService",
+          "specifiers": [
+            "CaseStudy"
+          ]
+        },
+        {
+          "source": "@/lib/communityService",
+          "specifiers": [
+            "fetchTrendingIdeas",
+            "subscribeTrendingIdeas"
+          ]
+        },
+        {
+          "source": "@/lib/communityService",
+          "specifiers": [
+            "TrendingIdea"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../FeatureCard",
+          "specifiers": [
+            "FeatureCard"
+          ]
+        },
+        {
+          "source": "../IdeaCard",
+          "specifiers": [
+            "IdeaCard"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        },
+        {
+          "source": "../ui/sheet",
+          "specifiers": [
+            "Sheet",
+            "SheetContent",
+            "SheetHeader",
+            "SheetTitle"
+          ]
+        },
+        {
+          "source": "../ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback",
+            "AvatarImage"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        }
+      ],
+      "exports": [
+        "HomePage"
+      ],
+      "totalLines": 750,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/IdeaAnalyserPage.tsx": {
+      "filePath": "src/components/pages/IdeaAnalyserPage.tsx",
+      "contentHash": "1fbd9f2e0177b81650d0eb98b1334c67dd9f84abebfd1085a460a5d134138d0b",
+      "functions": [
+        {
+          "name": "CompetitorCard",
+          "params": [
+            "{ competitor }"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "truncateText",
+          "params": [
+            "text",
+            "limit"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "IdeaAnalyserPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 2139
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useRef",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "pdfjs-dist",
+          "specifiers": [
+            "getDocument",
+            "GlobalWorkerOptions"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Sparkles",
+            "Target",
+            "TrendingUp",
+            "Users",
+            "DollarSign",
+            "AlertCircle",
+            "CheckCircle",
+            "Lightbulb",
+            "Zap",
+            "FileText",
+            "Download",
+            "FolderOpen",
+            "Upload",
+            "X",
+            "File",
+            "RefreshCw",
+            "Shield",
+            "BarChart3",
+            "TrendingDown",
+            "HelpCircle"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "../../contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "../../lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "../../lib/activityService",
+          "specifiers": [
+            "logActivity"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogDescription",
+            "DialogHeader",
+            "DialogTitle"
+          ]
+        },
+        {
+          "source": "../../lib/aiAnalysis",
+          "specifiers": [
+            "startAnalysis",
+            "pollAnalysisStatusSafe",
+            "generateIdea",
+            "improveDescription"
+          ]
+        },
+        {
+          "source": "../../lib/serverWarmup",
+          "specifiers": [
+            "serverWarmup",
+            "WarmupStatus"
+          ]
+        },
+        {
+          "source": "../../lib/aiAnalysis",
+          "specifiers": [
+            "SafeAnalysisResult",
+            "GeneratedIdea"
+          ]
+        },
+        {
+          "source": "../../lib/analysisValidator",
+          "specifiers": [
+            "fromLegacyResult"
+          ]
+        },
+        {
+          "source": "../../lib/analysisValidator",
+          "specifiers": [
+            "Competitor"
+          ]
+        }
+      ],
+      "exports": [
+        "IdeaAnalyserPage"
+      ],
+      "totalLines": 2239,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/NotFoundPage.tsx": {
+      "filePath": "src/components/pages/NotFoundPage.tsx",
+      "contentHash": "4cff127277c6bcd916f29f38114e4d2635ffb47d3fd7e475016efe16ded2d6d3",
+      "functions": [
+        {
+          "name": "NotFoundPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 69
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Home",
+            "Search"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        }
+      ],
+      "exports": [
+        "NotFoundPage"
+      ],
+      "totalLines": 80,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/NotificationsPage.tsx": {
+      "filePath": "src/components/pages/NotificationsPage.tsx",
+      "contentHash": "9b2e9453e1ed4b148622b6c26d740f62f43f17fbf06e103602101152090a0583",
+      "functions": [
+        {
+          "name": "NotificationsPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 405
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Bell",
+            "CheckCircle2",
+            "Clock",
+            "XCircle",
+            "Inbox",
+            "ExternalLink",
+            "Loader2"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "../../lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "../../contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "../../types/roles",
+          "specifiers": [
+            "UserRole"
+          ]
+        },
+        {
+          "source": "../../lib/notificationService",
+          "specifiers": [
+            "getUserNotifications",
+            "markAllAsRead",
+            "subscribeToNotifications",
+            "Notification",
+            "NotificationType"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        }
+      ],
+      "exports": [
+        "NotificationsPage"
+      ],
+      "totalLines": 434,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/PitchCreatorPage.tsx": {
+      "filePath": "src/components/pages/PitchCreatorPage.tsx",
+      "contentHash": "e95aae90d23578a76f49de559fa39d81135a6a0bc76a11e457e075a57c346755",
+      "functions": [
+        {
+          "name": "PitchCreatorPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 952
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useRef"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Presentation",
+            "Sparkles",
+            "Download",
+            "RefreshCw",
+            "CheckCircle",
+            "Lightbulb",
+            "Target",
+            "TrendingUp",
+            "FolderOpen",
+            "Loader2",
+            "FileText"
+          ]
+        },
+        {
+          "source": "jspdf",
+          "specifiers": [
+            "jsPDF"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "../ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogDescription",
+            "DialogHeader",
+            "DialogTitle"
+          ]
+        },
+        {
+          "source": "../ui/select",
+          "specifiers": [
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue"
+          ]
+        },
+        {
+          "source": "../../lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "../../contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "../../lib/activityService",
+          "specifiers": [
+            "logActivity"
+          ]
+        },
+        {
+          "source": "../../lib/aiAnalysis",
+          "specifiers": [
+            "startPitch",
+            "pollPitchStatus"
+          ]
+        }
+      ],
+      "exports": [
+        "PitchCreatorPage"
+      ],
+      "totalLines": 997,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/PricingPage.tsx": {
+      "filePath": "src/components/pages/PricingPage.tsx",
+      "contentHash": "a04b096e49e1c1341ea034db6f95e4ec890305096f54df6e2c7120be3a32e6e6",
+      "functions": [
+        {
+          "name": "PricingPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 92
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Check",
+            "Sparkles"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        }
+      ],
+      "exports": [
+        "PricingPage"
+      ],
+      "totalLines": 103,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/ProfilePage.tsx": {
+      "filePath": "src/components/pages/ProfilePage.tsx",
+      "contentHash": "7c0855f58c68c080c91bbebc25dee57150eeb7f952c75c50ede706a4aa89e801",
+      "functions": [
+        {
+          "name": "isAvatarUrl",
+          "params": [
+            "avatar"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "calculateProfileCompletion",
+          "params": [
+            "profile",
+            "userIdeas"
+          ],
+          "returnType": "ProfileCompletion",
+          "exported": false,
+          "lineCount": 31
+        },
+        {
+          "name": "ProfilePage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 1153
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useMemo"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Users",
+            "Lightbulb",
+            "BookOpen",
+            "CheckCircle2",
+            "Shield",
+            "Trash2",
+            "Target",
+            "AlertCircle",
+            "Award",
+            "Clock",
+            "Sparkles",
+            "ArrowRight",
+            "Loader2"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback",
+            "AvatarImage"
+          ]
+        },
+        {
+          "source": "../ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogDescription",
+            "DialogHeader",
+            "DialogTitle",
+            "DialogFooter"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "../ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "../ui/progress",
+          "specifiers": [
+            "Progress"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../../contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "../../lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "../../lib/activityService",
+          "specifiers": [
+            "getRecentActivity",
+            "ActivityEvent",
+            "ACTIVITY_META"
+          ]
+        },
+        {
+          "source": "../../hooks/useFounderScore",
+          "specifiers": [
+            "useFounderScore"
+          ]
+        }
+      ],
+      "exports": [
+        "ProfilePage"
+      ],
+      "totalLines": 1263,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/ResourcesPage.tsx": {
+      "filePath": "src/components/pages/ResourcesPage.tsx",
+      "contentHash": "321a2be29ab23b716f201c76523610c2e2e059e0dc388fcb97c27410bdd89719",
+      "functions": [
+        {
+          "name": "ResourcesPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 181
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "BookOpen",
+            "FileText",
+            "Download",
+            "TrendingUp"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../figma/ImageWithFallback",
+          "specifiers": [
+            "ImageWithFallback"
+          ]
+        }
+      ],
+      "exports": [
+        "ResourcesPage"
+      ],
+      "totalLines": 284,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/SavedAnalysisPage.tsx": {
+      "filePath": "src/components/pages/SavedAnalysisPage.tsx",
+      "contentHash": "b9673e50df7ac35c7d592cf848841381929df6ff48dc639cd9cfce5955afcd72",
+      "functions": [
+        {
+          "name": "CompetitorCard",
+          "params": [
+            "{ competitor }"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "SavedAnalysisPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 651
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useParams",
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "Shield",
+            "BarChart3",
+            "AlertCircle",
+            "RefreshCw",
+            "TrendingUp",
+            "TrendingDown",
+            "HelpCircle",
+            "CheckCircle",
+            "DollarSign",
+            "Lightbulb",
+            "Users",
+            "Share2"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../../lib/analysisValidator",
+          "specifiers": [
+            "fromLegacyResult"
+          ]
+        },
+        {
+          "source": "../../lib/analysisValidator",
+          "specifiers": [
+            "SafeAnalysisResult",
+            "Competitor"
+          ]
+        },
+        {
+          "source": "../../lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "../../contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        }
+      ],
+      "exports": [
+        "SAVED_ANALYSIS_KEY",
+        "SavedAnalysisPage"
+      ],
+      "totalLines": 739,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/SavedIdeasPage.tsx": {
+      "filePath": "src/components/pages/SavedIdeasPage.tsx",
+      "contentHash": "def808a32fa321ae19157c4d524cb11324c7c132261dcb7a6f3bd3be650b8332",
+      "functions": [
+        {
+          "name": "HighlightText",
+          "params": [
+            "{ text, query }"
+          ],
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "SavedIdeasPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 633
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useMemo"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Search",
+            "BarChart3",
+            "Trash2",
+            "Filter",
+            "Lightbulb",
+            "X",
+            "ArrowUpDown"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "../../lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "../../contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../ui/alert-dialog",
+          "specifiers": [
+            "AlertDialog",
+            "AlertDialogAction",
+            "AlertDialogCancel",
+            "AlertDialogContent",
+            "AlertDialogDescription",
+            "AlertDialogFooter",
+            "AlertDialogHeader",
+            "AlertDialogTitle"
+          ]
+        },
+        {
+          "source": "./SavedAnalysisPage",
+          "specifiers": [
+            "SAVED_ANALYSIS_KEY"
+          ]
+        }
+      ],
+      "exports": [
+        "SavedIdeasPage"
+      ],
+      "totalLines": 711,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/StartupDetailPage.tsx": {
+      "filePath": "src/components/pages/StartupDetailPage.tsx",
+      "contentHash": "24e228568e59d409c2eed1c2062d1aecc54b335c8d7f93bd179dbc48834c654b",
+      "functions": [
+        {
+          "name": "StartupDetailPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 951
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useParams",
+            "useNavigate",
+            "Link"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "Rocket",
+            "Calendar",
+            "TrendingUp",
+            "Send",
+            "AlertCircle",
+            "CheckCircle2",
+            "Clock",
+            "Edit",
+            "Eye",
+            "RefreshCw",
+            "Users",
+            "Handshake",
+            "Info"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../Timeline",
+          "specifiers": [
+            "Timeline",
+            "TimelineEvent"
+          ]
+        },
+        {
+          "source": "@/lib/ideasService",
+          "specifiers": [
+            "getIdeaById",
+            "updateIdeaStatus",
+            "Idea"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/introRequestService",
+          "specifiers": [
+            "getIntroRequestsByStartup",
+            "createFounderIntroRequest",
+            "hasFounderRequestedIntro",
+            "getConnectedVCs",
+            "IntroRequest",
+            "ConnectedVC"
+          ]
+        },
+        {
+          "source": "@/lib/notificationService",
+          "specifiers": [
+            "notifyStartupSubmitted"
+          ]
+        },
+        {
+          "source": "@/hooks/useAsyncAction",
+          "specifiers": [
+            "useAsyncAction"
+          ]
+        }
+      ],
+      "exports": [
+        "StartupDetailPage"
+      ],
+      "totalLines": 990,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/SubmitStartupPage.tsx": {
+      "filePath": "src/components/pages/SubmitStartupPage.tsx",
+      "contentHash": "536d771a9d69a0bb2b884f0eab7a3faf5ad74151387b3a6730c468c5278c0d39",
+      "functions": [
+        {
+          "name": "SubmitStartupPage",
+          "params": [],
+          "exported": false,
+          "lineCount": 391
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Rocket",
+            "Send",
+            "CheckCircle2",
+            "ArrowLeft",
+            "AlertCircle",
+            "Sparkles",
+            "Building2",
+            "TrendingUp",
+            "Target",
+            "Lightbulb"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/hooks/useAsyncAction",
+          "specifiers": [
+            "useAsyncAction"
+          ]
+        },
+        {
+          "source": "@/lib/startupService",
+          "specifiers": [
+            "createStartup"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 420,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/VCConnectionPage.tsx": {
+      "filePath": "src/components/pages/VCConnectionPage.tsx",
+      "contentHash": "6d8513cbec80de39e3b3746fe8bd7fefc525f080c74494b61b11aed7060c9a4b",
+      "functions": [
+        {
+          "name": "formatRelativeDate",
+          "params": [
+            "isoString"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "VCConnectionPage",
+          "params": [
+            "{ onNavigate }"
+          ],
+          "exported": true,
+          "lineCount": 2070
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useRef"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Target",
+            "Shield",
+            "CheckCircle",
+            "AlertCircle",
+            "Users",
+            "BarChart3",
+            "ArrowRight",
+            "ArrowLeft",
+            "MessageCircle",
+            "FileText",
+            "Upload",
+            "Loader2",
+            "RefreshCw",
+            "TrendingUp",
+            "Search"
+          ]
+        },
+        {
+          "source": "../../contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "../../lib/supabase",
+          "specifiers": [
+            "supabase",
+            "uploadPitchPdf"
+          ]
+        },
+        {
+          "source": "../../lib/fundingService",
+          "specifiers": [
+            "getQualification",
+            "saveQualification"
+          ]
+        },
+        {
+          "source": "../../lib/vcApplicationService",
+          "specifiers": [
+            "submitApplication"
+          ]
+        },
+        {
+          "source": "../../lib/activityService",
+          "specifiers": [
+            "logActivity"
+          ]
+        },
+        {
+          "source": "../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "../ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "../ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogDescription",
+            "DialogHeader",
+            "DialogTitle",
+            "DialogFooter"
+          ]
+        },
+        {
+          "source": "../ui/alert-dialog",
+          "specifiers": [
+            "AlertDialog",
+            "AlertDialogAction",
+            "AlertDialogCancel",
+            "AlertDialogContent",
+            "AlertDialogDescription",
+            "AlertDialogFooter",
+            "AlertDialogHeader",
+            "AlertDialogTitle"
+          ]
+        },
+        {
+          "source": "../ui/accordion",
+          "specifiers": [
+            "Accordion",
+            "AccordionContent",
+            "AccordionItem",
+            "AccordionTrigger"
+          ]
+        },
+        {
+          "source": "../ui/select",
+          "specifiers": [
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue"
+          ]
+        }
+      ],
+      "exports": [
+        "VCConnectionPage"
+      ],
+      "totalLines": 2172,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/admin/AdminCaseStudies.tsx": {
+      "filePath": "src/components/pages/admin/AdminCaseStudies.tsx",
+      "contentHash": "a6efd5ee532f26bd19ea6cd72877809fc7a5a20a520fc0aaf7f349cd54bc333e",
+      "functions": [
+        {
+          "name": "AdminCaseStudies",
+          "params": [],
+          "exported": false,
+          "lineCount": 295
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Plus",
+            "BookOpen",
+            "Edit",
+            "Eye",
+            "Trash2",
+            "Search",
+            "Loader2"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/select",
+          "specifiers": [
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/lib/caseStudyService",
+          "specifiers": [
+            "invalidateCaseStudyCache"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 323,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/admin/AdminCaseStudyForm.tsx": {
+      "filePath": "src/components/pages/admin/AdminCaseStudyForm.tsx",
+      "contentHash": "79455fc6409e9b11383cd31ee1c5419b9e90ceef45a34b02265d839118e50a04",
+      "functions": [
+        {
+          "name": "AdminCaseStudyForm",
+          "params": [],
+          "exported": false,
+          "lineCount": 544
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate",
+            "useParams"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "Save",
+            "FileText",
+            "Target",
+            "Lightbulb",
+            "CheckCircle",
+            "Loader2"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "@/components/ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "@/components/ui/select",
+          "specifiers": [
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/lib/caseStudyService",
+          "specifiers": [
+            "invalidateCaseStudyCache"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 580,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/admin/AdminDashboard.tsx": {
+      "filePath": "src/components/pages/admin/AdminDashboard.tsx",
+      "contentHash": "5444a3765b43eb5a8881e0b915f5dec3509674bc71a91b3a58b1ab643ff76873",
+      "functions": [
+        {
+          "name": "AdminDashboard",
+          "params": [],
+          "exported": false,
+          "lineCount": 476
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Shield",
+            "Users",
+            "Building2",
+            "AlertCircle",
+            "CheckCircle2",
+            "Clock",
+            "Eye",
+            "TrendingUp",
+            "Info",
+            "BookOpen",
+            "Loader2"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "../../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/lib/startupService",
+          "specifiers": [
+            "getAllStartups"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/lib/notificationService",
+          "specifiers": [
+            "getAllNotifications",
+            "Notification"
+          ]
+        },
+        {
+          "source": "@/components/ActivityTimeline",
+          "specifiers": [
+            "ActivityTimeline"
+          ]
+        },
+        {
+          "source": "@/lib/metricsService",
+          "specifiers": [
+            "getAdminMetrics",
+            "AdminMetrics"
+          ]
+        },
+        {
+          "source": "@/hooks/useDemoMode",
+          "specifiers": [
+            "useAdminDemoMode"
+          ]
+        },
+        {
+          "source": "@/lib/demoData",
+          "specifiers": [
+            "demoAdminMetrics"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 510,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/admin/AdminIntroRequests.tsx": {
+      "filePath": "src/components/pages/admin/AdminIntroRequests.tsx",
+      "contentHash": "61bbe26ea9740e14f70e4002eb7ac58ef6b45926c581223eb7c830111bcc2390",
+      "functions": [
+        {
+          "name": "AdminIntroRequests",
+          "params": [],
+          "exported": false,
+          "lineCount": 408
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "CheckCircle2",
+            "XCircle",
+            "Clock",
+            "AlertCircle",
+            "Loader2",
+            "Users",
+            "Building2",
+            "RefreshCw",
+            "Filter",
+            "Handshake"
+          ]
+        },
+        {
+          "source": "@/lib/introRequestService",
+          "specifiers": [
+            "getAllIntroRequests",
+            "updateIntroRequestStatus",
+            "IntroRequest",
+            "IntroRequestStatus"
+          ]
+        },
+        {
+          "source": "@/lib/ideasService",
+          "specifiers": [
+            "getIdeaById"
+          ]
+        },
+        {
+          "source": "@/lib/notificationService",
+          "specifiers": [
+            "notifyVCIntroApproved"
+          ]
+        },
+        {
+          "source": "@/components/ConfirmDialog",
+          "specifiers": [
+            "ConfirmDialog"
+          ]
+        },
+        {
+          "source": "@/hooks/useAsyncAction",
+          "specifiers": [
+            "useAsyncAction"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 440,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/admin/AdminStartups.tsx": {
+      "filePath": "src/components/pages/admin/AdminStartups.tsx",
+      "contentHash": "7e045dd5793e47f019c8b15f94125b7eb08d59db502a67ad84a1785d9d5e87ee",
+      "functions": [
+        {
+          "name": "AdminStartups",
+          "params": [],
+          "exported": false,
+          "lineCount": 422
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "CheckCircle2",
+            "XCircle",
+            "Clock",
+            "AlertCircle",
+            "Loader2",
+            "Building2",
+            "User",
+            "TrendingUp",
+            "RefreshCw",
+            "Filter"
+          ]
+        },
+        {
+          "source": "@/lib/startupService",
+          "specifiers": [
+            "getAllStartups",
+            "updateStartupStatus",
+            "Startup",
+            "StartupStatus"
+          ]
+        },
+        {
+          "source": "@/lib/notificationService",
+          "specifiers": [
+            "notifyStartupApproved",
+            "notifyStartupRejected"
+          ]
+        },
+        {
+          "source": "@/components/ConfirmDialog",
+          "specifiers": [
+            "ConfirmDialog"
+          ]
+        },
+        {
+          "source": "@/hooks/useAsyncAction",
+          "specifiers": [
+            "useAsyncAction"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 448,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/founder/FounderDashboard.tsx": {
+      "filePath": "src/components/pages/founder/FounderDashboard.tsx",
+      "contentHash": "23b5139329c80e89f1c5cb1e58cbb26e2618fc9574633d04b8bb14c7e633d125",
+      "functions": [
+        {
+          "name": "getStatusInfo",
+          "params": [
+            "status"
+          ],
+          "exported": false,
+          "lineCount": 40
+        },
+        {
+          "name": "FounderDashboard",
+          "params": [],
+          "exported": true,
+          "lineCount": 814
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Lightbulb",
+            "BookOpen",
+            "ArrowRight",
+            "Users",
+            "CheckCircle2",
+            "Sparkles",
+            "Rocket",
+            "AlertCircle",
+            "Send",
+            "Clock",
+            "Info",
+            "RefreshCw",
+            "Loader2",
+            "Activity"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "../../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/ideasService",
+          "specifiers": [
+            "getUserIdeas",
+            "Idea"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/lib/activityService",
+          "specifiers": [
+            "getRecentActivity",
+            "mergeActivityEvents",
+            "ActivityEvent",
+            "ActivityCursor"
+          ]
+        },
+        {
+          "source": "@/lib/metricsService",
+          "specifiers": [
+            "getFounderMetrics",
+            "FounderMetrics"
+          ]
+        },
+        {
+          "source": "@/hooks/useDemoMode",
+          "specifiers": [
+            "useFounderDemoMode"
+          ]
+        },
+        {
+          "source": "@/lib/demoData",
+          "specifiers": [
+            "demoFounderStartups"
+          ]
+        },
+        {
+          "source": "@/lib/api-client",
+          "specifiers": [
+            "apiClient"
+          ]
+        },
+        {
+          "source": "@/lib/aiAnalysis",
+          "specifiers": [
+            "getRecentAnalyses",
+            "RecentAnalysis"
+          ]
+        }
+      ],
+      "exports": [
+        "FounderDashboard"
+      ],
+      "totalLines": 895,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/founder/FundingDashboardPage.tsx": {
+      "filePath": "src/components/pages/founder/FundingDashboardPage.tsx",
+      "contentHash": "d03c359cad63797debc8a91cfde1d7c96f98c625329ea423ae4e462fedce00f8",
+      "functions": [
+        {
+          "name": "PdfPreviewModal",
+          "params": [
+            "{ url, filename, onClose }"
+          ],
+          "exported": false,
+          "lineCount": 52
+        },
+        {
+          "name": "ApplicationSkeleton",
+          "params": [],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "StatusTimeline",
+          "params": [
+            "{ app }"
+          ],
+          "exported": false,
+          "lineCount": 68
+        },
+        {
+          "name": "ApplicationRow",
+          "params": [
+            "{ app }"
+          ],
+          "exported": false,
+          "lineCount": 105
+        },
+        {
+          "name": "Pagination",
+          "params": [
+            "{\n  paged, page, onPage,\n}"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "FundingDashboardPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 197
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "FileText",
+            "Clock",
+            "CheckCircle2",
+            "XCircle",
+            "Sparkles",
+            "AlertCircle",
+            "RefreshCw",
+            "ChevronDown",
+            "ChevronUp",
+            "Banknote",
+            "ArrowRight",
+            "ChevronLeft",
+            "ChevronRight",
+            "Download",
+            "X",
+            "ExternalLink"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/lib/vcApplicationService",
+          "specifiers": [
+            "getMyApplications",
+            "VcApplicationResponse",
+            "PagedResponse",
+            "STATUS_LABELS",
+            "STATUS_COLORS",
+            "STATUS_TIMELINE",
+            "ApplicationStatus"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        }
+      ],
+      "exports": [
+        "FundingDashboardPage"
+      ],
+      "totalLines": 527,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/vc/VCDashboard.tsx": {
+      "filePath": "src/components/pages/vc/VCDashboard.tsx",
+      "contentHash": "a222b4ba20efe99ef2c1f209f1f8fdbb66751e58a29553d175b91aafa91adcbf",
+      "functions": [
+        {
+          "name": "VCDashboard",
+          "params": [],
+          "exported": false,
+          "lineCount": 408
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Building2",
+            "TrendingUp",
+            "Users",
+            "Eye",
+            "ArrowRight",
+            "CheckCircle2",
+            "ShieldCheck",
+            "Clock",
+            "AlertCircle",
+            "RefreshCw",
+            "Loader2"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "../../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/lib/introRequestService",
+          "specifiers": [
+            "getConnectedStartups",
+            "ConnectedStartup"
+          ]
+        },
+        {
+          "source": "@/lib/notificationService",
+          "specifiers": [
+            "getUserNotifications",
+            "Notification"
+          ]
+        },
+        {
+          "source": "@/components/ActivityTimeline",
+          "specifiers": [
+            "ActivityTimeline"
+          ]
+        },
+        {
+          "source": "@/lib/metricsService",
+          "specifiers": [
+            "getVCMetrics",
+            "VCMetrics"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 439,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/vc/VCOnboarding.tsx": {
+      "filePath": "src/components/pages/vc/VCOnboarding.tsx",
+      "contentHash": "413788254a09d18dc55806ab006075e9b88fa5e55842b723b10b2deb7d132c43",
+      "functions": [
+        {
+          "name": "VCOnboarding",
+          "params": [],
+          "exported": false,
+          "lineCount": 414
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Building2",
+            "Target",
+            "MapPin",
+            "CheckCircle2",
+            "ArrowRight",
+            "ArrowLeft",
+            "Sparkles"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "../../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "../../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../../ui/checkbox",
+          "specifiers": [
+            "Checkbox"
+          ]
+        },
+        {
+          "source": "../../ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "../../ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "../../ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase",
+            "supabaseConfigured"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 481,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/vc/VCPendingPage.tsx": {
+      "filePath": "src/components/pages/vc/VCPendingPage.tsx",
+      "contentHash": "1f38cdce937783f3c0b0241b5998a5f2eee3bab811e5c93a14a804fb0dcfbf0c",
+      "functions": [
+        {
+          "name": "VCPendingPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 57
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ShieldCheck",
+            "Clock",
+            "Mail"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        }
+      ],
+      "exports": [
+        "VCPendingPage"
+      ],
+      "totalLines": 64,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/vc/VCPipelinePage.tsx": {
+      "filePath": "src/components/pages/vc/VCPipelinePage.tsx",
+      "contentHash": "27ab50faf7ed77e41320842ea1c1d9541a66a3f85b56270681b9702914f21fc4",
+      "functions": [
+        {
+          "name": "PdfPreviewModal",
+          "params": [
+            "{ url, filename, onClose }"
+          ],
+          "exported": false,
+          "lineCount": 41
+        },
+        {
+          "name": "PipelineSkeleton",
+          "params": [],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "AppCard",
+          "params": [
+            "{ app, onUpdated }"
+          ],
+          "exported": false,
+          "lineCount": 242
+        },
+        {
+          "name": "Pagination",
+          "params": [
+            "{\n  paged, page, onPage,\n}"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "VCPipelinePage",
+          "params": [],
+          "exported": true,
+          "lineCount": 266
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState",
+            "useCallback",
+            "useRef"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Users",
+            "Clock",
+            "CheckCircle2",
+            "XCircle",
+            "FileText",
+            "Sparkles",
+            "Loader2",
+            "AlertCircle",
+            "RefreshCw",
+            "ChevronDown",
+            "ChevronUp",
+            "Search",
+            "SlidersHorizontal",
+            "MessageSquare",
+            "Send",
+            "ChevronLeft",
+            "ChevronRight",
+            "Zap",
+            "Timer",
+            "Download",
+            "ExternalLink",
+            "X"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/lib/vcApplicationService",
+          "specifiers": [
+            "getAllApplications",
+            "updateApplicationStatus",
+            "VcApplicationResponse",
+            "PagedResponse",
+            "ApplicationStatus",
+            "STATUS_LABELS",
+            "STATUS_COLORS",
+            "canTransitionTo"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        }
+      ],
+      "exports": [
+        "VCPipelinePage"
+      ],
+      "totalLines": 674,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/vc/VCStartupDetail.tsx": {
+      "filePath": "src/components/pages/vc/VCStartupDetail.tsx",
+      "contentHash": "de50a20426a6a7666e6ebf9d98cd51719ef5d3f261ce7bd81a575cbd5a48cd54",
+      "functions": [
+        {
+          "name": "VCStartupDetail",
+          "params": [],
+          "exported": false,
+          "lineCount": 392
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useParams",
+            "Link",
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "Rocket",
+            "Building2",
+            "TrendingUp",
+            "Target",
+            "Lightbulb",
+            "User",
+            "FileText",
+            "Handshake",
+            "CheckCircle2",
+            "Loader2"
+          ]
+        },
+        {
+          "source": "../../ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "../../ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "../../ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/lib/ideasService",
+          "specifiers": [
+            "getIdeaById",
+            "Idea"
+          ]
+        },
+        {
+          "source": "@/lib/introRequestService",
+          "specifiers": [
+            "createIntroRequest",
+            "hasIntroRequest",
+            "isConnected"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/notificationService",
+          "specifiers": [
+            "notifyVCIntroRequested"
+          ]
+        },
+        {
+          "source": "@/hooks/useAsyncAction",
+          "specifiers": [
+            "useAsyncAction"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 422,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/pages/vc/VCStartups.tsx": {
+      "filePath": "src/components/pages/vc/VCStartups.tsx",
+      "contentHash": "05803a6c26f522a97cd217fdfd7cd82b0c37e65e5cb1e9fb42510aaca8132209",
+      "functions": [
+        {
+          "name": "VCStartups",
+          "params": [],
+          "exported": false,
+          "lineCount": 301
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "motion/react",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Building2",
+            "Eye",
+            "Loader2",
+            "Search",
+            "Filter",
+            "TrendingUp",
+            "Target",
+            "AlertCircle"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/lib/startupService",
+          "specifiers": [
+            "Startup"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 330,
+      "hasStructuralAnalysis": true
+    },
+    "src/components/vc/VCNavbar.tsx": {
+      "filePath": "src/components/vc/VCNavbar.tsx",
+      "contentHash": "6828162693f5e8fdb8d9593b4be9c45afc6c3d24d3d6c78dffd8214806068cc1",
+      "functions": [
+        {
+          "name": "VCNavbar",
+          "params": [
+            "{ isDark, toggleTheme }"
+          ],
+          "exported": true,
+          "lineCount": 152
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link",
+            "useLocation"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Menu",
+            "Moon",
+            "Sun",
+            "LayoutDashboard",
+            "Building2",
+            "Clock",
+            "LogOut"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/components/NotificationBell",
+          "specifiers": [
+            "NotificationBell"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/sheet",
+          "specifiers": [
+            "Sheet",
+            "SheetContent",
+            "SheetTrigger",
+            "SheetHeader",
+            "SheetTitle"
+          ]
+        }
+      ],
+      "exports": [
+        "VCNavbar"
+      ],
+      "totalLines": 168,
+      "hasStructuralAnalysis": true
+    },
+    "src/contexts/UserContext.tsx": {
+      "filePath": "src/contexts/UserContext.tsx",
+      "contentHash": "d573d8fe9c0339d874bd4396868e0a5b3ade43d7b8924a02b47b2be96497d56b",
+      "functions": [
+        {
+          "name": "UserProvider",
+          "params": [
+            "{ children }"
+          ],
+          "exported": true,
+          "lineCount": 261
+        },
+        {
+          "name": "useUser",
+          "params": [],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "createContext",
+            "useContext",
+            "useState",
+            "useEffect",
+            "ReactNode",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "@supabase/supabase-js",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "../lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/types/roles",
+          "specifiers": [
+            "UserRole"
+          ]
+        }
+      ],
+      "exports": [
+        "UserProvider",
+        "useUser"
+      ],
+      "totalLines": 309,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useAsyncAction.ts": {
+      "filePath": "src/hooks/useAsyncAction.ts",
+      "contentHash": "fc324fe5d4f6d56fb1bca30a7c52f9ae623f5662e254bdbcb3d6ee7456ab4d02",
+      "functions": [
+        {
+          "name": "useAsyncAction",
+          "params": [
+            "action",
+            "options"
+          ],
+          "returnType": "UseAsyncActionReturn<T>",
+          "exported": true,
+          "lineCount": 78
+        },
+        {
+          "name": "handleAsyncError",
+          "params": [
+            "error",
+            "prefix"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 29
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useCallback",
+            "useRef"
+          ]
+        },
+        {
+          "source": "sonner",
+          "specifiers": [
+            "toast"
+          ]
+        }
+      ],
+      "exports": [
+        "useAsyncAction"
+      ],
+      "totalLines": 182,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useDemoMode.ts": {
+      "filePath": "src/hooks/useDemoMode.ts",
+      "contentHash": "59b33a568775f5fbd6938583a9e9627b91cbe68592dedc584e90b2db66ad4d05",
+      "functions": [
+        {
+          "name": "useFounderDemoMode",
+          "params": [
+            "startups",
+            "metrics"
+          ],
+          "returnType": "DemoModeConfig",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "useAdminDemoMode",
+          "params": [
+            "pendingStartups",
+            "metrics"
+          ],
+          "returnType": "DemoModeConfig",
+          "exported": true,
+          "lineCount": 28
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "../lib/ideasService",
+          "specifiers": [
+            "Idea"
+          ]
+        },
+        {
+          "source": "../lib/metricsService",
+          "specifiers": [
+            "FounderMetrics",
+            "AdminMetrics"
+          ]
+        }
+      ],
+      "exports": [
+        "useFounderDemoMode",
+        "useAdminDemoMode"
+      ],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useFounderScore.ts": {
+      "filePath": "src/hooks/useFounderScore.ts",
+      "contentHash": "47e6a904bbd1bfc424771c43e0b4781bc2ccf7de0e0c79e9aa242971d0096960",
+      "functions": [
+        {
+          "name": "useFounderScore",
+          "params": [],
+          "returnType": "UseFounderScoreReturn",
+          "exported": true,
+          "lineCount": 23
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "@/lib/api-client",
+          "specifiers": [
+            "apiClient"
+          ]
+        }
+      ],
+      "exports": [
+        "useFounderScore"
+      ],
+      "totalLines": 47,
+      "hasStructuralAnalysis": true
+    },
+    "src/index.css": {
+      "filePath": "src/index.css",
+      "contentHash": "f9bd062356454844231c8052a081e5f4ba5cd4c2ec52f82cbd3baf192d056b6d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4670,
+      "hasStructuralAnalysis": false
+    },
+    "src/layouts/AdminLayout.tsx": {
+      "filePath": "src/layouts/AdminLayout.tsx",
+      "contentHash": "5bb64b6efe3df3590a4595e66d45f08fdc4c506a5aae5e18e0f37381685968d3",
+      "functions": [
+        {
+          "name": "AdminLayout",
+          "params": [],
+          "exported": true,
+          "lineCount": 209
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Outlet",
+            "Link",
+            "useLocation"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Building2",
+            "TrendingUp",
+            "LogOut",
+            "Shield",
+            "BookOpen",
+            "BarChart3",
+            "Menu"
+          ]
+        },
+        {
+          "source": "@/contexts/UserContext",
+          "specifiers": [
+            "useUser"
+          ]
+        },
+        {
+          "source": "@/lib/supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/components/NotificationBell",
+          "specifiers": [
+            "NotificationBell"
+          ]
+        },
+        {
+          "source": "@/components/AdminToolsDropdown",
+          "specifiers": [
+            "AdminToolsDropdown"
+          ]
+        },
+        {
+          "source": "@/components/ErrorBoundary",
+          "specifiers": [
+            "ErrorBoundary"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/sheet",
+          "specifiers": [
+            "Sheet",
+            "SheetContent",
+            "SheetTrigger"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminLayout"
+      ],
+      "totalLines": 223,
+      "hasStructuralAnalysis": true
+    },
+    "src/layouts/VCLayout.tsx": {
+      "filePath": "src/layouts/VCLayout.tsx",
+      "contentHash": "eb20500b4e1731dedd19dc181441f486b4f379064efa94dae18a84b49cf49f5e",
+      "functions": [
+        {
+          "name": "VCLayout",
+          "params": [],
+          "exported": true,
+          "lineCount": 72
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Outlet",
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "Home"
+          ]
+        },
+        {
+          "source": "@/components/vc/VCNavbar",
+          "specifiers": [
+            "VCNavbar"
+          ]
+        },
+        {
+          "source": "@/components/ErrorBoundary",
+          "specifiers": [
+            "ErrorBoundary"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        }
+      ],
+      "exports": [
+        "VCLayout"
+      ],
+      "totalLines": 81,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/activityService.ts": {
+      "filePath": "src/lib/activityService.ts",
+      "contentHash": "f17a455020620da2191a56b57f8b23a487aec0ceb5796c7c7ed38aa060c79f27",
+      "functions": [
+        {
+          "name": "_isDuplicate",
+          "params": [
+            "userId",
+            "type",
+            "title"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "logActivity",
+          "params": [
+            "type",
+            "title",
+            "metadata"
+          ],
+          "returnType": "Promise<string | null>",
+          "exported": true,
+          "lineCount": 67
+        },
+        {
+          "name": "getRecentActivity",
+          "params": [
+            "userId",
+            "limit",
+            "cursor"
+          ],
+          "returnType": "Promise<ActivityPage>",
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "mergeActivityEvents",
+          "params": [
+            "existing",
+            "incoming",
+            "limit"
+          ],
+          "returnType": "ActivityEvent[]",
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        }
+      ],
+      "exports": [
+        "ACTIVITY_META",
+        "logActivity",
+        "getRecentActivity",
+        "mergeActivityEvents"
+      ],
+      "totalLines": 250,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/aiAnalysis.ts": {
+      "filePath": "src/lib/aiAnalysis.ts",
+      "contentHash": "07865965e8eed9f4923d896091f8da3956355e5e5b9bd638eeef7ad04a6ca2a3",
+      "functions": [
+        {
+          "name": "startAnalysis",
+          "params": [
+            "request"
+          ],
+          "returnType": "Promise<StartAnalysisResult>",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "pollAnalysisStatus",
+          "params": [
+            "jobId"
+          ],
+          "returnType": "Promise<JobStatusResult>",
+          "exported": true,
+          "lineCount": 28
+        },
+        {
+          "name": "pollAnalysisStatusSafe",
+          "params": [
+            "jobId"
+          ],
+          "returnType": "Promise<SafeJobStatusResult>",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "startPitch",
+          "params": [
+            "request"
+          ],
+          "returnType": "Promise<StartPitchResult>",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "pollPitchStatus",
+          "params": [
+            "jobId"
+          ],
+          "returnType": "Promise<PitchJobStatusResult>",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getRecentAnalyses",
+          "params": [],
+          "returnType": "Promise<RecentAnalysis[]>",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "generateIdea",
+          "params": [
+            "timeoutMs"
+          ],
+          "returnType": "Promise<GeneratedIdea>",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "improveDescription",
+          "params": [
+            "description"
+          ],
+          "returnType": "Promise<string>",
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./api-client",
+          "specifiers": [
+            "apiClient",
+            "ChatResponse",
+            "IdeaResponse"
+          ]
+        },
+        {
+          "source": "./analysisValidator",
+          "specifiers": [
+            "SafeAnalysisResult",
+            "fromLegacyResult"
+          ]
+        }
+      ],
+      "exports": [
+        "SafeAnalysisResult",
+        "startAnalysis",
+        "pollAnalysisStatus",
+        "pollAnalysisStatusSafe",
+        "startPitch",
+        "pollPitchStatus",
+        "getRecentAnalyses",
+        "generateIdea",
+        "improveDescription"
+      ],
+      "totalLines": 237,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/analysisValidator.ts": {
+      "filePath": "src/lib/analysisValidator.ts",
+      "contentHash": "da6bb6fabace7acfd5775443bdd9f6e420d22ef147308bc068207c2e93ade5eb",
+      "functions": [
+        {
+          "name": "containsSuspiciousData",
+          "params": [
+            "text"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "resetRegexes",
+          "params": [],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "disclaimSuspiciousText",
+          "params": [
+            "text"
+          ],
+          "returnType": "{ text: string; flagged: boolean }",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "sanitiseStringArray",
+          "params": [
+            "items",
+            "fallback",
+            "fieldName",
+            "flags"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "normaliseMarketSize",
+          "params": [
+            "raw"
+          ],
+          "returnType": "'Small' | 'Medium' | 'Large'",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "labelToNumericConfidence",
+          "params": [
+            "label"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "clampConfidence",
+          "params": [
+            "raw"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "parseLegacyCompetitors",
+          "params": [
+            "text"
+          ],
+          "returnType": "Competitor[]",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "validateAndSanitise",
+          "params": [
+            "raw"
+          ],
+          "returnType": "SafeAnalysisResult",
+          "exported": true,
+          "lineCount": 159
+        },
+        {
+          "name": "fromLegacyResult",
+          "params": [
+            "legacy"
+          ],
+          "returnType": "SafeAnalysisResult",
+          "exported": true,
+          "lineCount": 50
+        },
+        {
+          "name": "guessMarketCategory",
+          "params": [
+            "text"
+          ],
+          "returnType": "'Small' | 'Medium' | 'Large'",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "insufficientResult",
+          "params": [
+            "reason"
+          ],
+          "returnType": "SafeAnalysisResult",
+          "exported": false,
+          "lineCount": 24
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "validateAndSanitise",
+        "fromLegacyResult"
+      ],
+      "totalLines": 475,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/api-client.ts": {
+      "filePath": "src/lib/api-client.ts",
+      "contentHash": "560d1410288c62278e6dc5bdf5e676fcc3951004687cb9e59a5e35f5a66a2ce4",
+      "functions": [],
+      "classes": [
+        {
+          "name": "ApiClient",
+          "methods": [
+            "getAuthToken",
+            "request",
+            "publicPost",
+            "post",
+            "postLong",
+            "get",
+            "put",
+            "patch",
+            "delete",
+            "streamPost"
+          ],
+          "properties": [],
+          "exported": false,
+          "lineCount": 331
+        }
+      ],
+      "imports": [
+        {
+          "source": "./supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        }
+      ],
+      "exports": [
+        "apiClient"
+      ],
+      "totalLines": 400,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/caseStudyService.ts": {
+      "filePath": "src/lib/caseStudyService.ts",
+      "contentHash": "c8816dbc8e59fef3b05bde69823b4372f7610a6d19ba65f664267a7fde876c89",
+      "functions": [
+        {
+          "name": "getCacheState",
+          "params": [],
+          "returnType": "CacheState",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "invalidateCaseStudyCache",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "subscribeToCaseStudies",
+          "params": [
+            "listener"
+          ],
+          "returnType": "() => void",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "notifyListeners",
+          "params": [
+            "data"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "validateRow",
+          "params": [
+            "row"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 39
+        },
+        {
+          "name": "mapDifficulty",
+          "params": [
+            "raw"
+          ],
+          "returnType": "CaseDifficulty",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "resolveCategory",
+          "params": [
+            "row"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "transformListRow",
+          "params": [
+            "row"
+          ],
+          "returnType": "CaseStudy",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "toErrorString",
+          "params": [
+            "context",
+            "err"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "fetchFromDB",
+          "params": [],
+          "returnType": "Promise<CaseStudy[]>",
+          "exported": false,
+          "lineCount": 53
+        },
+        {
+          "name": "fetchAndCache",
+          "params": [],
+          "returnType": "Promise<CaseStudy[]>",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "fetchCaseStudies",
+          "params": [
+            "limit"
+          ],
+          "returnType": "Promise<FetchCaseStudiesResult>",
+          "exported": true,
+          "lineCount": 38
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabase",
+          "specifiers": [
+            "supabase",
+            "getCaseStudyImageUrl"
+          ]
+        }
+      ],
+      "exports": [
+        "invalidateCaseStudyCache",
+        "subscribeToCaseStudies",
+        "mapDifficulty",
+        "fetchCaseStudies"
+      ],
+      "totalLines": 515,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/communityService.ts": {
+      "filePath": "src/lib/communityService.ts",
+      "contentHash": "5197f2dfe50c4e7d702845aebb8412c4da86b2180a974e41e0051ff0a0040816",
+      "functions": [
+        {
+          "name": "computeTrendingScore",
+          "params": [
+            "upvotes",
+            "comments",
+            "createdAt"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "fetchTrendingIdeas",
+          "params": [
+            "limit"
+          ],
+          "returnType": "Promise<{ data: TrendingIdea[]; error: string | null }>",
+          "exported": true,
+          "lineCount": 33
+        },
+        {
+          "name": "subscribeTrendingIdeas",
+          "params": [
+            "onChange"
+          ],
+          "returnType": "() => void",
+          "exported": true,
+          "lineCount": 14
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        }
+      ],
+      "exports": [
+        "fetchTrendingIdeas",
+        "subscribeTrendingIdeas"
+      ],
+      "totalLines": 86,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/demoData.ts": {
+      "filePath": "src/lib/demoData.ts",
+      "contentHash": "1a044dac6338e44c4608f5c8f414deff59ef83655a8250dcf25ccc4bd3ee96c7",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./ideasService",
+          "specifiers": [
+            "Idea"
+          ]
+        }
+      ],
+      "exports": [
+        "demoFounderStartups",
+        "demoAdminMetrics"
+      ],
+      "totalLines": 50,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/fundingService.ts": {
+      "filePath": "src/lib/fundingService.ts",
+      "contentHash": "48a25887589ab8b8ea34eb60d6888c675ad918f5f3e7918d7c5f77fac88fd3a2",
+      "functions": [
+        {
+          "name": "getQualification",
+          "params": [],
+          "returnType": "Promise<FundingQualificationResponse>",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "saveQualification",
+          "params": [
+            "data"
+          ],
+          "returnType": "Promise<FundingQualificationResponse>",
+          "exported": true,
+          "lineCount": 5
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./api-client",
+          "specifiers": [
+            "apiClient"
+          ]
+        }
+      ],
+      "exports": [
+        "getQualification",
+        "saveQualification"
+      ],
+      "totalLines": 46,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/ideasService.ts": {
+      "filePath": "src/lib/ideasService.ts",
+      "contentHash": "a4dac97052b6048d6b05de3fda694e3fef7ea70df15fa5e747e65a7ce8f292a1",
+      "functions": [
+        {
+          "name": "normalizeTitle",
+          "params": [
+            "title"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 2
+        },
+        {
+          "name": "getUserIdeas",
+          "params": [
+            "userId"
+          ],
+          "returnType": "Promise<Idea[]>",
+          "exported": true,
+          "lineCount": 54
+        },
+        {
+          "name": "getIdeaById",
+          "params": [
+            "id"
+          ],
+          "returnType": "Promise<Idea | null>",
+          "exported": true,
+          "lineCount": 35
+        },
+        {
+          "name": "updateIdeaStatus",
+          "params": [
+            "id",
+            "status"
+          ],
+          "returnType": "Promise<Idea | null>",
+          "exported": true,
+          "lineCount": 36
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "./api-client",
+          "specifiers": [
+            "apiClient"
+          ]
+        }
+      ],
+      "exports": [
+        "getUserIdeas",
+        "getIdeaById",
+        "updateIdeaStatus"
+      ],
+      "totalLines": 161,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/introRequestService.ts": {
+      "filePath": "src/lib/introRequestService.ts",
+      "contentHash": "a061e440ac8cb196f8b9c59a33829cf49e5e6a2815de7dbace503b64364adbc3",
+      "functions": [
+        {
+          "name": "mapRow",
+          "params": [
+            "row"
+          ],
+          "returnType": "IntroRequest",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "getAllIntroRequests",
+          "params": [],
+          "returnType": "Promise<IntroRequest[]>",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "getIntroRequestsByStartup",
+          "params": [
+            "startupId"
+          ],
+          "returnType": "Promise<IntroRequest[]>",
+          "exported": true,
+          "lineCount": 30
+        },
+        {
+          "name": "hasIntroRequest",
+          "params": [
+            "vcId",
+            "startupId"
+          ],
+          "returnType": "Promise<boolean>",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "hasFounderRequestedIntro",
+          "params": [
+            "startupId"
+          ],
+          "returnType": "Promise<boolean>",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "createIntroRequest",
+          "params": [
+            "vcId",
+            "startupId"
+          ],
+          "returnType": "Promise<IntroRequest | null>",
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "createFounderIntroRequest",
+          "params": [
+            "startupId"
+          ],
+          "returnType": "Promise<IntroRequest | null>",
+          "exported": true,
+          "lineCount": 41
+        },
+        {
+          "name": "updateIntroRequestStatus",
+          "params": [
+            "id",
+            "status"
+          ],
+          "returnType": "Promise<IntroRequest | null>",
+          "exported": true,
+          "lineCount": 27
+        },
+        {
+          "name": "getConnectedVCs",
+          "params": [
+            "startupId"
+          ],
+          "returnType": "Promise<ConnectedVC[]>",
+          "exported": true,
+          "lineCount": 41
+        },
+        {
+          "name": "getConnectedStartups",
+          "params": [
+            "vcId"
+          ],
+          "returnType": "Promise<ConnectedStartup[]>",
+          "exported": true,
+          "lineCount": 34
+        },
+        {
+          "name": "isConnected",
+          "params": [
+            "vcId",
+            "startupId"
+          ],
+          "returnType": "Promise<boolean>",
+          "exported": true,
+          "lineCount": 19
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "./roleVerification",
+          "specifiers": [
+            "verifyVCRole",
+            "verifyFounderRole",
+            "verifyAdminRole",
+            "getCurrentUserRole"
+          ]
+        },
+        {
+          "source": "./safeFetch",
+          "specifiers": [
+            "safeFetchList",
+            "safeFetchExists"
+          ]
+        }
+      ],
+      "exports": [
+        "getAllIntroRequests",
+        "getIntroRequestsByStartup",
+        "hasIntroRequest",
+        "hasFounderRequestedIntro",
+        "createIntroRequest",
+        "createFounderIntroRequest",
+        "updateIntroRequestStatus",
+        "getConnectedVCs",
+        "getConnectedStartups",
+        "isConnected"
+      ],
+      "totalLines": 367,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/metricsService.ts": {
+      "filePath": "src/lib/metricsService.ts",
+      "contentHash": "1ccef5ab06b92b7db1d1e6f7f90cb980f7ccd32e5daff844a0113358f90a0b5c",
+      "functions": [
+        {
+          "name": "getFounderMetrics",
+          "params": [
+            "founderId"
+          ],
+          "returnType": "Promise<FounderMetrics>",
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "getVCMetrics",
+          "params": [
+            "vcId"
+          ],
+          "returnType": "Promise<VCMetrics>",
+          "exported": true,
+          "lineCount": 52
+        },
+        {
+          "name": "getAdminMetrics",
+          "params": [],
+          "returnType": "Promise<AdminMetrics>",
+          "exported": true,
+          "lineCount": 76
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        }
+      ],
+      "exports": [
+        "getFounderMetrics",
+        "getVCMetrics",
+        "getAdminMetrics"
+      ],
+      "totalLines": 231,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/notificationService.ts": {
+      "filePath": "src/lib/notificationService.ts",
+      "contentHash": "c75636fa5b635571a02fe4389933ccbcf29823215145cc220daf4d33d771a0d3",
+      "functions": [
+        {
+          "name": "transformToNotification",
+          "params": [
+            "row"
+          ],
+          "returnType": "Notification",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "createNotification",
+          "params": [
+            "userId",
+            "type",
+            "title",
+            "message",
+            "relatedId"
+          ],
+          "returnType": "Promise<Notification | null>",
+          "exported": true,
+          "lineCount": 30
+        },
+        {
+          "name": "getUserNotifications",
+          "params": [
+            "userId",
+            "limit"
+          ],
+          "returnType": "Promise<Notification[]>",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "getUnreadCount",
+          "params": [
+            "userId"
+          ],
+          "returnType": "Promise<number>",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "markAllAsRead",
+          "params": [
+            "userId"
+          ],
+          "returnType": "Promise<boolean>",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "getAllNotifications",
+          "params": [
+            "limit"
+          ],
+          "returnType": "Promise<Notification[]>",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "notifyStartupSubmitted",
+          "params": [
+            "founderId",
+            "startupId",
+            "startupName"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "notifyStartupApproved",
+          "params": [
+            "founderId",
+            "startupId",
+            "startupName"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "notifyStartupRejected",
+          "params": [
+            "founderId",
+            "startupId",
+            "startupName"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "notifyVCIntroRequested",
+          "params": [
+            "founderId",
+            "vcName",
+            "startupId",
+            "startupName"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "notifyVCIntroApproved",
+          "params": [
+            "vcId",
+            "founderId",
+            "startupId",
+            "startupName"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "subscribeToNotifications",
+          "params": [
+            "userId",
+            "onNew"
+          ],
+          "exported": true,
+          "lineCount": 16
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "./safeFetch",
+          "specifiers": [
+            "safeFetchList",
+            "safeFetchCount"
+          ]
+        }
+      ],
+      "exports": [
+        "createNotification",
+        "getUserNotifications",
+        "getUnreadCount",
+        "markAllAsRead",
+        "getAllNotifications",
+        "notifyStartupSubmitted",
+        "notifyStartupApproved",
+        "notifyStartupRejected",
+        "notifyVCIntroRequested",
+        "notifyVCIntroApproved",
+        "subscribeToNotifications"
+      ],
+      "totalLines": 249,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/roleVerification.ts": {
+      "filePath": "src/lib/roleVerification.ts",
+      "contentHash": "a3a5fda6fe2fc3521072e7a913fd4b5e142e3c6a97c15c2c60111ead23dbd4fb",
+      "functions": [
+        {
+          "name": "getCurrentUserRole",
+          "params": [],
+          "returnType": "Promise<UserRole | null>",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "verifyAdminRole",
+          "params": [],
+          "returnType": "Promise<RoleVerificationResult>",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "verifyVCRole",
+          "params": [],
+          "returnType": "Promise<RoleVerificationResult>",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "verifyFounderRole",
+          "params": [],
+          "returnType": "Promise<RoleVerificationResult>",
+          "exported": true,
+          "lineCount": 23
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        }
+      ],
+      "exports": [
+        "getCurrentUserRole",
+        "verifyAdminRole",
+        "verifyVCRole",
+        "verifyFounderRole"
+      ],
+      "totalLines": 127,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/safeFetch.ts": {
+      "filePath": "src/lib/safeFetch.ts",
+      "contentHash": "4df5e04d3fef7834413bcb58f7337be0e6a54e0a15984b119210c6734353f8cc",
+      "functions": [
+        {
+          "name": "isRLSPermissionError",
+          "params": [
+            "error"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "isMissingTableError",
+          "params": [
+            "error"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "safeFetchList",
+          "params": [
+            "queryFn",
+            "options"
+          ],
+          "returnType": "Promise<T[]>",
+          "exported": true,
+          "lineCount": 50
+        },
+        {
+          "name": "safeFetchCount",
+          "params": [
+            "queryFn",
+            "options"
+          ],
+          "returnType": "Promise<number>",
+          "exported": true,
+          "lineCount": 50
+        },
+        {
+          "name": "safeFetchExists",
+          "params": [
+            "queryFn",
+            "options"
+          ],
+          "returnType": "Promise<boolean>",
+          "exported": true,
+          "lineCount": 50
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@supabase/supabase-js",
+          "specifiers": [
+            "PostgrestError"
+          ]
+        }
+      ],
+      "exports": [
+        "safeFetchList",
+        "safeFetchCount",
+        "safeFetchExists"
+      ],
+      "totalLines": 217,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/serverWarmup.ts": {
+      "filePath": "src/lib/serverWarmup.ts",
+      "contentHash": "c55ae86f2cfd7e4bca309917fa978151002e4c5c4bedd5c34bbcda13efa9102b",
+      "functions": [],
+      "classes": [
+        {
+          "name": "ServerWarmupService",
+          "methods": [
+            "getStatus",
+            "isWarm",
+            "subscribe",
+            "start",
+            "waitUntilWarm",
+            "notify",
+            "ping",
+            "runWarmup",
+            "startKeepAlive"
+          ],
+          "properties": [
+            "status",
+            "listeners",
+            "keepAliveHandle",
+            "started"
+          ],
+          "exported": false,
+          "lineCount": 123
+        }
+      ],
+      "imports": [],
+      "exports": [
+        "serverWarmup"
+      ],
+      "totalLines": 154,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/startupService.ts": {
+      "filePath": "src/lib/startupService.ts",
+      "contentHash": "c3b3f45e4d5b197ca6be197f491717849f91c554591cc4ccdf7502f12ab5a19b",
+      "functions": [
+        {
+          "name": "getAllStartups",
+          "params": [],
+          "returnType": "Promise<Startup[]>",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "createStartup",
+          "params": [
+            "startup"
+          ],
+          "returnType": "Promise<Startup | null>",
+          "exported": true,
+          "lineCount": 49
+        },
+        {
+          "name": "updateStartupStatus",
+          "params": [
+            "id",
+            "status",
+            "options"
+          ],
+          "returnType": "Promise<Startup | null>",
+          "exported": true,
+          "lineCount": 50
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabase",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "./roleVerification",
+          "specifiers": [
+            "verifyAdminRole",
+            "verifyFounderRole"
+          ]
+        }
+      ],
+      "exports": [
+        "getAllStartups",
+        "createStartup",
+        "updateStartupStatus"
+      ],
+      "totalLines": 159,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/supabase.ts": {
+      "filePath": "src/lib/supabase.ts",
+      "contentHash": "9b21304edcec7d4666ca51ec7eb26e9eedc5a9d0c31fece4f2257aac63513c92",
+      "functions": [
+        {
+          "name": "setRememberMe",
+          "params": [
+            "value"
+          ],
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "getRememberMe",
+          "params": [],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getCaseStudyImageUrl",
+          "params": [
+            "image"
+          ],
+          "returnType": "string | null",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "uploadPitchPdf",
+          "params": [
+            "file",
+            "userId"
+          ],
+          "returnType": "Promise<string>",
+          "exported": true,
+          "lineCount": 22
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@supabase/supabase-js",
+          "specifiers": [
+            "createClient"
+          ]
+        }
+      ],
+      "exports": [
+        "setRememberMe",
+        "getRememberMe",
+        "supabase",
+        "supabaseConfigured",
+        "getCaseStudyImageUrl",
+        "uploadPitchPdf"
+      ],
+      "totalLines": 157,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/vcApplicationService.ts": {
+      "filePath": "src/lib/vcApplicationService.ts",
+      "contentHash": "4777b727c6ac6364657c810b4f145e5a69fd6e2f25cd7f8f06c0f3b02cd214e5",
+      "functions": [
+        {
+          "name": "canTransitionTo",
+          "params": [
+            "current",
+            "next"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "getMyApplications",
+          "params": [
+            "params"
+          ],
+          "returnType": "Promise<PagedResponse<VcApplicationResponse>>",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "getAllApplications",
+          "params": [
+            "params"
+          ],
+          "returnType": "Promise<PagedResponse<VcApplicationResponse>>",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "submitApplication",
+          "params": [
+            "req"
+          ],
+          "returnType": "Promise<VcApplicationResponse>",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "updateApplicationStatus",
+          "params": [
+            "id",
+            "req"
+          ],
+          "returnType": "Promise<VcApplicationResponse>",
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./api-client",
+          "specifiers": [
+            "apiClient"
+          ]
+        }
+      ],
+      "exports": [
+        "STATUS_LABELS",
+        "STATUS_COLORS",
+        "STATUS_TIMELINE",
+        "VALID_TRANSITIONS",
+        "canTransitionTo",
+        "getMyApplications",
+        "getAllApplications",
+        "submitApplication",
+        "updateApplicationStatus"
+      ],
+      "totalLines": 158,
+      "hasStructuralAnalysis": true
+    },
+    "src/main.tsx": {
+      "filePath": "src/main.tsx",
+      "contentHash": "3813533aa2745e78d5d7dfeadb864cb7fd17a71d3dce2d28731c18c5648bb65e",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-dom/client",
+          "specifiers": [
+            "createRoot"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "BrowserRouter"
+          ]
+        },
+        {
+          "source": "@react-oauth/google",
+          "specifiers": [
+            "GoogleOAuthProvider"
+          ]
+        },
+        {
+          "source": "./App.tsx",
+          "specifiers": [
+            "App"
+          ]
+        },
+        {
+          "source": "./index.css",
+          "specifiers": []
+        }
+      ],
+      "exports": [],
+      "totalLines": 23,
+      "hasStructuralAnalysis": true
+    },
+    "src/types/roles.ts": {
+      "filePath": "src/types/roles.ts",
+      "contentHash": "3dd0313fe2da491e27ead8f3a613647d448c635424576c1d7aa4d9a25caec6df",
+      "functions": [
+        {
+          "name": "hasAccess",
+          "params": [
+            "userRole",
+            "allowedRoles"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "getRoleDefaultRoute",
+          "params": [
+            "role"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 23
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "hasAccess",
+        "getRoleDefaultRoute"
+      ],
+      "totalLines": 58,
+      "hasStructuralAnalysis": true
+    },
+    "supabase-idea-analyses-migration.sql": {
+      "filePath": "supabase-idea-analyses-migration.sql",
+      "contentHash": "4ff34548cff58ee9a49923510d5f9e16ebb9214abc4dc829029e5676df02d21c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 104,
+      "hasStructuralAnalysis": false
+    },
+    "supabase-rls-policies.sql": {
+      "filePath": "supabase-rls-policies.sql",
+      "contentHash": "76fe8e7cdf518ecaeb065986de268be5e931a7b439fd2ee9d8145995747423b3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 372,
+      "hasStructuralAnalysis": false
+    },
+    "tsconfig.json": {
+      "filePath": "tsconfig.json",
+      "contentHash": "31171fb6e54678afa0150fa5d3e387f037a8ef0cfac51d10ae3606ddebd58ce9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 36,
+      "hasStructuralAnalysis": false
+    },
+    "tsconfig.node.json": {
+      "filePath": "tsconfig.node.json",
+      "contentHash": "e2926034a7ed41a1431e4b8e60e58371af014a8856a3fcc583d3efa85440b996",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 12,
+      "hasStructuralAnalysis": false
+    },
+    "vercel.json": {
+      "filePath": "vercel.json",
+      "contentHash": "4c528e60c757feb5bea2b59a481b6e6be431aa7ed3da5d6d93c21cb5d633e9fd",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 13,
+      "hasStructuralAnalysis": false
+    },
+    "vite.config.ts": {
+      "filePath": "vite.config.ts",
+      "contentHash": "072d0cdd3cc6aa49b8cf8d2a804bf7b34ad1d2d1a8593f6d19fe74c08c9bd7c1",
+      "functions": [
+        {
+          "name": "spaFallbackPlugin",
+          "params": [],
+          "returnType": "PluginOption",
+          "exported": false,
+          "lineCount": 23
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "vite",
+          "specifiers": [
+            "defineConfig",
+            "PluginOption"
+          ]
+        },
+        {
+          "source": "@vitejs/plugin-react-swc",
+          "specifiers": [
+            "react"
+          ]
+        },
+        {
+          "source": "path",
+          "specifiers": [
+            "path"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 65,
+      "hasStructuralAnalysis": true
+    }
+  }
+}

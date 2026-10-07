@@ -43,7 +43,12 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { startAnalysis, pollAnalysisStatusSafe, generateIdea, improveDescription } from '../../lib/aiAnalysis';
+import {
+  startAnalysis,
+  pollAnalysisStatusSafe,
+  generateIdea,
+  improveDescription,
+} from '../../lib/aiAnalysis';
 import { serverWarmup, type WarmupStatus } from '../../lib/serverWarmup';
 import type { SafeAnalysisResult, GeneratedIdea } from '../../lib/aiAnalysis';
 import { fromLegacyResult } from '../../lib/analysisValidator';
@@ -63,7 +68,9 @@ function CompetitorCard({ competitor }: { competitor: Competitor }) {
         <div className="flex items-start gap-2">
           <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500" />
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-600">Threat</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-600">
+              Threat
+            </span>
             <p className="text-xs leading-relaxed text-muted-foreground">{competitor.threat}</p>
           </div>
         </div>
@@ -72,8 +79,12 @@ function CompetitorCard({ competitor }: { competitor: Competitor }) {
         <div className="flex items-start gap-2">
           <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-500" />
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-green-600">Opportunity</span>
-            <p className="text-xs leading-relaxed text-muted-foreground">{competitor.opportunity}</p>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-green-600">
+              Opportunity
+            </span>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {competitor.opportunity}
+            </p>
           </div>
         </div>
       )}
@@ -100,7 +111,7 @@ function truncateText(text: string, limit: number): string {
 export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const { user, profile, displayName } = useUser();
   const navigate = useNavigate();
-  
+
   // Storage key is user-specific — prevents one user seeing another user's data
   const FORM_STORAGE_KEY = `motif-idea-analyser-form-${user?.id ?? 'anon'}`;
   // localStorage key for active job — survives navigation and tab switches (unlike sessionStorage)
@@ -113,7 +124,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       sessionStorage.removeItem('motif-idea-analyser-form');
     }
   }, []);
-  
+
   // Load saved form data from sessionStorage (only persists within same tab)
   const getSavedFormData = () => {
     if (typeof window === 'undefined') return null;
@@ -124,22 +135,23 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       return null;
     }
   };
-  
+
   const savedData = getSavedFormData();
-  
+
   const [ideaTitle, setIdeaTitle] = useState(savedData?.ideaTitle || '');
   const [ideaDescription, setIdeaDescription] = useState(savedData?.ideaDescription || '');
-  const [selectedMarkets, setSelectedMarkets] = useState<string[]>(savedData?.selectedMarkets || []);
+  const [selectedMarkets, setSelectedMarkets] = useState<string[]>(
+    savedData?.selectedMarkets || []
+  );
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<SafeAnalysisResult | null>(() => {
     // Hydrate from sessionStorage — handle both new and legacy format
     const saved = savedData?.analysisResult;
     if (!saved) return null;
     if (saved.idea_summary) return saved as SafeAnalysisResult; // already new format
-    if (saved.score !== undefined) return fromLegacyResult(saved);   // legacy → new
+    if (saved.score !== undefined) return fromLegacyResult(saved); // legacy → new
     return null;
   });
-  const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [showDemoReportModal, setShowDemoReportModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -246,7 +258,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         analysisTimerRef.current = null;
       }
     };
-  }, [isAnalyzing]);  
+  }, [isAnalyzing]);
 
   // Cancel any in-flight poll when the component unmounts
   useEffect(() => {
@@ -298,7 +310,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
     // Restore form fields if empty (e.g. user opened a new tab while analysis was running)
     if (activeJob.ideaTitle && !ideaTitle) setIdeaTitle(activeJob.ideaTitle);
-    if (activeJob.ideaDescription && !ideaDescription) setIdeaDescription(activeJob.ideaDescription);
+    if (activeJob.ideaDescription && !ideaDescription)
+      setIdeaDescription(activeJob.ideaDescription);
 
     currentJobIdRef.current = resumedJobId;
     autoRetryCountRef.current = 0;
@@ -316,14 +329,16 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
           localStorage.removeItem(localJobKey);
           setIsAnalyzing(false);
           toast.success('Analysis complete!');
-          void logActivity('idea_analyzed', ideaTitle || 'Untitled idea',
-            status.analysisId ? { analysisId: status.analysisId } : undefined);
+          void logActivity(
+            'idea_analyzed',
+            ideaTitle || 'Untitled idea',
+            status.analysisId ? { analysisId: status.analysisId } : undefined
+          );
           if (status.analysisId) {
             navigate(`/idea/${status.analysisId}`);
             return;
           }
           setAnalysisResult(status.safeResult);
-
         } else if (status.status === 'FAILED') {
           clearInterval(pollIntervalRef.current!);
           pollIntervalRef.current = null;
@@ -331,7 +346,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
           localStorage.removeItem(localJobKey);
           setIsAnalyzing(false);
           toast.error(status.errorMessage || 'Analysis failed. Please try again.');
-
         } else {
           // PENDING / PROCESSING — enforce 5-minute wall-clock cap (immune to tab throttling)
           if (Date.now() - analysisStartRef.current > 5 * 60 * 1000) {
@@ -362,13 +376,15 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     pollFnRef.current = resumePoll;
     resumePoll();
     pollIntervalRef.current = setInterval(resumePoll, 2500);
-  }, [user?.id]);  
+  }, [user?.id]);
 
   // Scroll the loading card into view once it mounts
   useEffect(() => {
     if (!isAnalyzing) return;
     const timer = setTimeout(() => {
-      document.getElementById('analysis-loading-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document
+        .getElementById('analysis-loading-card')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 400);
     return () => clearTimeout(timer);
   }, [isAnalyzing]);
@@ -388,15 +404,34 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   ];
 
   const ANALYSIS_STAGES = [
-    { label: 'Reading your idea', detail: 'Parsing title, description and market context', Icon: FileText },
-    { label: 'Evaluating market opportunity', detail: 'Sizing TAM / SAM and growth trajectory', Icon: TrendingUp },
-    { label: 'Scanning competition', detail: 'Mapping the competitive landscape and positioning gaps', Icon: Users },
-    { label: 'Scoring execution & risk', detail: 'Weighing feasibility against known risk factors', Icon: Zap },
-    { label: 'Generating VC-grade insights', detail: 'Compiling strengths, weaknesses and recommendations', Icon: Sparkles },
+    {
+      label: 'Reading your idea',
+      detail: 'Parsing title, description and market context',
+      Icon: FileText,
+    },
+    {
+      label: 'Evaluating market opportunity',
+      detail: 'Sizing TAM / SAM and growth trajectory',
+      Icon: TrendingUp,
+    },
+    {
+      label: 'Scanning competition',
+      detail: 'Mapping the competitive landscape and positioning gaps',
+      Icon: Users,
+    },
+    {
+      label: 'Scoring execution & risk',
+      detail: 'Weighing feasibility against known risk factors',
+      Icon: Zap,
+    },
+    {
+      label: 'Generating VC-grade insights',
+      detail: 'Compiling strengths, weaknesses and recommendations',
+      Icon: Sparkles,
+    },
   ] as const;
 
-  const normalizeIdeaValue = (value: string) =>
-    value.trim().replace(/\s+/g, ' ').toLowerCase();
+  const normalizeIdeaValue = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
 
   const buildTagsFromTargetMarket = (markets: string[]) => {
     return markets.length > 0 ? markets.slice(0, 3) : ['General'];
@@ -406,17 +441,21 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     setSelectedMarkets(prev =>
       prev.includes(market)
         ? prev.filter(m => m !== market)
-        : prev.length < 3 ? [...prev, market] : prev
+        : prev.length < 3
+          ? [...prev, market]
+          : prev
     );
   };
 
   // Sanitize extracted text to remove characters that cause PostgreSQL errors
   const sanitizeExtractedText = (text: string): string => {
-    return text
-      .replace(/\0/g, '') // Remove null bytes — PostgreSQL rejects these in TEXT columns
-      // eslint-disable-next-line no-control-regex
-      .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars (keep \t \n \r)
-      .trim();
+    return (
+      text
+        .replace(/\0/g, '') // Remove null bytes — PostgreSQL rejects these in TEXT columns
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars (keep \t \n \r)
+        .trim()
+    );
   };
 
   // File upload handlers
@@ -424,16 +463,14 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await getDocument({ data: arrayBuffer }).promise;
     let fullText = '';
-    
+
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
+      const pageText = textContent.items.map((item: any) => item.str).join(' ');
       fullText += pageText + '\n';
     }
-    
+
     return fullText.trim();
   };
 
@@ -456,7 +493,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
     try {
       let extractedText = '';
-      
+
       if (file.type === 'application/pdf') {
         extractedText = await extractTextFromPDF(file);
       } else {
@@ -464,7 +501,9 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       }
 
       if (!extractedText || extractedText.length < 50) {
-        toast.error('Could not extract enough text from the file. Please try a different file or enter details manually.');
+        toast.error(
+          'Could not extract enough text from the file. Please try a different file or enter details manually.'
+        );
         setUploadedFile(null);
         return;
       }
@@ -473,17 +512,15 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       const sanitized = sanitizeExtractedText(extractedText);
 
       // Truncate if too long (backend accepts up to 10000 chars)
-      const truncatedText = sanitized.length > 10000
-        ? sanitized.substring(0, 10000)
-        : sanitized;
+      const truncatedText = sanitized.length > 10000 ? sanitized.substring(0, 10000) : sanitized;
 
       // Try to extract a title from the first line or use filename
       const lines = sanitized.split('\n').filter(l => l.trim());
       const potentialTitle = lines[0]?.substring(0, 100) || file.name.replace(/\.[^/.]+$/, '');
-      
+
       setIdeaTitle(potentialTitle.length > 5 ? potentialTitle : file.name.replace(/\.[^/.]+$/, ''));
       setIdeaDescription(truncatedText);
-      
+
       toast.success('Document content extracted! Review and click "Analyze" to get insights.');
     } catch (error) {
       console.error('Error extracting text:', error);
@@ -497,7 +534,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files[0];
     if (file) {
       handleFileSelect(file);
@@ -552,7 +589,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const isFormValid = isTitleValid && isDescriptionValid;
 
   const handleAnalyze = async (forceReanalyze: boolean = false) => {
-
     if (!isFormValid) {
       toast.error('Please fill in all required fields with minimum lengths');
       return;
@@ -576,7 +612,9 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
     // If server is still waking up, wait for it automatically instead of failing
     if (serverStatus === 'warming' || serverStatus === 'unknown') {
-      toast.info('Server is starting up — your analysis will begin automatically once ready (≈30s).');
+      toast.info(
+        'Server is starting up — your analysis will begin automatically once ready (≈30s).'
+      );
       try {
         await serverWarmup.waitUntilWarm(90_000);
       } catch {
@@ -595,16 +633,19 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
         // ── Supabase cache check — read only, no writes ───────────────────────
         const { data: existingAnalyses, error: existingError } = await supabase
           .from('idea_analyses')
-          .select('id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability, idea_summary, confidence_score, competitive_advantage, heuristic_scores, investor_analysis')
+          .select(
+            'id, idea_title, idea_description, target_market, score, strengths, weaknesses, recommendations, market_size, competition, viability, idea_summary, confidence_score, competitive_advantage, heuristic_scores, investor_analysis'
+          )
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
           .limit(50);
 
         if (!existingError && existingAnalyses && existingAnalyses.length > 0) {
-          const match = existingAnalyses.find(a =>
-            normalizeIdeaValue(a.idea_title) === normalizedTitle &&
-            normalizeIdeaValue(a.idea_description) === normalizedDescription &&
-            normalizeIdeaValue(a.target_market || '') === normalizedMarket
+          const match = existingAnalyses.find(
+            a =>
+              normalizeIdeaValue(a.idea_title) === normalizedTitle &&
+              normalizeIdeaValue(a.idea_description) === normalizedDescription &&
+              normalizeIdeaValue(a.target_market || '') === normalizedMarket
           );
           if (match) {
             // Parse structured JSON fields before converting to SafeAnalysisResult
@@ -614,13 +655,18 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               if (match.competition) {
                 const comp = JSON.parse(match.competition);
                 if (Array.isArray(comp.competitors)) cachedCompetitors = comp.competitors;
-                if (typeof comp.competitiveAdvantage === 'string') cachedCompetitiveAdvantage = comp.competitiveAdvantage;
+                if (typeof comp.competitiveAdvantage === 'string')
+                  cachedCompetitiveAdvantage = comp.competitiveAdvantage;
               }
-            } catch { /* legacy string */ }
+            } catch {
+              /* legacy string */
+            }
             let cachedMarket: Record<string, any> | undefined;
             try {
               if (match.market_size) cachedMarket = JSON.parse(match.market_size);
-            } catch { /* legacy string */ }
+            } catch {
+              /* legacy string */
+            }
 
             const legacyCached = {
               score: match.score ?? 0,
@@ -639,7 +685,6 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               heuristicScores: match.heuristic_scores || undefined,
               investorAnalysis: match.investor_analysis || undefined,
             };
-            setAnalysisId(match.id);
             setAnalysisResult(fromLegacyResult(legacyCached as any));
             setIsAnalyzing(false);
             toast.success('Loaded your saved analysis from the vault.');
@@ -657,11 +702,14 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       });
       currentJobIdRef.current = jobId;
       // Persist so polling can resume if user navigates away and comes back
-      localStorage.setItem(ACTIVE_JOB_KEY, JSON.stringify({
-        jobId,
-        ideaTitle,
-        ideaDescription,
-      }));
+      localStorage.setItem(
+        ACTIVE_JOB_KEY,
+        JSON.stringify({
+          jobId,
+          ideaTitle,
+          ideaDescription,
+        })
+      );
 
       // ── Poll every 2.5 s — survives tab switches ──────────────────────────
       const doPoll = async () => {
@@ -720,8 +768,11 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               }
             }
 
-            void logActivity('idea_analyzed', ideaTitle || 'Untitled idea',
-              resolvedAnalysisId ? { analysisId: resolvedAnalysisId } : undefined);
+            void logActivity(
+              'idea_analyzed',
+              ideaTitle || 'Untitled idea',
+              resolvedAnalysisId ? { analysisId: resolvedAnalysisId } : undefined
+            );
 
             if (resolvedAnalysisId) {
               navigate(`/idea/${resolvedAnalysisId}`);
@@ -729,14 +780,15 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
             }
             // Inline fallback — should rarely happen now
             setAnalysisResult(status.safeResult);
-
           } else if (status.status === 'FAILED') {
             clearInterval(pollIntervalRef.current!);
             pollIntervalRef.current = null;
 
             const msg = status.errorMessage || '';
-            const isRateLimit = msg.includes('Rate limit') || msg.includes('rate_limit') || msg.includes('429');
-            const isAuth = msg.includes('authentication') || msg.includes('401') || msg.includes('API key');
+            const isRateLimit =
+              msg.includes('Rate limit') || msg.includes('rate_limit') || msg.includes('429');
+            const isAuth =
+              msg.includes('authentication') || msg.includes('401') || msg.includes('API key');
 
             // Auto-retry once for transient failures (not rate-limit or auth errors)
             if (!isRateLimit && !isAuth && autoRetryCountRef.current < 1) {
@@ -751,7 +803,10 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
                 });
                 currentJobIdRef.current = retry.jobId;
                 // Update localStorage with the new jobId for the retry
-                localStorage.setItem(ACTIVE_JOB_KEY, JSON.stringify({ jobId: retry.jobId, ideaTitle, ideaDescription }));
+                localStorage.setItem(
+                  ACTIVE_JOB_KEY,
+                  JSON.stringify({ jobId: retry.jobId, ideaTitle, ideaDescription })
+                );
                 doPoll();
                 pollIntervalRef.current = setInterval(doPoll, 2500);
               } catch {
@@ -767,10 +822,20 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
             setIsAnalyzing(false);
             if (isRateLimit) {
               toast.error('Rate limit exceeded. Please try again in a few moments.');
-            } else if (msg.toLowerCase().includes('parse') || msg.toLowerCase().includes('format')) {
-              toast.error('AI returned an unexpected response. Please try again — this is usually a one-time glitch.');
-            } else if (msg.toLowerCase().includes('too long') || msg.toLowerCase().includes('timed out')) {
-              toast.error('Analysis is taking longer than usual. Please try again — the AI is under load.');
+            } else if (
+              msg.toLowerCase().includes('parse') ||
+              msg.toLowerCase().includes('format')
+            ) {
+              toast.error(
+                'AI returned an unexpected response. Please try again — this is usually a one-time glitch.'
+              );
+            } else if (
+              msg.toLowerCase().includes('too long') ||
+              msg.toLowerCase().includes('timed out')
+            ) {
+              toast.error(
+                'Analysis is taking longer than usual. Please try again — the AI is under load.'
+              );
             } else {
               toast.error(msg || 'Analysis failed. Please try again.');
             }
@@ -782,7 +847,9 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
               pollFnRef.current = null;
               localStorage.removeItem(ACTIVE_JOB_KEY);
               setIsAnalyzing(false);
-              toast.error('Analysis is taking too long. Please try again — the AI may be under heavy load.');
+              toast.error(
+                'Analysis is taking too long. Please try again — the AI may be under heavy load.'
+              );
               return;
             }
           }
@@ -797,11 +864,11 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
       pollFnRef.current = doPoll;
       doPoll();
       pollIntervalRef.current = setInterval(doPoll, 2500);
-
     } catch (error) {
       // Error starting the job itself (auth, validation, network)
       setIsAnalyzing(false);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to start analysis. Please try again.';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to start analysis. Please try again.';
       if (errorMessage.includes('Rate limit') || errorMessage.includes('rate_limit')) {
         toast.error('Rate limit exceeded. Please try again in a few moments.');
       } else if (errorMessage.includes('API key')) {
@@ -846,7 +913,8 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
     const applyIdea = (generatedIdea: GeneratedIdea) => {
       setIdeaTitle(generatedIdea.title);
       setIdeaDescription(generatedIdea.description);
-      const generatedMarkets = generatedIdea.targetMarket?.split(/[,&]/).map((m: string) => m.trim()) || [];
+      const generatedMarkets =
+        generatedIdea.targetMarket?.split(/[,&]/).map((m: string) => m.trim()) || [];
       const matchedMarkets = MARKET_OPTIONS.filter(opt =>
         generatedMarkets.some((gm: string) => gm.toLowerCase().includes(opt.toLowerCase()))
       ).slice(0, 3);
@@ -885,53 +953,68 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
 
   // Download analysis report as PDF/Text
   const handleDownloadReport = (isDemoReport: boolean = false) => {
-    const reportData = isDemoReport ? {
-      title: 'AI-Powered Personal Finance Assistant',
-      idea_summary: 'An AI-powered mobile app targeting millennials and Gen Z users who want to improve their financial literacy and achieve savings goals.',
-      market_size_category: 'Large' as const,
-      market_reasoning: 'The personal finance and budgeting app market is well-established with proven consumer demand.',
-      growth_potential: 'Strong tailwinds from increased financial awareness among younger demographics and smartphone penetration.',
-      tam: '~$15B',
-      sam: '~$3B',
-      som: '~$150M',
-      competitors: [
-        { name: 'Mint', threat: 'Brand recognition and Intuit ecosystem lock-in', opportunity: 'Mint lacks AI-driven behavioural nudges' },
-        { name: 'YNAB', threat: 'Loyal subscriber base with zero-based budgeting methodology', opportunity: 'YNAB requires manual entry — no automation' },
-      ],
-      competitive_advantage: 'AI personalization and behavioral finance insights differentiate from rule-based incumbents.',
-      strengths: [
-        'Strong market demand with proven business model',
-        'AI personalization differentiates from existing solutions',
-        'Mobile-first approach aligns with user behavior trends'
-      ],
-      risks: [
-        'Competitive market with established players',
-        'User acquisition costs may be high in fintech space',
-        'Requires bank API integrations which can be complex'
-      ],
-      overall_assessment: 'High viability based on validated market demand, proven business models in the space, and a clear differentiator through AI personalization.',
-      recommendations: [
-        'Focus on one specific user persona initially (e.g., freelancers with irregular income)',
-        'Partner with banks for secure API access to simplify onboarding'
-      ],
-      confidence_score: 72,
-    } : {
-      title: ideaTitle,
-      idea_summary: analysisResult?.idea_summary || '',
-      market_size_category: analysisResult?.market_analysis.market_size_category || 'Medium',
-      market_reasoning: analysisResult?.market_analysis.market_reasoning || '',
-      growth_potential: analysisResult?.market_analysis.growth_potential || '',
-      tam: analysisResult?.market_analysis.tam || '',
-      sam: analysisResult?.market_analysis.sam || '',
-      som: analysisResult?.market_analysis.som || '',
-      competitors: analysisResult?.competition_analysis.competitors || [],
-      competitive_advantage: analysisResult?.competition_analysis.competitive_advantage || '',
-      strengths: analysisResult?.viability_analysis.strengths || [],
-      risks: analysisResult?.viability_analysis.risks || [],
-      overall_assessment: analysisResult?.viability_analysis.overall_assessment || '',
-      recommendations: analysisResult?.recommendations || [],
-      confidence_score: analysisResult?.confidence_score ?? 50,
-    };
+    const reportData = isDemoReport
+      ? {
+          title: 'AI-Powered Personal Finance Assistant',
+          idea_summary:
+            'An AI-powered mobile app targeting millennials and Gen Z users who want to improve their financial literacy and achieve savings goals.',
+          market_size_category: 'Large' as const,
+          market_reasoning:
+            'The personal finance and budgeting app market is well-established with proven consumer demand.',
+          growth_potential:
+            'Strong tailwinds from increased financial awareness among younger demographics and smartphone penetration.',
+          tam: '~$15B',
+          sam: '~$3B',
+          som: '~$150M',
+          competitors: [
+            {
+              name: 'Mint',
+              threat: 'Brand recognition and Intuit ecosystem lock-in',
+              opportunity: 'Mint lacks AI-driven behavioural nudges',
+            },
+            {
+              name: 'YNAB',
+              threat: 'Loyal subscriber base with zero-based budgeting methodology',
+              opportunity: 'YNAB requires manual entry — no automation',
+            },
+          ],
+          competitive_advantage:
+            'AI personalization and behavioral finance insights differentiate from rule-based incumbents.',
+          strengths: [
+            'Strong market demand with proven business model',
+            'AI personalization differentiates from existing solutions',
+            'Mobile-first approach aligns with user behavior trends',
+          ],
+          risks: [
+            'Competitive market with established players',
+            'User acquisition costs may be high in fintech space',
+            'Requires bank API integrations which can be complex',
+          ],
+          overall_assessment:
+            'High viability based on validated market demand, proven business models in the space, and a clear differentiator through AI personalization.',
+          recommendations: [
+            'Focus on one specific user persona initially (e.g., freelancers with irregular income)',
+            'Partner with banks for secure API access to simplify onboarding',
+          ],
+          confidence_score: 72,
+        }
+      : {
+          title: ideaTitle,
+          idea_summary: analysisResult?.idea_summary || '',
+          market_size_category: analysisResult?.market_analysis.market_size_category || 'Medium',
+          market_reasoning: analysisResult?.market_analysis.market_reasoning || '',
+          growth_potential: analysisResult?.market_analysis.growth_potential || '',
+          tam: analysisResult?.market_analysis.tam || '',
+          sam: analysisResult?.market_analysis.sam || '',
+          som: analysisResult?.market_analysis.som || '',
+          competitors: analysisResult?.competition_analysis.competitors || [],
+          competitive_advantage: analysisResult?.competition_analysis.competitive_advantage || '',
+          strengths: analysisResult?.viability_analysis.strengths || [],
+          risks: analysisResult?.viability_analysis.risks || [],
+          overall_assessment: analysisResult?.viability_analysis.overall_assessment || '',
+          recommendations: analysisResult?.recommendations || [],
+          confidence_score: analysisResult?.confidence_score ?? 50,
+        };
 
     // Create text content for download
     const reportContent = `
@@ -958,9 +1041,16 @@ ${reportData.growth_potential}
 ========================================
 COMPETITION ANALYSIS
 ========================================
-${((reportData as any).competitors || []).length > 0
-  ? ((reportData as any).competitors as any[]).map((c) => `${c.name}:\n  Threat: ${c.threat || 'N/A'}\n  Opportunity: ${c.opportunity || 'N/A'}`).join('\n\n')
-  : 'No competitors identified.'}
+${
+  ((reportData as any).competitors || []).length > 0
+    ? ((reportData as any).competitors as any[])
+        .map(
+          c =>
+            `${c.name}:\n  Threat: ${c.threat || 'N/A'}\n  Opportunity: ${c.opportunity || 'N/A'}`
+        )
+        .join('\n\n')
+    : 'No competitors identified.'
+}
 
 Competitive Advantage:
 ${reportData.competitive_advantage}
@@ -1064,7 +1154,6 @@ Powered by Motif - Your AI-Powered Startup Companion
       });
 
       if (error) throw error;
-      console.log('[Share] Posted to community — analysisId:', analysisId);
       toast.success('Idea shared to the community!');
     } catch (err: any) {
       console.error('[Share] Failed to post to community:', err);
@@ -1077,8 +1166,6 @@ Powered by Motif - Your AI-Powered Startup Companion
       setIsSharing(false);
     }
   };
-
-
 
   return (
     <div className="bg-background min-h-screen">
@@ -1093,7 +1180,9 @@ Powered by Motif - Your AI-Powered Startup Companion
             <div className="gradient-lavender mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl">
               <Lightbulb className="h-5 w-5 text-white" />
             </div>
-            <h1 className="text-gradient-lavender mb-2 text-2xl md:text-3xl font-bold">AI Idea Analyser</h1>
+            <h1 className="text-gradient-lavender mb-2 text-2xl md:text-3xl font-bold">
+              AI Idea Analyser
+            </h1>
             <p className="text-muted-foreground mx-auto max-w-xl text-sm md:text-base">
               Get instant AI-powered feedback on your startup idea. Analyze market potential,
               competition, and viability in seconds.
@@ -1153,7 +1242,9 @@ Powered by Motif - Your AI-Powered Startup Companion
                         </div>
                         <div>
                           <h4 className="font-medium text-sm">Stuck for ideas?</h4>
-                          <p className="text-xs text-muted-foreground">Let AI spark your imagination</p>
+                          <p className="text-xs text-muted-foreground">
+                            Let AI spark your imagination
+                          </p>
                         </div>
                       </div>
                       <Button
@@ -1192,11 +1283,12 @@ Powered by Motif - Your AI-Powered Startup Companion
                       className={`
                         relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
                         transition-all duration-200
-                        ${isDragging 
-                          ? 'border-primary bg-primary/5' 
-                          : uploadedFile 
-                            ? 'border-green-500/50 bg-green-500/5' 
-                            : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                        ${
+                          isDragging
+                            ? 'border-primary bg-primary/5'
+                            : uploadedFile
+                              ? 'border-green-500/50 bg-green-500/5'
+                              : 'border-border hover:border-primary/50 hover:bg-muted/30'
                         }
                         ${isExtracting ? 'pointer-events-none opacity-70' : ''}
                       `}
@@ -1208,7 +1300,7 @@ Powered by Motif - Your AI-Powered Startup Companion
                         onChange={handleFileInputChange}
                         className="hidden"
                       />
-                      
+
                       {isExtracting ? (
                         <div className="flex flex-col items-center gap-2">
                           <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -1230,7 +1322,7 @@ Powered by Motif - Your AI-Powered Startup Companion
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => {
+                            onClick={e => {
                               e.stopPropagation();
                               removeUploadedFile();
                             }}
@@ -1245,7 +1337,9 @@ Powered by Motif - Your AI-Powered Startup Companion
                             <Upload className="h-5 w-5 text-muted-foreground" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium">Drop your file here or click to browse</p>
+                            <p className="text-sm font-medium">
+                              Drop your file here or click to browse
+                            </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Supports PDF and TXT files (max 10MB)
                             </p>
@@ -1273,7 +1367,9 @@ Powered by Motif - Your AI-Powered Startup Companion
 
                   {/* Idea Title */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="ideaTitle" className="text-sm font-medium">Idea Title *</Label>
+                    <Label htmlFor="ideaTitle" className="text-sm font-medium">
+                      Idea Title *
+                    </Label>
                     <Input
                       id="ideaTitle"
                       placeholder="e.g., AI-powered fitness coach for busy professionals"
@@ -1293,7 +1389,9 @@ Powered by Motif - Your AI-Powered Startup Companion
 
                   {/* Idea Description */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="ideaDescription" className="text-sm font-medium">Detailed Description *</Label>
+                    <Label htmlFor="ideaDescription" className="text-sm font-medium">
+                      Detailed Description *
+                    </Label>
                     {(() => {
                       // shouldTruncate is true only when: a file was uploaded,
                       // the extracted text exceeds the preview limit, and the
@@ -1310,8 +1408,14 @@ Powered by Motif - Your AI-Powered Startup Companion
                           <Textarea
                             id="ideaDescription"
                             placeholder="Example: A platform that helps students manage study schedules with AI reminders."
-                            value={shouldTruncate ? truncateText(ideaDescription, PREVIEW_CHAR_LIMIT) : ideaDescription}
-                            onChange={e => { if (!shouldTruncate) setIdeaDescription(e.target.value); }}
+                            value={
+                              shouldTruncate
+                                ? truncateText(ideaDescription, PREVIEW_CHAR_LIMIT)
+                                : ideaDescription
+                            }
+                            onChange={e => {
+                              if (!shouldTruncate) setIdeaDescription(e.target.value);
+                            }}
                             readOnly={shouldTruncate}
                             className={`min-h-[140px] resize-none rounded-lg ${shouldTruncate ? 'cursor-default select-text text-muted-foreground' : ''}`}
                             maxLength={10000}
@@ -1335,7 +1439,9 @@ Powered by Motif - Your AI-Powered Startup Companion
                     <div className="flex items-center justify-between">
                       <p className="text-muted-foreground text-xs">
                         {ideaDescription.length >= 20 ? (
-                          <span className="text-green-600">✓ {ideaDescription.length}/10000 characters</span>
+                          <span className="text-green-600">
+                            ✓ {ideaDescription.length}/10000 characters
+                          </span>
                         ) : (
                           <span>Minimum 20 characters ({ideaDescription.length}/10000)</span>
                         )}
@@ -1364,9 +1470,11 @@ Powered by Motif - Your AI-Powered Startup Companion
 
                   {/* Target Market */}
                   <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Target Market (Optional - select up to 3)</Label>
+                    <Label className="text-sm font-medium">
+                      Target Market (Optional - select up to 3)
+                    </Label>
                     <div className="flex flex-wrap gap-1.5">
-                      {MARKET_OPTIONS.map((market) => (
+                      {MARKET_OPTIONS.map(market => (
                         <button
                           key={market}
                           type="button"
@@ -1391,11 +1499,29 @@ Powered by Motif - Your AI-Powered Startup Companion
                   {/* Server warm-up status banner */}
                   {(serverStatus === 'warming' || serverStatus === 'unknown') && (
                     <div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 mt-2">
-                      <svg className="h-3.5 w-3.5 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                      <svg
+                        className="h-3.5 w-3.5 animate-spin shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
                       </svg>
-                      <span>Server is starting up — this takes ~30 s on first load. Analysis will work immediately after.</span>
+                      <span>
+                        Server is starting up — this takes ~30 s on first load. Analysis will work
+                        immediately after.
+                      </span>
                     </div>
                   )}
                   {serverStatus === 'unavailable' && (
@@ -1436,7 +1562,6 @@ Powered by Motif - Your AI-Powered Startup Companion
                       </Button>
                     )}
                   </div>
-
                 </CardContent>
               </Card>
             </motion.div>
@@ -1453,7 +1578,8 @@ Powered by Motif - Your AI-Powered Startup Companion
                     <Sparkles className="h-4 w-4 text-white" />
                   </div>
                   <p className="text-muted-foreground text-sm leading-relaxed">
-                    Our AI analyzes market data, competition, and trends to give you actionable insights.
+                    Our AI analyzes market data, competition, and trends to give you actionable
+                    insights.
                   </p>
                 </div>
               </div>
@@ -1503,7 +1629,8 @@ Powered by Motif - Your AI-Powered Startup Companion
 
                       <div className="text-right flex-shrink-0">
                         <p className="text-xs text-muted-foreground">
-                          Step {Math.min(analysisStep + 1, ANALYSIS_STAGES.length)} / {ANALYSIS_STAGES.length}
+                          Step {Math.min(analysisStep + 1, ANALYSIS_STAGES.length)} /{' '}
+                          {ANALYSIS_STAGES.length}
                         </p>
                       </div>
                     </div>
@@ -1524,13 +1651,15 @@ Powered by Motif - Your AI-Powered Startup Companion
                               isActive ? 'bg-primary/5 border border-primary/15' : ''
                             }`}
                           >
-                            <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full ${
-                              isDone
-                                ? 'bg-green-500/10 text-green-600'
-                                : isActive
-                                ? 'bg-primary/10 text-primary'
-                                : 'bg-muted text-muted-foreground/50'
-                            }`}>
+                            <div
+                              className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full ${
+                                isDone
+                                  ? 'bg-green-500/10 text-green-600'
+                                  : isActive
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'bg-muted text-muted-foreground/50'
+                              }`}
+                            >
                               {isDone ? (
                                 <CheckCircle className="h-3.5 w-3.5" />
                               ) : isActive ? (
@@ -1546,9 +1675,11 @@ Powered by Motif - Your AI-Powered Startup Companion
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <p className={`text-sm leading-snug ${
-                                isActive ? 'font-medium text-foreground' : 'text-muted-foreground'
-                              }`}>
+                              <p
+                                className={`text-sm leading-snug ${
+                                  isActive ? 'font-medium text-foreground' : 'text-muted-foreground'
+                                }`}
+                              >
                                 {stage.label}
                               </p>
                               <AnimatePresence>
@@ -1613,20 +1744,24 @@ Powered by Motif - Your AI-Powered Startup Companion
                 {/* Score hero + summary row */}
                 <div className="flex flex-col sm:flex-row gap-6 items-start">
                   {/* Viability Score — primary dominant element */}
-                  <div className={`flex-shrink-0 flex flex-col items-center justify-center rounded-2xl border px-8 py-7 text-center min-w-[164px] ${
-                    (analysisResult.score ?? 0) >= 70
-                      ? 'border-green-200 bg-green-50/50 dark:border-green-800/40 dark:bg-green-950/20'
-                      : (analysisResult.score ?? 0) >= 50
-                      ? 'border-amber-200 bg-amber-50/50 dark:border-amber-800/40 dark:bg-amber-950/20'
-                      : 'border-red-200 bg-red-50/50 dark:border-red-800/40 dark:bg-red-950/20'
-                  }`}>
-                    <span className={`text-[56px] font-bold leading-none tabular-nums ${
+                  <div
+                    className={`flex-shrink-0 flex flex-col items-center justify-center rounded-2xl border px-8 py-7 text-center min-w-[164px] ${
                       (analysisResult.score ?? 0) >= 70
-                        ? 'text-green-600'
+                        ? 'border-green-200 bg-green-50/50 dark:border-green-800/40 dark:bg-green-950/20'
                         : (analysisResult.score ?? 0) >= 50
-                        ? 'text-amber-600'
-                        : 'text-red-500'
-                    }`}>
+                          ? 'border-amber-200 bg-amber-50/50 dark:border-amber-800/40 dark:bg-amber-950/20'
+                          : 'border-red-200 bg-red-50/50 dark:border-red-800/40 dark:bg-red-950/20'
+                    }`}
+                  >
+                    <span
+                      className={`text-[56px] font-bold leading-none tabular-nums ${
+                        (analysisResult.score ?? 0) >= 70
+                          ? 'text-green-600'
+                          : (analysisResult.score ?? 0) >= 50
+                            ? 'text-amber-600'
+                            : 'text-red-500'
+                      }`}
+                    >
                       {analysisResult.score ?? 0}
                     </span>
                     <span className="text-sm text-muted-foreground/70 leading-none mt-1">/100</span>
@@ -1652,13 +1787,19 @@ Powered by Motif - Your AI-Powered Startup Companion
                       {analysisResult.market_analysis?.tam && (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
                           <DollarSign className="h-3 w-3" />
-                          TAM: <span className="ml-0.5 font-medium text-foreground">{analysisResult.market_analysis.tam.split(' ')[0]}</span>
+                          TAM:{' '}
+                          <span className="ml-0.5 font-medium text-foreground">
+                            {analysisResult.market_analysis.tam.split(' ')[0]}
+                          </span>
                         </span>
                       )}
                       {analysisResult.competition_analysis?.competitors?.length > 0 && (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
                           <Users className="h-3 w-3" />
-                          <span className="font-medium text-foreground">{analysisResult.competition_analysis.competitors.length}</span>&nbsp;competitors mapped
+                          <span className="font-medium text-foreground">
+                            {analysisResult.competition_analysis.competitors.length}
+                          </span>
+                          &nbsp;competitors mapped
                         </span>
                       )}
                       {analysisResult.heuristic_scores && (
@@ -1684,11 +1825,11 @@ Powered by Motif - Your AI-Powered Startup Companion
                   <CardContent className="space-y-3 pt-4">
                     {(
                       [
-                        { key: 'problem',       label: 'Problem Severity' },
-                        { key: 'market',        label: 'Market Opportunity' },
+                        { key: 'problem', label: 'Problem Severity' },
+                        { key: 'market', label: 'Market Opportunity' },
                         { key: 'defensibility', label: 'Defensibility' },
-                        { key: 'monetization',  label: 'Monetization' },
-                        { key: 'execution',     label: 'Execution Feasibility' },
+                        { key: 'monetization', label: 'Monetization' },
+                        { key: 'execution', label: 'Execution Feasibility' },
                       ] as const
                     ).map(({ key, label }) => {
                       const raw = analysisResult.heuristic_scores![key];
@@ -1698,7 +1839,9 @@ Powered by Motif - Your AI-Powered Startup Companion
                         pct >= 70 ? 'bg-green-500' : pct >= 45 ? 'bg-yellow-500' : 'bg-red-500';
                       return (
                         <div key={key} className="flex items-center gap-3">
-                          <span className="w-40 flex-shrink-0 text-xs text-muted-foreground">{label}</span>
+                          <span className="w-40 flex-shrink-0 text-xs text-muted-foreground">
+                            {label}
+                          </span>
                           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                             <div
                               className={`h-full rounded-full ${color} transition-all duration-700`}
@@ -1725,26 +1868,40 @@ Powered by Motif - Your AI-Powered Startup Companion
                 </CardHeader>
                 <CardContent className="space-y-4 pt-4">
                   {/* TAM / SAM / SOM row — shown only when structured data is available */}
-                  {(analysisResult.market_analysis.tam || analysisResult.market_analysis.sam || analysisResult.market_analysis.som) && (
+                  {(analysisResult.market_analysis.tam ||
+                    analysisResult.market_analysis.sam ||
+                    analysisResult.market_analysis.som) && (
                     <div className="grid grid-cols-3 gap-3 rounded-lg bg-muted/20 p-3">
                       {analysisResult.market_analysis.tam && (
                         <div className="text-center">
-                          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">TAM</div>
-                          <div className="text-sm font-semibold">{analysisResult.market_analysis.tam.split(' ')[0]}</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                            TAM
+                          </div>
+                          <div className="text-sm font-semibold">
+                            {analysisResult.market_analysis.tam.split(' ')[0]}
+                          </div>
                           <div className="text-[10px] text-muted-foreground">Total Market</div>
                         </div>
                       )}
                       {analysisResult.market_analysis.sam && (
                         <div className="text-center">
-                          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">SAM</div>
-                          <div className="text-sm font-semibold">{analysisResult.market_analysis.sam.split(' ')[0]}</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                            SAM
+                          </div>
+                          <div className="text-sm font-semibold">
+                            {analysisResult.market_analysis.sam.split(' ')[0]}
+                          </div>
                           <div className="text-[10px] text-muted-foreground">Serviceable</div>
                         </div>
                       )}
                       {analysisResult.market_analysis.som && (
                         <div className="text-center">
-                          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">SOM</div>
-                          <div className="text-sm font-semibold">{analysisResult.market_analysis.som.split(' ')[0]}</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                            SOM
+                          </div>
+                          <div className="text-sm font-semibold">
+                            {analysisResult.market_analysis.som.split(' ')[0]}
+                          </div>
                           <div className="text-[10px] text-muted-foreground">Obtainable</div>
                         </div>
                       )}
@@ -1752,11 +1909,15 @@ Powered by Motif - Your AI-Powered Startup Companion
                   )}
                   <div className="max-w-3xl">
                     <h4 className="text-sm font-medium mb-1">Market Reasoning</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{analysisResult.market_analysis.market_reasoning}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {analysisResult.market_analysis.market_reasoning}
+                    </p>
                   </div>
                   <div className="max-w-3xl">
                     <h4 className="text-sm font-medium mb-1">Growth Potential</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{analysisResult.market_analysis.growth_potential}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {analysisResult.market_analysis.growth_potential}
+                    </p>
                   </div>
                   {analysisResult.market_analysis.source_summary && (
                     <p className="text-xs text-muted-foreground/70 italic border-t border-border/30 pt-3">
@@ -1782,7 +1943,10 @@ Powered by Motif - Your AI-Powered Startup Companion
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No specific competitors identified. Re-run analysis for a more detailed description.</p>
+                    <p className="text-sm text-muted-foreground">
+                      No specific competitors identified. Re-run analysis for a more detailed
+                      description.
+                    </p>
                   )}
                   <div className="border-t border-border/40 pt-4">
                     <h4 className="mb-2 text-sm font-medium">Your Competitive Advantage</h4>
@@ -1870,7 +2034,9 @@ Powered by Motif - Your AI-Powered Startup Companion
                       <div className="rounded-lg bg-green-500/8 border border-green-500/20 p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-xs font-semibold uppercase tracking-wider text-green-700">Bull Case</span>
+                          <span className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                            Bull Case
+                          </span>
                         </div>
                         <p className="text-sm leading-relaxed text-muted-foreground">
                           {analysisResult.investor_analysis.bull_case}
@@ -1881,7 +2047,9 @@ Powered by Motif - Your AI-Powered Startup Companion
                       <div className="rounded-lg bg-red-500/8 border border-red-500/20 p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />
-                          <span className="text-xs font-semibold uppercase tracking-wider text-red-700">Bear Case</span>
+                          <span className="text-xs font-semibold uppercase tracking-wider text-red-700">
+                            Bear Case
+                          </span>
                         </div>
                         <p className="text-sm leading-relaxed text-muted-foreground">
                           {analysisResult.investor_analysis.bear_case}
@@ -1892,7 +2060,9 @@ Powered by Motif - Your AI-Powered Startup Companion
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <HelpCircle className="h-4 w-4 text-primary flex-shrink-0" />
-                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Due Diligence Questions</span>
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Due Diligence Questions
+                          </span>
                         </div>
                         <ul className="space-y-2">
                           {analysisResult.investor_analysis.key_questions.map((q, i) => (
@@ -1917,11 +2087,17 @@ Powered by Motif - Your AI-Powered Startup Companion
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-medium text-sm text-amber-700 mb-1">Data Verification Notice</h4>
+                        <h4 className="font-medium text-sm text-amber-700 mb-1">
+                          Data Verification Notice
+                        </h4>
                         <p className="text-xs text-amber-600">
-                          Some fields in this analysis contain specific figures that may be estimated based on general industry patterns.
-                          We recommend independently verifying any specific numbers before using them in business decisions.
-                          Flagged fields: {analysisResult._flags.filter(f => f !== 'legacy_format' && f !== 'insufficient_input').join(', ') || 'general estimates'}
+                          Some fields in this analysis contain specific figures that may be
+                          estimated based on general industry patterns. We recommend independently
+                          verifying any specific numbers before using them in business decisions.
+                          Flagged fields:{' '}
+                          {analysisResult._flags
+                            .filter(f => f !== 'legacy_format' && f !== 'insufficient_input')
+                            .join(', ') || 'general estimates'}
                         </p>
                       </div>
                     </div>
@@ -1940,11 +2116,7 @@ Powered by Motif - Your AI-Powered Startup Companion
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                      <Button
-                        variant="outline"
-                        className="rounded-xl"
-                        onClick={handleSaveReport}
-                      >
+                      <Button variant="outline" className="rounded-xl" onClick={handleSaveReport}>
                         Save Report
                       </Button>
                       <Button
@@ -2113,17 +2285,27 @@ Powered by Motif - Your AI-Powered Startup Companion
                 <CardContent className="space-y-3 p-4 text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Market Size:</span>
-                    <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-500/30">Large Market</Badge>
+                    <Badge
+                      variant="outline"
+                      className="bg-green-500/10 text-green-700 border-green-500/30"
+                    >
+                      Large Market
+                    </Badge>
                   </div>
                   <div>
-                    <span className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Reasoning</span>
+                    <span className="font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                      Reasoning
+                    </span>
                     <p className="text-muted-foreground mt-1">
-                      Personal finance is a well-established market with proven consumer demand, validated by multiple publicly-traded companies in the space.
-                      Estimated based on general industry patterns.
+                      Personal finance is a well-established market with proven consumer demand,
+                      validated by multiple publicly-traded companies in the space. Estimated based
+                      on general industry patterns.
                     </p>
                   </div>
                   <div>
-                    <span className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Growth Potential</span>
+                    <span className="font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                      Growth Potential
+                    </span>
                     <p className="text-muted-foreground mt-1">
                       Strong tailwinds from rising financial awareness among younger demographics
                       and increasing smartphone penetration globally.
@@ -2142,22 +2324,30 @@ Powered by Motif - Your AI-Powered Startup Companion
               <Card className="glass-surface border-border/50">
                 <CardContent className="p-4 space-y-3">
                   <div>
-                    <span className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Direct Competition</span>
+                    <span className="font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                      Direct Competition
+                    </span>
                     <p className="text-muted-foreground text-sm mt-1">
-                      Established SaaS budgeting platforms (e.g. Mint, YNAB) dominate but lack deep AI personalization.
+                      Established SaaS budgeting platforms (e.g. Mint, YNAB) dominate but lack deep
+                      AI personalization.
                     </p>
                   </div>
                   <div>
-                    <span className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Indirect Competition</span>
+                    <span className="font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                      Indirect Competition
+                    </span>
                     <p className="text-muted-foreground text-sm mt-1">
-                      Spreadsheet-based budgeting, built-in banking app features, and manual financial advisors.
+                      Spreadsheet-based budgeting, built-in banking app features, and manual
+                      financial advisors.
                     </p>
                   </div>
                   <div>
-                    <span className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Edge Needed</span>
+                    <span className="font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                      Edge Needed
+                    </span>
                     <p className="text-muted-foreground text-sm mt-1">
-                      Better mobile-first UX with gamification and behavioral finance insights
-                      that incumbents currently lack.
+                      Better mobile-first UX with gamification and behavioral finance insights that
+                      incumbents currently lack.
                     </p>
                   </div>
                 </CardContent>
@@ -2176,12 +2366,13 @@ Powered by Motif - Your AI-Powered Startup Companion
                     <Badge className="border-0 bg-green-500 text-white">High Confidence</Badge>
                   </div>
                   <p className="text-muted-foreground text-sm mb-3">
-                    High viability based on validated market demand, proven business models in the space,
-                    and a clear differentiator through AI personalization.
-                    Key execution risk is user acquisition cost in a competitive fintech landscape.
+                    High viability based on validated market demand, proven business models in the
+                    space, and a clear differentiator through AI personalization. Key execution risk
+                    is user acquisition cost in a competitive fintech landscape.
                   </p>
                   <p className="text-xs italic text-muted-foreground/70">
-                    Note: This assessment is based on qualitative reasoning, not fabricated statistics.
+                    Note: This assessment is based on qualitative reasoning, not fabricated
+                    statistics.
                   </p>
                 </CardContent>
               </Card>

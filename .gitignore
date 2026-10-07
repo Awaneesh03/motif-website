@@ -17,3 +17,8 @@ build
 
 # Claude Code
 .claude
+
+# Understand-Anything scratch (the knowledge graph itself is kept)
+.ua/intermediate/
+.ua/tmp/
+.ua/.trash-*

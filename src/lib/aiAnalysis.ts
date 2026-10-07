@@ -1,12 +1,8 @@
 // AI services - routes all calls through the backend API (OpenAI / ChatGPT)
 import { apiClient, ChatResponse, IdeaResponse } from './api-client';
-import {
-  SafeAnalysisResult,
-  fromLegacyResult,
-} from './analysisValidator';
+import { SafeAnalysisResult, fromLegacyResult } from './analysisValidator';
 
 export type { SafeAnalysisResult } from './analysisValidator';
-export { fromLegacyResult } from './analysisValidator';
 
 export interface IdeaAnalysisRequest {
   title: string;
@@ -33,8 +29,6 @@ export interface GeneratedIdea {
   targetMarket: string;
 }
 
-
-
 // ── Job-based async analysis ──────────────────────────────────────────────────
 
 export interface StartAnalysisResult {
@@ -57,20 +51,22 @@ export interface JobStatusResult {
  * Start an async analysis job. Returns immediately with a jobId.
  * The OpenAI call runs on a backend background thread — independent of this connection.
  */
-export async function startAnalysis(
-  request: IdeaAnalysisRequest
-): Promise<StartAnalysisResult> {
+export async function startAnalysis(request: IdeaAnalysisRequest): Promise<StartAnalysisResult> {
   const truncatedTitle = request.title?.substring(0, 100) || 'Untitled';
   const truncatedDescription = request.description?.substring(0, 10000) || '';
   const truncatedMarket = request.targetMarket?.substring(0, 200) || null;
 
   // 90s timeout: survives Render cold-starts (60–90s boot time) while still
   // failing fast if the server is genuinely unreachable.
-  return apiClient.post<StartAnalysisResult>('/api/analysis/start', {
-    title: truncatedTitle,
-    description: truncatedDescription,
-    targetMarket: truncatedMarket,
-  }, 90000);
+  return apiClient.post<StartAnalysisResult>(
+    '/api/analysis/start',
+    {
+      title: truncatedTitle,
+      description: truncatedDescription,
+      targetMarket: truncatedMarket,
+    },
+    90000
+  );
 }
 
 /**
@@ -229,8 +225,12 @@ export async function generateIdea(timeoutMs = 90000): Promise<GeneratedIdea> {
  * Improve a startup description via backend API (powered by OpenAI / ChatGPT)
  */
 export async function improveDescription(description: string): Promise<string> {
-  const response = await apiClient.post<ChatResponse>('/api/ai/improve-description', {
-    description,
-  }, 90000);
+  const response = await apiClient.post<ChatResponse>(
+    '/api/ai/improve-description',
+    {
+      description,
+    },
+    90000
+  );
   return response.message?.trim() || description;
 }

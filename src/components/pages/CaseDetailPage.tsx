@@ -33,6 +33,7 @@ import { Skeleton } from '../ui/skeleton';
 import { toast } from 'sonner';
 
 import { supabase } from '@/lib/supabase';
+import { mapDifficulty } from '@/lib/caseStudyService';
 import { apiClient, CaseEvaluationResponse, CaseEvaluationBreakdown } from '@/lib/api-client';
 import { useUser } from '@/contexts/UserContext';
 
@@ -74,7 +75,7 @@ async function fetchContributors(caseId: string): Promise<ContributorEntry[]> {
 
   const { data, error } = await supabase.rpc('get_case_leaderboard', {
     p_case_id: caseId,
-    p_limit:   5,
+    p_limit: 5,
   });
 
   if (error || !data || (data as RpcRow[]).length === 0) return [];
@@ -96,20 +97,14 @@ async function fetchContributors(caseId: string): Promise<ContributorEntry[]> {
   return rows.map((row, index) => {
     const profile = profileMap.get(row.user_id) ?? { name: 'User', avatar: '' };
     return {
-      rank:     index + 1,
-      userId:   row.user_id,
-      name:     profile.name,
-      avatar:   profile.avatar,
-      score:    row.best_score,
+      rank: index + 1,
+      userId: row.user_id,
+      name: profile.name,
+      avatar: profile.avatar,
+      score: row.best_score,
       attempts: Number(row.attempts), // bigint arrives as string in some drivers
     };
   });
-}
-
-function mapDifficulty(d: string): 'Easy' | 'Medium' | 'Hard' {
-  if (d === 'Beginner') return 'Easy';
-  if (d === 'Advanced') return 'Hard';
-  return 'Medium';
 }
 
 export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
@@ -190,8 +185,11 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
             tags: Array.isArray(data.tags)
               ? data.tags
               : typeof data.tags === 'string'
-              ? data.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-              : [],
+                ? data.tags
+                    .split(',')
+                    .map((t: string) => t.trim())
+                    .filter(Boolean)
+                : [],
             publishedDate: data.created_at
               ? new Date(data.created_at).toLocaleDateString('en-US', {
                   year: 'numeric',
@@ -240,7 +238,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'user_activity' },
-        (payload) => {
+        payload => {
           const row = payload.new as { type?: string; metadata?: Record<string, unknown> } | null;
           if (row?.type !== 'case_completed') return;
           if (row.metadata?.caseId !== caseId) return;
@@ -418,11 +416,11 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
       const evaluation = await apiClient.post<CaseEvaluationResponse>(
         '/api/ai/evaluate-case',
         {
-          caseTitle:    caseData.title,
-          caseId:       caseData.id,
-          company:      caseData.company,
-          problem:      caseData.problem,
-          solution:     clampedSolution,
+          caseTitle: caseData.title,
+          caseId: caseData.id,
+          company: caseData.company,
+          problem: caseData.problem,
+          solution: clampedSolution,
           evaluationId,
         },
         180_000,
@@ -434,14 +432,12 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
               ? 'Server is waking up — this takes ~15s on first load…'
               : `Still waking up, retrying… (${attempt}/${total})`
           );
-          if (import.meta.env.DEV)
-            console.log(`[Eval] cold-start retry ${attempt}/${total}`);
+          if (import.meta.env.DEV) console.log(`[Eval] cold-start retry ${attempt}/${total}`);
         }
       );
 
       const elapsed = Date.now() - startTime;
-      if (import.meta.env.DEV)
-        console.log('[Eval] success', `${elapsed}ms`, evaluation.score);
+      if (import.meta.env.DEV) console.log('[Eval] success', `${elapsed}ms`, evaluation.score);
 
       // Jump progress to 100% smoothly before revealing result
       setEvalProgress(100);
@@ -451,7 +447,9 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
 
       try {
         sessionStorage.setItem(`eval:${caseData.id}`, JSON.stringify(evaluation));
-      } catch { /* quota exceeded — safe to ignore */ }
+      } catch {
+        /* quota exceeded — safe to ignore */
+      }
 
       // Enforce minimum 2.5s display so the animation doesn't flash and vanish
       const remaining = Math.max(0, 2500 - elapsed);
@@ -477,7 +475,9 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
         clearRateLimitCountdown();
         let secs = parseInt(waitMatch[1], 10);
         const attemptsMatch = raw.match(/(\d+)\s*(?:\/|of)\s*(\d+)\s*used/i);
-        const attemptsLabel = attemptsMatch ? ` (${attemptsMatch[1]}/${attemptsMatch[2]} used)` : '';
+        const attemptsLabel = attemptsMatch
+          ? ` (${attemptsMatch[1]}/${attemptsMatch[2]} used)`
+          : '';
         setRateLimitCountdown(secs);
         toast.error(`Too many submissions${attemptsLabel}. Try again in ${secs}s.`);
         rateLimitTimerRef.current = setInterval(() => {
@@ -572,7 +572,9 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
             <div className="space-y-8 lg:col-span-8">
               <Skeleton className="h-48 w-full rounded-xl" />
               <div className="grid grid-cols-3 gap-3">
-                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-24 rounded-xl" />
+                ))}
               </div>
               <Skeleton className="h-96 w-full rounded-xl" />
             </div>
@@ -650,7 +652,9 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
               </Badge>
             ))}
             {caseData.publishedDate && (
-              <span className="ml-auto text-xs text-muted-foreground">{caseData.publishedDate}</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                {caseData.publishedDate}
+              </span>
             )}
           </div>
         </div>
@@ -659,10 +663,8 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
       {/* ── Main grid ──────────────────────────────────────────────────────── */}
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-12">
-
           {/* LEFT — problem + workspace (8/12 cols on desktop) */}
           <div className="space-y-8 lg:col-span-8">
-
             {/* Problem Overview */}
             <Card className="border-border/50">
               <CardContent className="p-6 space-y-5">
@@ -787,7 +789,9 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                       {80 - solution.length} more characters needed to submit.
                     </span>
                   ) : solution.length >= 2700 ? (
-                    <span className={solution.length >= 3000 ? 'text-destructive' : 'text-amber-500'}>
+                    <span
+                      className={solution.length >= 3000 ? 'text-destructive' : 'text-amber-500'}
+                    >
                       {solution.length}/3000 characters
                       {solution.length >= 3000 && ' — limit reached, excess will be trimmed'}
                     </span>
@@ -811,14 +815,19 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                   <Button
                     className={`gradient-lavender shadow-lavender flex-1 rounded-xl hover:opacity-90 transition-all${isEvaluating ? ' opacity-90' : ''}`}
                     onClick={handleSubmit}
-                    disabled={solution.length < 80 || isEvaluating || isSubmitLocked || rateLimitCountdown !== null}
+                    disabled={
+                      solution.length < 80 ||
+                      isEvaluating ||
+                      isSubmitLocked ||
+                      rateLimitCountdown !== null
+                    }
                     aria-busy={isEvaluating}
                     aria-label={
                       isEvaluating
                         ? (evalStage ?? 'Evaluating…')
                         : rateLimitCountdown !== null
-                        ? `Submission blocked. Try again in ${rateLimitCountdown} seconds`
-                        : 'Submit solution for evaluation'
+                          ? `Submission blocked. Try again in ${rateLimitCountdown} seconds`
+                          : 'Submit solution for evaluation'
                     }
                   >
                     {isEvaluating ? (
@@ -861,10 +870,10 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                       {evalProgress < 30
                         ? 'Reading your solution…'
                         : evalProgress < 60
-                        ? 'Evaluating strategy and depth…'
-                        : evalProgress < 88
-                        ? 'Scoring and writing feedback…'
-                        : 'Wrapping up…'}
+                          ? 'Evaluating strategy and depth…'
+                          : evalProgress < 88
+                            ? 'Scoring and writing feedback…'
+                            : 'Wrapping up…'}
                     </p>
                   </div>
                 )}
@@ -921,7 +930,9 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                   {/* Score + verdict row */}
                   <div className="flex items-center gap-5">
                     <div className="text-center flex-shrink-0">
-                      <p className="text-5xl font-bold text-primary leading-none">{evaluationData.score}</p>
+                      <p className="text-5xl font-bold text-primary leading-none">
+                        {evaluationData.score}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">out of 100</p>
                     </div>
                     <div className="flex-1 space-y-2">
@@ -931,8 +942,8 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                           evaluationData.verdict === 'Strong Solution'
                             ? 'text-emerald-600 dark:text-emerald-400'
                             : evaluationData.verdict === 'Good Effort'
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-red-600 dark:text-red-400'
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-red-600 dark:text-red-400'
                         }`}
                       >
                         {evaluationData.verdict === 'Strong Solution' ? (
@@ -948,13 +959,15 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                   {/* Breakdown bars */}
                   {evaluationData.breakdown && (
                     <div className="rounded-xl bg-muted/40 border border-border/40 p-4 space-y-3">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Score Breakdown</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Score Breakdown
+                      </p>
                       {(
                         [
-                          { key: 'clarity',     label: 'Clarity' },
-                          { key: 'strategy',    label: 'Strategy' },
+                          { key: 'clarity', label: 'Clarity' },
+                          { key: 'strategy', label: 'Strategy' },
                           { key: 'feasibility', label: 'Feasibility' },
-                          { key: 'depth',       label: 'Depth' },
+                          { key: 'depth', label: 'Depth' },
                         ] as { key: keyof CaseEvaluationBreakdown; label: string }[]
                       ).map(({ key, label }) => {
                         const val = evaluationData.breakdown![key] ?? 0;
@@ -1016,14 +1029,16 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                         `Score: ${evaluationData.score}/100`,
                         `Verdict: ${evaluationData.verdict}`,
                         '',
-                        ...(bd ? [
-                          'Breakdown:',
-                          `  Clarity:     ${bd.clarity}`,
-                          `  Strategy:    ${bd.strategy}`,
-                          `  Feasibility: ${bd.feasibility}`,
-                          `  Depth:       ${bd.depth}`,
-                          '',
-                        ] : []),
+                        ...(bd
+                          ? [
+                              'Breakdown:',
+                              `  Clarity:     ${bd.clarity}`,
+                              `  Strategy:    ${bd.strategy}`,
+                              `  Feasibility: ${bd.feasibility}`,
+                              `  Depth:       ${bd.depth}`,
+                              '',
+                            ]
+                          : []),
                         'Strengths:',
                         ...(evaluationData.strengths ?? []).map(s => `  • ${s}`),
                         '',
@@ -1049,10 +1064,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
           {/* RIGHT sidebar (4/12 cols on desktop, stacks below on mobile/tablet) */}
           <div className="space-y-5 lg:col-span-4 lg:sticky lg:top-6 lg:self-start">
             {/* Top Contributors — real data */}
-            <LeaderboardWidget
-              entries={contributors}
-              isLoading={contributorsLoading}
-            />
+            <LeaderboardWidget entries={contributors} isLoading={contributorsLoading} />
 
             {/* Your Progress card */}
             {user && (
@@ -1078,8 +1090,8 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                             evaluationData.verdict === 'Strong Solution'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
                               : evaluationData.verdict === 'Good Effort'
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
                           }`}
                         >
                           {evaluationData.verdict}
@@ -1121,13 +1133,15 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                       <Gauge className="h-3 w-3 flex-shrink-0" />
                       Difficulty
                     </span>
-                    <span className={`text-sm font-semibold leading-snug ${
-                      caseData.difficulty === 'Hard'
-                        ? 'text-red-500'
-                        : caseData.difficulty === 'Medium'
-                        ? 'text-amber-500'
-                        : 'text-emerald-500'
-                    }`}>
+                    <span
+                      className={`text-sm font-semibold leading-snug ${
+                        caseData.difficulty === 'Hard'
+                          ? 'text-red-500'
+                          : caseData.difficulty === 'Medium'
+                            ? 'text-amber-500'
+                            : 'text-emerald-500'
+                      }`}
+                    >
                       {caseData.difficulty}
                     </span>
                   </div>
@@ -1169,9 +1183,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
             transition={{ duration: 0.15, ease: 'easeOut' }}
           >
             <DialogHeader>
-              <DialogTitle className="text-center text-xl">
-                Solution Evaluated
-              </DialogTitle>
+              <DialogTitle className="text-center text-xl">Solution Evaluated</DialogTitle>
             </DialogHeader>
 
             {evaluationData && (
@@ -1190,8 +1202,8 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                       evaluationData.verdict === 'Strong Solution'
                         ? 'text-emerald-600 dark:text-emerald-400'
                         : evaluationData.verdict === 'Good Effort'
-                        ? 'text-amber-600 dark:text-amber-400'
-                        : 'text-red-600 dark:text-red-400'
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-red-600 dark:text-red-400'
                     }`}
                   >
                     {evaluationData.verdict === 'Strong Solution' ? (
@@ -1206,13 +1218,15 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
                 {/* Breakdown */}
                 {evaluationData.breakdown && (
                   <div className="rounded-xl bg-muted/40 border border-border/40 p-4 space-y-3">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Breakdown</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Breakdown
+                    </p>
                     {(
                       [
-                        { key: 'clarity',     label: 'Clarity' },
-                        { key: 'strategy',    label: 'Strategy' },
+                        { key: 'clarity', label: 'Clarity' },
+                        { key: 'strategy', label: 'Strategy' },
                         { key: 'feasibility', label: 'Feasibility' },
-                        { key: 'depth',       label: 'Depth' },
+                        { key: 'depth', label: 'Depth' },
                       ] as { key: keyof CaseEvaluationBreakdown; label: string }[]
                     ).map(({ key, label }) => {
                       const val = evaluationData.breakdown![key] ?? 0;

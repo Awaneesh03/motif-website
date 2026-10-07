@@ -145,7 +145,6 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
       });
 
       if (error) throw error;
-      console.log('[Share] Posted to community — ideaId:', id);
       toast.success('Idea shared to the community!');
     } catch (err: any) {
       console.error('[Share] Failed to post to community:', err);

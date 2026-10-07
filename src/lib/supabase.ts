@@ -11,7 +11,9 @@ const hasValidCredentials =
   supabaseAnonKey !== 'your_supabase_anon_key_here';
 
 if (!hasValidCredentials) {
-  console.warn('⚠️ Supabase credentials not configured. Please set up your .env file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  console.warn(
+    '⚠️ Supabase credentials not configured. Please set up your .env file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+  );
   console.warn('📝 Check the .env.example file for setup instructions.');
 }
 
@@ -51,7 +53,7 @@ const authStorage = {
   getItem: (key: string): string | null => {
     return getRememberMe()
       ? localStorage.getItem(key)
-      : sessionStorage.getItem(key) ?? localStorage.getItem(key);
+      : (sessionStorage.getItem(key) ?? localStorage.getItem(key));
   },
   setItem: (key: string, value: string): void => {
     if (getRememberMe()) {
@@ -86,9 +88,6 @@ export const supabase = createClient(
 // Export a flag so UI can block sign-in when credentials are missing
 export const supabaseConfigured = hasValidCredentials;
 
-// Export the Supabase URL for storage URL construction
-export const supabasePublicUrl = supabaseUrl;
-
 /**
  * Resolve a case study image to a full public URL.
  *
@@ -110,7 +109,10 @@ export function getCaseStudyImageUrl(image?: string | null): string | null {
 
   // Need the base URL to construct a storage path
   if (!supabaseUrl) {
-    console.warn('[getCaseStudyImageUrl] VITE_SUPABASE_URL is not set; cannot resolve image:', trimmed);
+    console.warn(
+      '[getCaseStudyImageUrl] VITE_SUPABASE_URL is not set; cannot resolve image:',
+      trimmed
+    );
     return null;
   }
 
@@ -130,10 +132,7 @@ export function getCaseStudyImageUrl(image?: string | null): string | null {
  *   2. Add RLS policy: authenticated users can INSERT their own files
  *      (path starts with their user ID)
  */
-export async function uploadPitchPdf(
-  file: File,
-  userId: string,
-): Promise<string> {
+export async function uploadPitchPdf(file: File, userId: string): Promise<string> {
   const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
   if (file.size > MAX_SIZE_BYTES) {
     throw new Error('File too large. Maximum size is 5 MB.');
@@ -143,8 +142,8 @@ export async function uploadPitchPdf(
   }
 
   const timestamp = Date.now();
-  const safeName  = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path      = `${userId}/${timestamp}-${safeName}`;
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${userId}/${timestamp}-${safeName}`;
 
   const { error } = await supabase.storage
     .from('pitches')

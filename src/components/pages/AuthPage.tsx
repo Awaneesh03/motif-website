@@ -144,7 +144,9 @@ export function AuthPage({ onLogin }: AuthPageProps) {
     e.preventDefault();
 
     if (!supabaseConfigured) {
-      toast.error('Supabase credentials are missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY and restart.');
+      toast.error(
+        'Supabase credentials are missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY and restart.'
+      );
       return;
     }
 
@@ -236,7 +238,8 @@ export function AuthPage({ onLogin }: AuthPageProps) {
       }
 
       if (error.message?.includes('fetch')) {
-        errorMessage = 'Unable to connect to authentication server. Please check your internet connection and Supabase configuration.';
+        errorMessage =
+          'Unable to connect to authentication server. Please check your internet connection and Supabase configuration.';
       }
 
       setAuthError(errorMessage);
@@ -247,39 +250,37 @@ export function AuthPage({ onLogin }: AuthPageProps) {
     }
   };
 
-  const handleGoogleLoginSuccess = (credentialResponse: CredentialResponse) => {
+  // Google returns a signed ID token; Supabase verifies it server-side and
+  // creates a real session (requires the Google provider enabled in Supabase).
+  const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
     if (!supabaseConfigured) {
-      toast.error('Supabase credentials are missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY and restart.');
+      toast.error(
+        'Supabase credentials are missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY and restart.'
+      );
       return;
     }
-    // In a production app, you would:
-    // 1. Send the credential to your backend
-    // 2. Verify the token server-side
-    // 3. Create a session or JWT token
-    // 4. Store user information
+    if (!credentialResponse.credential) {
+      toast.error('Google did not return a credential. Please try again.');
+      return;
+    }
 
-    // For now, we'll decode the JWT token to get user info (client-side only for demo)
-    if (credentialResponse.credential) {
-      try {
-        // Decode JWT token (note: this is just for demo, do this server-side in production)
-        const base64Url = credentialResponse.credential.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(
-          atob(base64)
-            .split('')
-            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-            .join('')
-        );
-
-        JSON.parse(jsonPayload);
-
-        // Welcome notification is now handled by UserContext
-        onLogin?.();
-      } catch (error) {
-        console.error('Error decoding token:', error);
-        // Welcome notification is now handled by UserContext
-        onLogin?.();
+    setRememberMe(rememberMe);
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: credentialResponse.credential,
+      });
+      if (error) {
+        console.error('Google sign-in error:', error);
+        setAuthError(error.message);
+        toast.error(error.message || 'Failed to sign in with Google. Please try again.');
+        return;
       }
+      toast.success('Signed in successfully. Redirecting…');
+      onLogin?.();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -290,7 +291,9 @@ export function AuthPage({ onLogin }: AuthPageProps) {
 
   const handleLinkedInSignIn = async () => {
     if (!supabaseConfigured) {
-      toast.error('Supabase credentials are missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY and restart.');
+      toast.error(
+        'Supabase credentials are missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY and restart.'
+      );
       return;
     }
 
@@ -321,7 +324,6 @@ export function AuthPage({ onLogin }: AuthPageProps) {
       <section className="w-full">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center">
-
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -330,7 +332,8 @@ export function AuthPage({ onLogin }: AuthPageProps) {
             >
               {!supabaseConfigured && (
                 <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to a .env file, then restart the dev server to enable sign-in.
+                  Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to a
+                  .env file, then restart the dev server to enable sign-in.
                 </div>
               )}
 
@@ -368,9 +371,13 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                       />
                     </svg>
                   </div>
-                  <h1 className="text-3xl font-bold mb-2 font-['Poppins'] text-gradient-lavender">Motif</h1>
+                  <h1 className="text-3xl font-bold mb-2 font-['Poppins'] text-gradient-lavender">
+                    Motif
+                  </h1>
                   <p className="text-sm text-muted-foreground">
-                    {isLogin ? 'Welcome back! Sign in to continue' : 'Create your account to get started'}
+                    {isLogin
+                      ? 'Welcome back! Sign in to continue'
+                      : 'Create your account to get started'}
                   </p>
                 </div>
 
@@ -460,7 +467,11 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
                       </button>
                     </div>
                     {touched.password && errors.password && (
@@ -486,9 +497,12 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                       <Checkbox
                         id="rememberMe"
                         checked={rememberMe}
-                        onCheckedChange={(checked) => setRememberMeState(checked === true)}
+                        onCheckedChange={checked => setRememberMeState(checked === true)}
                       />
-                      <Label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer select-none">
+                      <Label
+                        htmlFor="rememberMe"
+                        className="text-sm text-muted-foreground cursor-pointer select-none"
+                      >
                         Remember me for 30 days
                       </Label>
                     </div>
@@ -506,48 +520,46 @@ export function AuthPage({ onLogin }: AuthPageProps) {
 
                 {/* Google Sign In - Only show if configured */}
                 {import.meta.env.VITE_GOOGLE_CLIENT_ID &&
-                 import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'your_google_client_id_here' && (
-                  <>
-                    {/* Divider */}
-                    <div className="relative my-6">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-border"></div>
+                  import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'your_google_client_id_here' && (
+                    <>
+                      {/* Divider */}
+                      <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-border"></div>
+                        </div>
+                        <div className="relative flex justify-center">
+                          <span className="bg-card px-4 text-sm text-muted-foreground">or</span>
+                        </div>
                       </div>
-                      <div className="relative flex justify-center">
-                        <span className="bg-card px-4 text-sm text-muted-foreground">
-                          or
+
+                      {/* Google Sign In */}
+                      <div className="flex justify-center">
+                        <GoogleLogin
+                          onSuccess={handleGoogleLoginSuccess}
+                          onError={handleGoogleLoginError}
+                          useOneTap
+                          theme="outline"
+                          size="large"
+                          text={isLogin ? 'signin_with' : 'signup_with'}
+                          width="100%"
+                        />
+                      </div>
+
+                      {/* LinkedIn Sign In */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleLinkedInSignIn}
+                        disabled={!supabaseConfigured || isLoading}
+                        className="w-full h-12 rounded-xl mt-3 flex items-center justify-center gap-2 hover:bg-[#0077B5]/10 border-[#0077B5]/30"
+                      >
+                        <Linkedin className="h-5 w-5 text-[#0077B5]" />
+                        <span className="text-sm font-medium">
+                          {isLogin ? 'Sign in with LinkedIn' : 'Sign up with LinkedIn'}
                         </span>
-                      </div>
-                    </div>
-
-                    {/* Google Sign In */}
-                    <div className="flex justify-center">
-                      <GoogleLogin
-                        onSuccess={handleGoogleLoginSuccess}
-                        onError={handleGoogleLoginError}
-                        useOneTap
-                        theme="outline"
-                        size="large"
-                        text={isLogin ? 'signin_with' : 'signup_with'}
-                        width="100%"
-                      />
-                    </div>
-
-                    {/* LinkedIn Sign In */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleLinkedInSignIn}
-                      disabled={!supabaseConfigured || isLoading}
-                      className="w-full h-12 rounded-xl mt-3 flex items-center justify-center gap-2 hover:bg-[#0077B5]/10 border-[#0077B5]/30"
-                    >
-                      <Linkedin className="h-5 w-5 text-[#0077B5]" />
-                      <span className="text-sm font-medium">
-                        {isLogin ? 'Sign in with LinkedIn' : 'Sign up with LinkedIn'}
-                      </span>
-                    </Button>
-                  </>
-                )}
+                      </Button>
+                    </>
+                  )}
 
                 {/* Toggle Login/Signup */}
                 <div className="mt-6 text-center">

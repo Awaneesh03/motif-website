@@ -106,61 +106,6 @@ export async function safeFetchList<T>(
 }
 
 /**
- * Safe fetch for queries that return a single item
- * Converts RLS 400 errors into null
- */
-export async function safeFetchSingle<T>(
-  queryFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
-  options: SafeFetchOptions = {}
-): Promise<T | null> {
-  try {
-    const { data, error } = await queryFn();
-
-    if (error) {
-      // RLS permission error - return null (expected behavior)
-      if (isRLSPermissionError(error)) {
-        if (options.debug) {
-          console.info(
-            `[${options.serviceName || 'safeFetch'}] RLS blocked query (expected) - returning null`
-          );
-        }
-        return null;
-      }
-
-      // Missing table - return null (feature not enabled)
-      if (isMissingTableError(error)) {
-        if (options.debug) {
-          console.info(
-            `[${options.serviceName || 'safeFetch'}] Table not found (feature disabled) - returning null`
-          );
-        }
-        return null;
-      }
-
-      // Other errors - log but still return null
-      if (import.meta.env.DEV) {
-        console.warn(
-          `[${options.serviceName || 'safeFetch'}] Query failed:`,
-          error.message
-        );
-      }
-      return null;
-    }
-
-    return data;
-  } catch (err) {
-    // Unexpected error - log and return null
-    if (import.meta.env.DEV) {
-      console.warn(
-        `[${options.serviceName || 'safeFetch'}] Unexpected error:`,
-        err
-      );
-    }
-    return null;
-  }
-}
-
-/**
  * Safe fetch for count queries
  * Converts RLS 400 errors into 0
  */

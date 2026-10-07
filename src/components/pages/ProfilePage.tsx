@@ -43,14 +43,29 @@ interface ProfilePageProps {
 }
 
 const emojis = [
-  '😊', '🚀', '💡', '🎯', '⭐', '🔥', '💪', '🌟',
-  '🎨', '🧠', '👨‍💼', '👩‍💼', '🦄', '🌈', '⚡',
+  '😊',
+  '🚀',
+  '💡',
+  '🎯',
+  '⭐',
+  '🔥',
+  '💪',
+  '🌟',
+  '🎨',
+  '🧠',
+  '👨‍💼',
+  '👩‍💼',
+  '🦄',
+  '🌈',
+  '⚡',
 ];
 
 // Helper function to check if avatar is a URL or an emoji
 function isAvatarUrl(avatar: string | undefined): boolean {
   if (!avatar) return false;
-  return avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:');
+  return (
+    avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:')
+  );
 }
 
 // ============================================================================
@@ -79,25 +94,33 @@ function calculateProfileCompletion(profile: any, userIdeas: any[]): ProfileComp
     { key: 'basicInfo', label: 'Basic info', check: () => profile?.name && profile?.email },
     { key: 'background', label: 'Founder background', check: () => !!profile?.about },
     { key: 'linkedin', label: 'LinkedIn profile', check: () => profile?.linkedin },
-    { key: 'startupGoals', label: 'Startup goals', check: () => Array.isArray(profile?.startup_goals) && profile?.startup_goals?.length > 0 },
+    {
+      key: 'startupGoals',
+      label: 'Startup goals',
+      check: () => Array.isArray(profile?.startup_goals) && profile?.startup_goals?.length > 0,
+    },
     { key: 'ideaAdded', label: 'Startup idea basics', check: () => safeUserIdeas.length > 0 },
   ];
 
-  const completedSteps = steps.filter(step => {
-    try {
-      return step.check();
-    } catch {
-      return false;
-    }
-  }).map(s => s.label);
+  const completedSteps = steps
+    .filter(step => {
+      try {
+        return step.check();
+      } catch {
+        return false;
+      }
+    })
+    .map(s => s.label);
 
-  const pendingSteps = steps.filter(step => {
-    try {
-      return !step.check();
-    } catch {
-      return true;
-    }
-  }).map(s => s.label);
+  const pendingSteps = steps
+    .filter(step => {
+      try {
+        return !step.check();
+      } catch {
+        return true;
+      }
+    })
+    .map(s => s.label);
 
   const percentage = Math.round((completedSteps.length / steps.length) * 100);
 
@@ -238,8 +261,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       if (error) {
         console.error('Failed to save profile to database:', error);
         // Continue anyway - we have in-memory profile
-      } else {
-        console.log('✅ Profile auto-created in database');
       }
     } catch (error) {
       console.error('Error creating profile:', error);
@@ -272,7 +293,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
           table: 'user_activity',
           filter: `user_id=eq.${authUser.id}`,
         },
-        (payload) => {
+        payload => {
           const row = payload.new as { type?: string } | null;
           if (row?.type === 'case_completed' || payload.eventType === 'DELETE') {
             // Re-fetch the count to stay accurate (handles INSERT, UPDATE, DELETE)
@@ -421,7 +442,9 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       location: displayProfile.location || '',
       education: displayProfile.education || '',
     });
-    setSelectedGoals(Array.isArray(displayProfile.startup_goals) ? displayProfile.startup_goals : []);
+    setSelectedGoals(
+      Array.isArray(displayProfile.startup_goals) ? displayProfile.startup_goals : []
+    );
     setIsEditOpen(true);
   };
 
@@ -564,7 +587,9 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Select Startup Goals</DialogTitle>
-            <DialogDescription>Choose the goals that resonate with your startup journey</DialogDescription>
+            <DialogDescription>
+              Choose the goals that resonate with your startup journey
+            </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-4">
             {[
@@ -598,18 +623,18 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
             <DialogTitle>Choose Your Avatar</DialogTitle>
             <DialogDescription>Pick an emoji or upload a custom image</DialogDescription>
           </DialogHeader>
-          
+
           {/* Current Avatar Preview */}
           {displayProfile?.avatar && (
             <div className="flex justify-center mb-4">
               <div className="relative">
                 <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-primary/30 flex items-center justify-center bg-muted">
                   {isAvatarUrl(displayProfile.avatar) ? (
-                    <img 
-                      src={displayProfile.avatar} 
-                      alt="Current avatar" 
+                    <img
+                      src={displayProfile.avatar}
+                      alt="Current avatar"
                       className="h-full w-full object-cover"
-                      onError={(e) => {
+                      onError={e => {
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}
                     />
@@ -631,10 +656,10 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
               id="avatar-upload"
               accept="image/*"
               className="hidden"
-              onChange={async (e) => {
+              onChange={async e => {
                 const file = e.target.files?.[0];
                 if (!file || !authUser) return;
-                
+
                 // Validate file size (max 2MB)
                 if (file.size > 2 * 1024 * 1024) {
                   toast.error('Image must be less than 2MB');
@@ -645,14 +670,17 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                   // Upload to Supabase Storage
                   const fileExt = file.name.split('.').pop();
                   const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
-                  
+
                   const { error: uploadError } = await supabase.storage
                     .from('avatars')
                     .upload(fileName, file, { upsert: true });
 
                   if (uploadError) {
                     // If storage bucket doesn't exist, show helpful message
-                    if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
+                    if (
+                      uploadError.message?.includes('bucket') ||
+                      uploadError.message?.includes('not found')
+                    ) {
                       toast.error('Avatar storage not configured. Using emoji avatars instead.');
                       return;
                     }
@@ -660,9 +688,9 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                   }
 
                   // Get public URL
-                  const { data: { publicUrl } } = supabase.storage
-                    .from('avatars')
-                    .getPublicUrl(fileName);
+                  const {
+                    data: { publicUrl },
+                  } = supabase.storage.from('avatars').getPublicUrl(fileName);
 
                   // Update profile with new avatar URL
                   await handleAvatarChange(publicUrl);
@@ -680,7 +708,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
           </div>
 
           <div className="text-center text-sm text-muted-foreground mb-2">or choose an emoji</div>
-          
+
           <div className="grid grid-cols-5 sm:grid-cols-5 gap-2 py-2">
             {emojis.map(emoji => (
               <Button
@@ -796,7 +824,9 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                 onClick={() => setIsGoalsModalOpen(true)}
               >
                 <Target className="mr-2 h-4 w-4" />
-                {selectedGoals.length > 0 ? `${selectedGoals.length} goals selected` : 'Select your goals'}
+                {selectedGoals.length > 0
+                  ? `${selectedGoals.length} goals selected`
+                  : 'Select your goals'}
               </Button>
               {selectedGoals.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -872,9 +902,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
             <CardContent className="p-8 text-center">
               <Users className="text-muted-foreground mx-auto mb-4 h-16 w-16" />
               <h2 className="mb-2 text-2xl font-bold text-foreground">Profile Not Available</h2>
-              <p className="text-muted-foreground mb-6">
-                Please log in to view your profile.
-              </p>
+              <p className="text-muted-foreground mb-6">Please log in to view your profile.</p>
               <Button
                 className="gradient-lavender shadow-lavender rounded-[16px] hover:opacity-90"
                 onClick={() => onNavigate?.('Auth')}
@@ -897,9 +925,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
             <Card className="w-full max-w-2xl mx-auto border-border/50 glass-surface">
               <CardContent className="p-12 text-center">
                 <Sparkles className="text-primary mx-auto mb-6 h-20 w-20" />
-                <h1 className="mb-4 text-4xl font-bold text-foreground">
-                  Welcome to Motif
-                </h1>
+                <h1 className="mb-4 text-4xl font-bold text-foreground">Welcome to Motif</h1>
                 <p className="text-muted-foreground mb-8 text-lg">
                   Let's get your founder profile set up
                 </p>
@@ -916,21 +942,27 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                         <CheckCircle2 className="text-primary mt-1 h-5 w-5 flex-shrink-0" />
                         <div>
                           <p className="font-medium">Secure your account</p>
-                          <p className="text-muted-foreground text-sm">Set a strong password and confirm email.</p>
+                          <p className="text-muted-foreground text-sm">
+                            Set a strong password and confirm email.
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <CheckCircle2 className="text-primary mt-1 h-5 w-5 flex-shrink-0" />
                         <div>
                           <p className="font-medium">Complete your profile</p>
-                          <p className="text-muted-foreground text-sm">Add role, location, and goals.</p>
+                          <p className="text-muted-foreground text-sm">
+                            Add role, location, and goals.
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <CheckCircle2 className="text-primary mt-1 h-5 w-5 flex-shrink-0" />
                         <div>
                           <p className="font-medium">Create your first idea</p>
-                          <p className="text-muted-foreground text-sm">Use Idea Analyser to validate quickly.</p>
+                          <p className="text-muted-foreground text-sm">
+                            Use Idea Analyser to validate quickly.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -960,64 +992,80 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
             transition={{ duration: 0.3 }}
           >
             <div className="space-y-6">
-                {/* Profile Header */}
-                <Card className="border-border/50 shadow-lg glass-surface">
-                  <CardContent className="p-8">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-                      <div className="flex items-start gap-6">
-                        <Avatar className="h-24 w-24 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/40 transition-all" onClick={() => setIsAvatarModalOpen(true)}>
-                          {isAvatarUrl(displayProfile.avatar) ? (
-                            <AvatarImage src={displayProfile.avatar} />
-                          ) : null}
-                          <AvatarFallback className="text-4xl">
-                            {displayProfile.avatar && !isAvatarUrl(displayProfile.avatar)
-                              ? displayProfile.avatar
-                              : getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-3">
-                          <div>
-                            <h1 className="text-4xl font-bold mb-1 text-foreground">
-                              {getDisplayName()}
-                            </h1>
-                            {shouldShowRole && (
-                              <p className="text-lg text-muted-foreground font-medium">{roleLabel}</p>
-                            )}
-                            {displayProfile.location && (
-                              <p className="text-base text-muted-foreground mt-1">{displayProfile.location}</p>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {displayProfile.email && (
-                              <Badge variant="outline" className="text-sm">{displayProfile.email}</Badge>
-                            )}
-                            {displayProfile.linkedin && (
-                              <Badge variant="outline" className="text-sm">LinkedIn</Badge>
-                            )}
-                            {displayProfile.education && (
-                              <Badge variant="secondary" className="text-sm">{displayProfile.education}</Badge>
-                            )}
-                          </div>
+              {/* Profile Header */}
+              <Card className="border-border/50 shadow-lg glass-surface">
+                <CardContent className="p-8">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                    <div className="flex items-start gap-6">
+                      <Avatar
+                        className="h-24 w-24 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/40 transition-all"
+                        onClick={() => setIsAvatarModalOpen(true)}
+                      >
+                        {isAvatarUrl(displayProfile.avatar) ? (
+                          <AvatarImage src={displayProfile.avatar} />
+                        ) : null}
+                        <AvatarFallback className="text-4xl">
+                          {displayProfile.avatar && !isAvatarUrl(displayProfile.avatar)
+                            ? displayProfile.avatar
+                            : getDisplayName()?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="space-y-3">
+                        <div>
+                          <h1 className="text-4xl font-bold mb-1 text-foreground">
+                            {getDisplayName()}
+                          </h1>
+                          {shouldShowRole && (
+                            <p className="text-lg text-muted-foreground font-medium">{roleLabel}</p>
+                          )}
+                          {displayProfile.location && (
+                            <p className="text-base text-muted-foreground mt-1">
+                              {displayProfile.location}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {displayProfile.email && (
+                            <Badge variant="outline" className="text-sm">
+                              {displayProfile.email}
+                            </Badge>
+                          )}
+                          {displayProfile.linkedin && (
+                            <Badge variant="outline" className="text-sm">
+                              LinkedIn
+                            </Badge>
+                          )}
+                          {displayProfile.education && (
+                            <Badge variant="secondary" className="text-sm">
+                              {displayProfile.education}
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                      <Button
-                        className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90 px-6 self-start"
-                        onClick={handleEditProfile}
-                      >
-                        Edit Profile
-                      </Button>
                     </div>
+                    <Button
+                      className="gradient-lavender shadow-lavender rounded-xl hover:opacity-90 px-6 self-start"
+                      onClick={handleEditProfile}
+                    >
+                      Edit Profile
+                    </Button>
+                  </div>
 
-                    {displayProfile.about && (
-                      <div className="mt-8 pt-6 border-t border-border/50">
-                        <h3 className="text-sm font-semibold text-foreground/80 mb-2">About</h3>
-                        <p className="text-base text-muted-foreground leading-relaxed">{displayProfile.about}</p>
-                      </div>
-                    )}
+                  {displayProfile.about && (
+                    <div className="mt-8 pt-6 border-t border-border/50">
+                      <h3 className="text-sm font-semibold text-foreground/80 mb-2">About</h3>
+                      <p className="text-base text-muted-foreground leading-relaxed">
+                        {displayProfile.about}
+                      </p>
+                    </div>
+                  )}
 
-                    {Array.isArray(displayProfile?.startup_goals) && displayProfile?.startup_goals?.length > 0 && (
+                  {Array.isArray(displayProfile?.startup_goals) &&
+                    displayProfile?.startup_goals?.length > 0 && (
                       <div className="mt-6 pt-6 border-t border-border/50">
-                        <h3 className="text-sm font-semibold text-foreground/80 mb-3">Startup Goals</h3>
+                        <h3 className="text-sm font-semibold text-foreground/80 mb-3">
+                          Startup Goals
+                        </h3>
                         <div className="flex flex-wrap gap-2">
                           {displayProfile.startup_goals.map(goal => (
                             <Badge key={goal} variant="secondary" className="text-sm px-3 py-1">
@@ -1027,194 +1075,232 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                         </div>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
 
-                {/* Profile Completion */}
+              {/* Profile Completion */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5" />
+                      Profile Completion
+                    </CardTitle>
+                    <Badge variant="secondary">{profileCompletion.percentage}% Complete</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Progress value={profileCompletion.percentage} className="h-2" />
+                  <div className="grid gap-3">
+                    {profileCompletion.completedSteps.map(step => (
+                      <div key={step} className="flex items-center gap-2">
+                        <CheckCircle2 className="text-primary h-4 w-4" />
+                        <span className="text-sm">{step}</span>
+                      </div>
+                    ))}
+                    {profileCompletion.pendingSteps.map(step => (
+                      <div key={step} className="flex items-center gap-2">
+                        <AlertCircle className="text-muted-foreground h-4 w-4" />
+                        <span className="text-muted-foreground text-sm">{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Stats Grid */}
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                 <Card>
-                  <CardHeader>
+                  <CardContent className="p-6">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
-                        <Target className="h-5 w-5" />
-                        Profile Completion
-                      </CardTitle>
-                      <Badge variant="secondary">{profileCompletion.percentage}% Complete</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Progress value={profileCompletion.percentage} className="h-2" />
-                    <div className="grid gap-3">
-                      {profileCompletion.completedSteps.map(step => (
-                        <div key={step} className="flex items-center gap-2">
-                          <CheckCircle2 className="text-primary h-4 w-4" />
-                          <span className="text-sm">{step}</span>
-                        </div>
-                      ))}
-                      {profileCompletion.pendingSteps.map(step => (
-                        <div key={step} className="flex items-center gap-2">
-                          <AlertCircle className="text-muted-foreground h-4 w-4" />
-                          <span className="text-muted-foreground text-sm">{step}</span>
-                        </div>
-                      ))}
+                      <div>
+                        <p className="text-muted-foreground text-sm">Ideas Analyzed</p>
+                        <p className="text-3xl font-bold">{stats.ideasSaved}</p>
+                      </div>
+                      <Lightbulb className="text-primary h-10 w-10" />
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Stats Grid */}
-                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-muted-foreground text-sm">Ideas Analyzed</p>
-                          <p className="text-3xl font-bold">{stats.ideasSaved}</p>
-                        </div>
-                        <Lightbulb className="text-primary h-10 w-10" />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-muted-foreground text-sm">Case Studies</p>
-                          <p className="text-3xl font-bold">{stats.caseStudiesSaved}</p>
-                        </div>
-                        <BookOpen className="text-primary h-10 w-10" />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-muted-foreground text-sm">Ideas Shared</p>
-                          <p className="text-3xl font-bold">{stats.ideasShared}</p>
-                        </div>
-                        <Users className="text-primary h-10 w-10" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Founder Score */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Award className="h-5 w-5" />
-                      Founder Score
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    {scoreLoading ? (
-                      <div className="space-y-3 animate-pulse">
-                        <div className="h-8 bg-muted rounded w-1/4" />
-                        <div className="h-2 bg-muted rounded" />
-                        <div className="space-y-2">
-                          {[...Array(4)].map((_, i) => <div key={i} className="h-4 bg-muted rounded" />)}
-                        </div>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-muted-foreground text-sm">Case Studies</p>
+                        <p className="text-3xl font-bold">{stats.caseStudiesSaved}</p>
                       </div>
-                    ) : founderScore ? (
-                      <>
-                        {/* Score + level */}
-                        <div className="flex items-end justify-between">
-                          <div>
-                            <p className="text-4xl font-bold">{founderScore.score}<span className="text-lg text-muted-foreground font-normal">/100</span></p>
-                            <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
-                              founderScore.level === 'Investor Ready' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' :
-                              founderScore.level === 'Strong'         ? 'bg-green-100  text-green-700  dark:bg-green-900/40  dark:text-green-300'  :
-                              founderScore.level === 'Active'         ? 'bg-blue-100   text-blue-700   dark:bg-blue-900/40   dark:text-blue-300'   :
-                                                                        'bg-muted       text-muted-foreground'
-                            }`}>{founderScore.level}</span>
-                          </div>
-                          <Progress value={founderScore.score} className="h-2 w-32" />
-                        </div>
-
-                        {/* Breakdown bars */}
-                        <div className="space-y-3">
-                          {([
-                            { label: 'Profile Quality', value: founderScore.breakdown.profile,     max: 40 },
-                            { label: 'Activity',         value: founderScore.breakdown.activity,    max: 30 },
-                            { label: 'Consistency',      value: founderScore.breakdown.consistency, max: 20 },
-                            { label: 'Engagement',       value: founderScore.breakdown.engagement,  max: 10 },
-                          ] as const).map(({ label, value, max }) => (
-                            <div key={label}>
-                              <div className="flex justify-between text-xs mb-1">
-                                <span className="text-muted-foreground">{label}</span>
-                                <span className="font-medium">{value}<span className="text-muted-foreground">/{max}</span></span>
-                              </div>
-                              <Progress value={(value / max) * 100} className="h-1.5" />
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Score unavailable — complete your profile to see results.</p>
-                    )}
+                      <BookOpen className="text-primary h-10 w-10" />
+                    </div>
                   </CardContent>
                 </Card>
 
-                {/* Activity Timeline */}
-                {activityTimeline.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        Recent Activity
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {activityTimeline.map((activity) => {
-                          const meta = ACTIVITY_META[activity.type] ?? ACTIVITY_META['idea_analyzed'];
-                          const Icon =
-                            activity.type === 'pitch_created'     ? Target :
-                            activity.type === 'funding_submitted' ? Sparkles :
-                            activity.type === 'case_viewed'       ? BookOpen :
-                            activity.type === 'case_completed'    ? CheckCircle2 :
-                            activity.type === 'community_action'  ? Users :
-                            Lightbulb;
-                          return (
-                            <div key={activity.id} className="flex items-start gap-3">
-                              <div className="bg-primary/10 mt-1 rounded-full p-2">
-                                <Icon className={`h-4 w-4 ${meta.color}`} />
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-medium">{activity.title}</p>
-                                <p className="text-muted-foreground text-xs mt-1">{formatDate(activity.created_at)}</p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Account Actions */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="h-5 w-5" />
-                      Account Actions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="border-t pt-4">
-                      <Button
-                        variant="destructive"
-                        className="w-full"
-                        onClick={() => setShowDeleteModal(true)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Account
-                      </Button>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-muted-foreground text-sm">Ideas Shared</p>
+                        <p className="text-3xl font-bold">{stats.ideasShared}</p>
+                      </div>
+                      <Users className="text-primary h-10 w-10" />
                     </div>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Founder Score */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5" />
+                    Founder Score
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {scoreLoading ? (
+                    <div className="space-y-3 animate-pulse">
+                      <div className="h-8 bg-muted rounded w-1/4" />
+                      <div className="h-2 bg-muted rounded" />
+                      <div className="space-y-2">
+                        {[...Array(4)].map((_, i) => (
+                          <div key={i} className="h-4 bg-muted rounded" />
+                        ))}
+                      </div>
+                    </div>
+                  ) : founderScore ? (
+                    <>
+                      {/* Score + level */}
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <p className="text-4xl font-bold">
+                            {founderScore.score}
+                            <span className="text-lg text-muted-foreground font-normal">/100</span>
+                          </p>
+                          <span
+                            className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                              founderScore.level === 'Investor Ready'
+                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                                : founderScore.level === 'Strong'
+                                  ? 'bg-green-100  text-green-700  dark:bg-green-900/40  dark:text-green-300'
+                                  : founderScore.level === 'Active'
+                                    ? 'bg-blue-100   text-blue-700   dark:bg-blue-900/40   dark:text-blue-300'
+                                    : 'bg-muted       text-muted-foreground'
+                            }`}
+                          >
+                            {founderScore.level}
+                          </span>
+                        </div>
+                        <Progress value={founderScore.score} className="h-2 w-32" />
+                      </div>
+
+                      {/* Breakdown bars */}
+                      <div className="space-y-3">
+                        {(
+                          [
+                            {
+                              label: 'Profile Quality',
+                              value: founderScore.breakdown.profile,
+                              max: 40,
+                            },
+                            { label: 'Activity', value: founderScore.breakdown.activity, max: 30 },
+                            {
+                              label: 'Consistency',
+                              value: founderScore.breakdown.consistency,
+                              max: 20,
+                            },
+                            {
+                              label: 'Engagement',
+                              value: founderScore.breakdown.engagement,
+                              max: 10,
+                            },
+                          ] as const
+                        ).map(({ label, value, max }) => (
+                          <div key={label}>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-muted-foreground">{label}</span>
+                              <span className="font-medium">
+                                {value}
+                                <span className="text-muted-foreground">/{max}</span>
+                              </span>
+                            </div>
+                            <Progress value={(value / max) * 100} className="h-1.5" />
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Score unavailable — complete your profile to see results.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Activity Timeline */}
+              {activityTimeline.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Recent Activity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {activityTimeline.map(activity => {
+                        const meta = ACTIVITY_META[activity.type] ?? ACTIVITY_META['idea_analyzed'];
+                        const Icon =
+                          activity.type === 'pitch_created'
+                            ? Target
+                            : activity.type === 'funding_submitted'
+                              ? Sparkles
+                              : activity.type === 'case_viewed'
+                                ? BookOpen
+                                : activity.type === 'case_completed'
+                                  ? CheckCircle2
+                                  : activity.type === 'community_action'
+                                    ? Users
+                                    : Lightbulb;
+                        return (
+                          <div key={activity.id} className="flex items-start gap-3">
+                            <div className="bg-primary/10 mt-1 rounded-full p-2">
+                              <Icon className={`h-4 w-4 ${meta.color}`} />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">{activity.title}</p>
+                              <p className="text-muted-foreground text-xs mt-1">
+                                {formatDate(activity.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Account Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Account Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="border-t pt-4">
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => setShowDeleteModal(true)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Account
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </motion.div>
         )}
 
@@ -1225,9 +1311,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
           <Card className="w-full max-w-2xl mx-auto border-red-500/50 bg-red-500/5">
             <CardContent className="p-12 text-center">
               <AlertCircle className="mx-auto mb-6 h-20 w-20 text-red-500" />
-              <h1 className="mb-4 text-4xl font-bold text-red-500">
-                Something Went Wrong
-              </h1>
+              <h1 className="mb-4 text-4xl font-bold text-red-500">Something Went Wrong</h1>
               <p className="text-muted-foreground mb-8 text-lg">
                 We encountered an unexpected error, but don't worry - your data is safe.
               </p>
@@ -1239,10 +1323,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
               </div>
 
               <div className="flex gap-4 justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => window.location.reload()}
-                >
+                <Button variant="outline" onClick={() => window.location.reload()}>
                   Reload Page
                 </Button>
                 <Button

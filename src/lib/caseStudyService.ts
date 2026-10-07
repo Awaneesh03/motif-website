@@ -49,23 +49,8 @@ export interface CaseStudy {
   attempts: number;
 }
 
-/** Full shape used by CaseDetailPage — strict superset of CaseStudy. */
-export interface CaseStudyDetail extends CaseStudy {
-  background: string;
-  problem: string;
-  constraints: string;
-  expectedOutcome: string;
-  hints: string[];
-  publishedDate: string;
-}
-
 export interface FetchCaseStudiesResult {
   data: CaseStudy[];
-  error: string | null;
-}
-
-export interface FetchCaseStudyDetailResult {
-  data: CaseStudyDetail | null;
   error: string | null;
 }
 
@@ -87,14 +72,6 @@ interface CaseStudyListRow {
   category: string | null;
   attempts: number | null;
   tags: unknown; // jsonb — may be array, string, or null
-}
-
-interface CaseStudyDetailRow extends CaseStudyListRow {
-  background: string | null;
-  constraints: string | null;
-  expected_outcome: string | null;
-  hints: unknown; // jsonb — array, comma-string, or null
-  created_at: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -229,7 +206,9 @@ const _listeners = new Set<CacheUpdateListener>();
  */
 export function subscribeToCaseStudies(listener: CacheUpdateListener): () => void {
   _listeners.add(listener);
-  return () => { _listeners.delete(listener); };
+  return () => {
+    _listeners.delete(listener);
+  };
 }
 
 /**
@@ -332,10 +311,14 @@ function validateRow(row: CaseStudyListRow): boolean {
  */
 export function mapDifficulty(raw: string | null | undefined): CaseDifficulty {
   switch (raw) {
-    case 'Beginner':     return 'Easy';
-    case 'Intermediate': return 'Medium';
-    case 'Advanced':     return 'Hard';
-    default:             return 'Medium';
+    case 'Beginner':
+      return 'Easy';
+    case 'Intermediate':
+      return 'Medium';
+    case 'Advanced':
+      return 'Hard';
+    default:
+      return 'Medium';
   }
 }
 
@@ -346,18 +329,6 @@ function resolveCategory(row: CaseStudyListRow): string {
   return 'General';
 }
 
-/**
- * Parse the `hints` jsonb column.
- * Accepts: proper string array, comma-separated string (legacy rows), null.
- */
-function parseHints(raw: unknown): string[] {
-  if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
-  if (typeof raw === 'string' && raw.trim()) {
-    return raw.split(',').map(h => h.trim()).filter(Boolean);
-  }
-  return [];
-}
-
 /** Row → CaseStudy.  Assumes validateRow already approved this row. */
 function transformListRow(row: CaseStudyListRow): CaseStudy {
   const resolvedLogo = getCaseStudyImageUrl(row.image_url);
@@ -365,7 +336,9 @@ function transformListRow(row: CaseStudyListRow): CaseStudy {
   if (row.image_url && resolvedLogo === null) {
     // getCaseStudyImageUrl already warned about the specific reason; log the
     // case ID here once so it is easy to find the offending row in Supabase.
-    console.warn(`[caseStudyService] id=${row.id}: image_url could not be resolved — showing placeholder`);
+    console.warn(
+      `[caseStudyService] id=${row.id}: image_url could not be resolved — showing placeholder`
+    );
   }
 
   return {
@@ -378,24 +351,6 @@ function transformListRow(row: CaseStudyListRow): CaseStudy {
     category: resolveCategory(row),
     // Clamp negative values — validateRow already warned about them
     attempts: typeof row.attempts === 'number' ? Math.max(0, row.attempts) : 0,
-  };
-}
-
-/** Row → CaseStudyDetail.  Reuses transformListRow for all shared fields. */
-function transformDetailRow(row: CaseStudyDetailRow): CaseStudyDetail {
-  const base = transformListRow(row);
-  return {
-    ...base,
-    background: row.background?.trim() || '',
-    problem: row.problem_statement?.trim() || '',
-    constraints: row.constraints?.trim() || '',
-    expectedOutcome: row.expected_outcome?.trim() || '',
-    hints: parseHints(row.hints),
-    publishedDate: row.created_at
-      ? new Date(row.created_at).toLocaleDateString('en-US', {
-          year: 'numeric', month: 'short', day: 'numeric',
-        })
-      : '',
   };
 }
 
@@ -454,9 +409,7 @@ async function fetchFromDB(): Promise<CaseStudy[]> {
   // block in the caller handles all failure modes uniformly.
   if (error) throw error;
 
-  const cases = (data as CaseStudyListRow[])
-    .filter(validateRow)
-    .map(transformListRow);
+  const cases = (data as CaseStudyListRow[]).filter(validateRow).map(transformListRow);
 
   // ── Version guard ──────────────────────────────────────────────────────────
   if (_cacheVersion !== capturedVersion) {
@@ -465,8 +418,8 @@ async function fetchFromDB(): Promise<CaseStudy[]> {
     // overwriting a more up-to-date cache entry.
     console.warn(
       `[caseStudyService] Discarding fetch result: cache was invalidated mid-flight ` +
-      `(started at v${capturedVersion}, current v${_cacheVersion}). ` +
-      `A newer fetch will populate the cache.`
+        `(started at v${capturedVersion}, current v${_cacheVersion}). ` +
+        `A newer fetch will populate the cache.`
     );
     return cases; // still return to immediate callers — they get data, just not cached
   }
@@ -475,8 +428,8 @@ async function fetchFromDB(): Promise<CaseStudy[]> {
   if (cases.length > CACHE_SIZE_WARN_THRESHOLD) {
     console.warn(
       `[caseStudyService] Cache holds ${cases.length} case studies — ` +
-      `exceeds the expected threshold of ${CACHE_SIZE_WARN_THRESHOLD}. ` +
-      `Review DB contents or enable server-side pagination.`
+        `exceeds the expected threshold of ${CACHE_SIZE_WARN_THRESHOLD}. ` +
+        `Review DB contents or enable server-side pagination.`
     );
   }
 
@@ -522,8 +475,7 @@ function fetchAndCache(): Promise<CaseStudy[]> {
  *  empty  — no data → awaits a deduplicated fetch, then returns results.
  */
 export async function fetchCaseStudies(limit?: number): Promise<FetchCaseStudiesResult> {
-  const slice = (cases: CaseStudy[]) =>
-    limit !== undefined ? cases.slice(0, limit) : cases;
+  const slice = (cases: CaseStudy[]) => (limit !== undefined ? cases.slice(0, limit) : cases);
 
   const state = getCacheState();
 
@@ -544,8 +496,8 @@ export async function fetchCaseStudies(limit?: number): Promise<FetchCaseStudies
       // includes both the error and the cache age so the severity is clear.
       console.error(
         `[caseStudyService] Background revalidation failed ` +
-        `(cache is ${staleAgeSec}s old, stale data will continue to be served). ` +
-        `Error: ${err instanceof Error ? err.message : String(err)}`
+          `(cache is ${staleAgeSec}s old, stale data will continue to be served). ` +
+          `Error: ${err instanceof Error ? err.message : String(err)}`
       );
     });
 
@@ -558,42 +510,5 @@ export async function fetchCaseStudies(limit?: number): Promise<FetchCaseStudies
     return { data: slice(cases), error: null };
   } catch (err) {
     return { data: [], error: toErrorString('fetchCaseStudies', err) };
-  }
-}
-
-/**
- * Fetch the full detail for a single case study by ID.
- *
- * Returns `{ data: null, error: null }` when the row does not exist —
- * callers should treat this as a 404 (redirect or show an empty state).
- * Returns `{ data: null, error: string }` on any DB or network failure.
- */
-export async function fetchCaseStudyById(
-  id: string
-): Promise<FetchCaseStudyDetailResult> {
-  if (!id?.trim()) {
-    return { data: null, error: 'Case study ID is required.' };
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('case_studies')
-      .select(
-        'id, title, company, image_url, problem_statement, background, ' +
-        'difficulty, category, attempts, tags, ' +
-        'constraints, expected_outcome, hints, created_at'
-      )
-      .eq('id', id.trim())
-      .single();
-
-    if (error) throw error;
-    if (!data) return { data: null, error: null };
-
-    const row = data as CaseStudyDetailRow;
-    if (!validateRow(row)) return { data: null, error: null };
-
-    return { data: transformDetailRow(row), error: null };
-  } catch (err) {
-    return { data: null, error: toErrorString(`fetchCaseStudyById(${id})`, err) };
   }
 }

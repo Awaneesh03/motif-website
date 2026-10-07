@@ -111,24 +111,6 @@ export const getUnreadCount = async (userId: string): Promise<number> => {
   );
 };
 
-// Mark notification as read
-export const markAsRead = async (notificationId: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', notificationId);
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Error marking notification as read:', error);
-    }
-    return false;
-  }
-};
-
 // Mark all notifications as read for a user
 export const markAllAsRead = async (userId: string): Promise<boolean> => {
   try {

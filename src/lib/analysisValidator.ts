@@ -120,7 +120,7 @@ function resetRegexes() {
   YEAR_REVENUE_RE.lastIndex = 0;
 }
 
-function disclaimSuspiciousText(text: string, _fieldName: string): { text: string; flagged: boolean } {
+function disclaimSuspiciousText(text: string): { text: string; flagged: boolean } {
   resetRegexes();
   if (containsSuspiciousData(text)) {
     resetRegexes();
@@ -140,7 +140,7 @@ function sanitiseStringArray(
   if (!Array.isArray(items)) return fallback;
   return items.map((item, i) => {
     if (typeof item !== 'string') return fallback[0] || 'N/A';
-    const { text, flagged } = disclaimSuspiciousText(item, `${fieldName}[${i}]`);
+    const { text, flagged } = disclaimSuspiciousText(item);
     if (flagged) flags.push(`${fieldName}[${i}]`);
     return text;
   });
@@ -244,7 +244,7 @@ export function validateAndSanitise(raw: unknown): SafeAnalysisResult {
     : 'Specific data unavailable without market research.';
 
   const { text: cleanedMarketReasoning, flagged: mrFlagged } =
-    disclaimSuspiciousText(marketReasoning, 'market_reasoning');
+    disclaimSuspiciousText(marketReasoning);
   if (mrFlagged) flags.push('market_reasoning');
 
   // ── Competitors ────────────────────────────────────────────────────────────
@@ -291,7 +291,7 @@ export function validateAndSanitise(raw: unknown): SafeAnalysisResult {
       : 'Insufficient data for a confident assessment.';
 
   const { text: cleanedOverall, flagged: oaFlagged } =
-    disclaimSuspiciousText(overallAssessment, 'overall_assessment');
+    disclaimSuspiciousText(overallAssessment);
   if (oaFlagged) flags.push('overall_assessment');
 
   const recommendations = sanitiseStringArray(
