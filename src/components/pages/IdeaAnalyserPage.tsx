@@ -24,18 +24,11 @@ import {
   TrendingDown,
   HelpCircle,
 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../lib/supabase';
 import { logActivity } from '../../lib/activityService';
-
-// Set up PDF.js worker
-GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
-
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
@@ -52,7 +45,13 @@ import {
 import { serverWarmup, type WarmupStatus } from '../../lib/serverWarmup';
 import type { SafeAnalysisResult, GeneratedIdea } from '../../lib/aiAnalysis';
 import { fromLegacyResult } from '../../lib/analysisValidator';
-import type { Competitor } from '../../lib/analysisValidator';
+import type { Competitor } from '../../lib/analysisValidator';
+
+// Set up PDF.js worker
+GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 interface IdeaAnalyserPageProps {
   onNavigate?: (page: string) => void;
@@ -111,6 +110,8 @@ function truncateText(text: string, limit: number): string {
 export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
   const { user, profile, displayName } = useUser();
   const navigate = useNavigate();
+  // Admins run the analyser inside the admin shell; keep results there too
+  const ideaBase = useLocation().pathname.startsWith('/admin') ? '/admin/idea' : '/idea';
 
   // Storage key is user-specific — prevents one user seeing another user's data
   const FORM_STORAGE_KEY = `motif-idea-analyser-form-${user?.id ?? 'anon'}`;
@@ -335,7 +336,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
             status.analysisId ? { analysisId: status.analysisId } : undefined
           );
           if (status.analysisId) {
-            navigate(`/idea/${status.analysisId}`);
+            navigate(`${ideaBase}/${status.analysisId}`);
             return;
           }
           setAnalysisResult(status.safeResult);
@@ -775,7 +776,7 @@ export function IdeaAnalyserPage({ onNavigate }: IdeaAnalyserPageProps) {
             );
 
             if (resolvedAnalysisId) {
-              navigate(`/idea/${resolvedAnalysisId}`);
+              navigate(`${ideaBase}/${resolvedAnalysisId}`);
               return;
             }
             // Inline fallback — should rarely happen now

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -88,6 +88,7 @@ interface SavedAnalysisPageProps {
 export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile, displayName } = useUser();
   const [raw, setRaw] = useState<SavedAnalysisData | null>(null);
   const [result, setResult] = useState<SafeAnalysisResult | null>(null);
@@ -107,7 +108,7 @@ export function SavedAnalysisPage({ onNavigate }: SavedAnalysisPageProps) {
     if (onNavigate) {
       onNavigate('Idea Analyser');
     } else {
-      navigate('/idea-analyser');
+      navigate(location.pathname.startsWith('/admin') ? '/admin/idea-analyser' : '/idea-analyser');
     }
   };
 

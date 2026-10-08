@@ -35,6 +35,15 @@
   --chart-4: #b4533a;
   --chart-5: #6f8f5a;
 
+  /* Global theme rules reference these brand vars; keep them admin-coloured */
+  --brand: #1d5c52;
+  --brand-deep: #154a42;
+  --brand-bright: #b8862f;
+  --brand-soft: #e7efe9;
+  --brand-sage: #b9cdb2;
+  --brand-sage-deep: #4f7f5c;
+  --brand-ink: #102a2c;
+
   --adm-rail: #102a2c;
   --adm-rail-text: #c9d6d1;
   --adm-rail-muted: #7f9893;
@@ -67,6 +76,16 @@
   --border: #25332f;
   --input: #25332f;
   --ring: #d4a957;
+
+  --brand: #5fb3a1;
+  --brand-deep: #3f8f7f;
+  --brand-bright: #d4a957;
+  --brand-soft: #1a2a27;
+  --brand-ink: #0a1110;
+  --ink-0: #0e1514;
+  --ink-1: #141e1d;
+  --ink-2: #1a2524;
+  --ink-card: #141e1d;
 
   --adm-rail: #0a1110;
   --adm-rail-hover: #13201e;
@@ -370,14 +389,6 @@
   font-family: var(--adm-serif);
   font-weight: 600;
   letter-spacing: -0.015em;
-}
-
-/* Cards: replace the glassy lavender surface with paper */
-#admin-root .glass-surface {
-  background: var(--card) !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: var(--adm-shadow) !important;
-  backdrop-filter: none !important;
 }
 
 /* ── Status chips ──────────────────────────────────────────────────────── */
@@ -817,32 +828,42 @@ button.adm-kpi:focus-visible {
   font-size: 13.5px;
 }
 
-/* ── Dark mode: neutralise the global lavender button rules inside admin ── */
+/* Overrides of layered !important rules in index.css must live in the same
+   layer — an unlayered !important always loses to a layered one. */
+@layer utilities {
+  .dark #admin-root button[data-slot='button'][class*='bg-primary'] {
+    background: var(--primary) !important;
+    border: 1px solid transparent !important;
+    color: var(--primary-foreground) !important;
+    box-shadow: none !important;
+  }
 
-.dark #admin-root button[data-slot='button']:not([class*='outline']):not([class*='ghost']):not([class*='secondary']) {
-  background: var(--primary) !important;
-  border: 1px solid transparent !important;
-  color: var(--primary-foreground) !important;
-  box-shadow: none !important;
-}
+  .dark #admin-root button[data-slot='button'][class*='bg-primary'] * {
+    color: inherit !important;
+  }
 
-.dark #admin-root button[data-slot='button']:not([class*='outline']):not([class*='ghost']):not([class*='secondary']) * {
-  color: inherit !important;
-}
+  .dark #admin-root button[data-slot='button'][class*='bg-background'] {
+    background: transparent !important;
+    border-color: var(--border) !important;
+    color: var(--foreground) !important;
+    box-shadow: none !important;
+  }
 
-.dark #admin-root button[data-slot='button'][class*='outline'] {
-  border-color: var(--border) !important;
-  color: var(--foreground) !important;
-  box-shadow: none !important;
-}
+  .dark #admin-root button[data-slot='button'][class*='bg-background']:hover {
+    border-color: var(--accent) !important;
+    background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+  }
 
-.dark #admin-root button[data-slot='button'][class*='outline']:hover {
-  border-color: var(--accent) !important;
-  background-color: color-mix(in srgb, var(--accent) 10%, transparent) !important;
-}
+  .dark #admin-root button:hover {
+    box-shadow: none !important;
+  }
 
-.dark #admin-root button:hover {
-  box-shadow: none;
+  #admin-root .glass-surface {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--adm-shadow) !important;
+    backdrop-filter: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

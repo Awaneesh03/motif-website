@@ -12,14 +12,12 @@ import { NotFoundPage } from './components/pages/NotFoundPage';
 import { supabase } from './lib/supabase';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { serverWarmup } from './lib/serverWarmup';
-
-// Role-based routing
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RoleRedirect } from './components/RoleRedirect';
 import { UserRole } from './types/roles';
-import { VCLayout } from './layouts/VCLayout';
 
-// Admin shell (and its theme CSS/fonts) only downloads for admins
+// Portal shells (and their theme CSS/fonts) only download for those roles
+const VCLayout = lazy(() => import('./layouts/VCLayout').then(m => ({ default: m.VCLayout })));
 const AdminLayout = lazy(() =>
   import('./layouts/AdminLayout').then(m => ({ default: m.AdminLayout }))
 );
@@ -149,10 +147,20 @@ function AppContent() {
       Notifications: '/notifications',
     };
 
+    // Admins use the founder tools inside the admin shell, so keep them there
+    const adminRouteMap: Record<string, string> = {
+      'Idea Analyser': '/admin/idea-analyser',
+      'Pitch Creator': '/admin/pitch-creator',
+      'saved-ideas': '/admin/saved-ideas',
+      'saved-analysis': '/admin/saved-analysis',
+      Dashboard: '/admin/dashboard',
+    };
+    const inAdmin = location.pathname.startsWith('/admin');
+
     if (caseId) {
       navigate(`/case-studies/${caseId}`);
     } else {
-      navigate(routeMap[page] || '/');
+      navigate((inAdmin && adminRouteMap[page]) || routeMap[page] || '/');
     }
   };
 
@@ -277,6 +285,47 @@ function AppContent() {
               element={
                 <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
                   <AdminCaseStudyForm />
+                </ProtectedRoute>
+              }
+            />
+            {/* Founder tools, rendered inside the admin shell for admins */}
+            <Route
+              path="/admin/idea-analyser"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <IdeaAnalyserPage onNavigate={handleNavigate} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/pitch-creator"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <PitchCreatorPage onNavigate={handleNavigate} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/saved-ideas"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <SavedIdeasPage onNavigate={handleNavigate} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/saved-analysis"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <SavedAnalysisPage onNavigate={handleNavigate} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/idea/:id"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <SavedAnalysisPage onNavigate={handleNavigate} />
                 </ProtectedRoute>
               }
             />

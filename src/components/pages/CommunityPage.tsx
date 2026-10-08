@@ -82,6 +82,7 @@ interface LogContext {
 }
 
 const logError = (action: string, error: any, ctx?: LogContext) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- drop latencyBucket from the log payload
   const { latencyBucket: _omit, ...rest } = ctx ?? {};
   console.error('[IdeaForge:Community]', {
     seq: nextSeq(),
@@ -104,7 +105,7 @@ const logError = (action: string, error: any, ctx?: LogContext) => {
  * Note: the underlying request is NOT cancelled (AbortSignal can be layered
  * on top when needed), but the caller gets immediate feedback.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
   let tid: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
@@ -154,7 +155,7 @@ const fetchInsertedRow = async (
  * instead of title. Only used when FEATURE_IDEMPOTENCY_KEY is true and the DB
  * column + unique index exist. Retries with back-off identical to fetchInsertedRow.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const fetchInsertedRowByRequestId = async (
   authorId: string,
   requestId: string,
@@ -417,7 +418,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
 
   // Supabase community ideas
   const [supabaseIdeas, setSupabaseIdeas] = useState<CommunityIdea[]>([]);
-  const [_isLoadingCommunityIdeas, setIsLoadingCommunityIdeas] = useState(true);
   const [postOptionDialogOpen, setPostOptionDialogOpen] = useState(false);
   // ID of the most recently posted idea — drives brief highlight + scroll-into-view
   const [highlightedIdeaId, setHighlightedIdeaId] = useState<string | null>(null);
@@ -505,7 +505,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
       clearTimeout(focusTid);
       supabase.removeChannel(commentChannel);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [commentPanelOpen, selectedIdea?.id]);
 
   // Fetch analyzed ideas when post dialog opens
@@ -633,7 +633,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     const generation = ++fetchGenerationRef.current;
     isFetchingRef.current = true;
     fetchStartTimeRef.current = Date.now();
-    setIsLoadingCommunityIdeas(true);
     try {
       const { data: ideas, error: ideasError } = await supabase
         .from('community_ideas')
@@ -731,7 +730,6 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
     } finally {
       isFetchingRef.current = false;
       lastFetchCompletedAtRef.current = Date.now();
-      if (generation === fetchGenerationRef.current) setIsLoadingCommunityIdeas(false);
       // A realtime event arrived while this fetch was in-flight and was skipped
       // to avoid a redundant parallel request. Do a trailing fetch now that we
       // are clear, so no DB change is silently dropped.
@@ -1354,7 +1352,7 @@ export function CommunityPage({ onNavigate }: CommunityPageProps) {
   return (
     <div className="bg-background">
       {/* Hero */}
-      <section className="relative overflow-hidden py-12 md:py-14" style={{ background: 'linear-gradient(135deg, rgba(201, 167, 235, 0.85) 0%, rgba(176, 132, 232, 0.9) 100%)' }}>
+      <section className="relative overflow-hidden py-12 md:py-14" style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--brand) 85.0%, transparent) 0%, color-mix(in srgb, var(--brand-deep) 90.0%, transparent) 100%)' }}>
         <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 15 }}

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, Moon, Sun, LayoutDashboard, Building2, Clock, LogOut } from 'lucide-react';
+import { Menu, Moon, Sun, LayoutDashboard, Building2, Layers, LogOut } from 'lucide-react';
 
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +13,12 @@ interface VCNavbarProps {
   toggleTheme: () => void;
 }
 
+const navLinks = [
+  { label: 'Dashboard', href: '/vc/dashboard', icon: LayoutDashboard },
+  { label: 'Startups', href: '/vc/startups', icon: Building2 },
+  { label: 'Pipeline', href: '/vc/pipeline', icon: Layers },
+];
+
 export const VCNavbar = ({ isDark, toggleTheme }: VCNavbarProps) => {
   const { profile } = useUser();
   const location = useLocation();
@@ -23,143 +29,90 @@ export const VCNavbar = ({ isDark, toggleTheme }: VCNavbarProps) => {
     window.location.href = '/auth';
   };
 
-  const navLinks = [
-    { label: 'Dashboard', href: '/vc/dashboard', icon: LayoutDashboard },
-    { label: 'Startups', href: '/vc/startups', icon: Building2 },
-    { label: 'Pending', href: '/vc/pending', icon: Clock },
-  ];
+  const isActive = (href: string) =>
+    location.pathname === href || location.pathname.startsWith(`${href}/`);
+  const initial = profile?.name?.charAt(0).toUpperCase() || 'V';
 
   return (
-    <nav className="bg-background border-b border-border sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          {/* Logo */}
-          <div className="flex items-center gap-8">
-            <Link to="/vc/dashboard" className="text-2xl font-bold text-foreground">
-              Motif
-            </Link>
+    <nav className="vc-nav">
+      <div className="vc-nav__inner">
+        <Link to="/vc/dashboard" className="vc-brand">
+          Motif<span className="vc-brand__tag">Capital</span>
+        </Link>
 
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center gap-1">
-              {navLinks.map(link => (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    location.pathname === link.href
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
-                >
-                  <link.icon className="h-4 w-4" />
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Right side - Desktop */}
-          <div className="hidden md:flex items-center gap-3">
-            {/* Theme Toggle */}
-            <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={toggleTheme} className="rounded-full">
-              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-
-            {/* Notification Bell */}
-            <NotificationBell variant="dark" />
-
-            {/* Profile Display */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-semibold text-primary">
-                  {profile?.name?.charAt(0).toUpperCase() || 'V'}
-                </span>
-              </div>
-              <span className="text-sm text-foreground">{profile?.name || 'VC Account'}</span>
-            </div>
-
-            {/* Logout Button */}
-            <Button
-              onClick={handleLogout}
-              variant="destructive"
-              size="sm"
-              className="rounded-lg"
+        <div className="vc-nav__links">
+          {navLinks.map(link => (
+            <Link
+              key={link.href}
+              to={link.href}
+              className={`vc-nav__link${isActive(link.href) ? ' is-active' : ''}`}
+              aria-current={isActive(link.href) ? 'page' : undefined}
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+              <link.icon />
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="vc-nav__actions">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Toggle theme"
+            onClick={toggleTheme}
+            className="vc-icon-btn"
+          >
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+          <NotificationBell variant="dark" />
+
+          <div className="vc-user">
+            <span className="vc-avatar">{initial}</span>
+            <span className="vc-user__name">{profile?.name || 'Investor'}</span>
           </div>
+          <button type="button" className="vc-signout" onClick={handleLogout}>
+            <LogOut size={16} />
+            <span className="vc-signout__label">Sign out</span>
+          </button>
 
-          {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center gap-2">
-            {/* Theme Toggle */}
-            <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={toggleTheme} className="rounded-full">
-              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-
-            {/* Notification Bell */}
-            <NotificationBell variant="dark" />
-
-            {/* Mobile Menu */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open menu">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[320px] p-0">
-                <SheetHeader className="p-4 border-b border-border">
-                  <SheetTitle className="text-left">VC Portal</SheetTitle>
-                </SheetHeader>
-
-                {/* Profile Section in Mobile */}
-                <div className="p-4 border-b border-border bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-lg font-semibold text-primary">
-                        {profile?.name?.charAt(0).toUpperCase() || 'V'}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">{profile?.name || 'VC Account'}</p>
-                      <p className="text-xs text-muted-foreground">Verified Investor</p>
-                    </div>
-                  </div>
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Open menu" className="vc-icon-btn vc-mobile-only">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="vc-sheet p-0">
+              <SheetHeader className="vc-sheet__head">
+                <SheetTitle className="vc-brand">
+                  Motif<span className="vc-brand__tag">Capital</span>
+                </SheetTitle>
+              </SheetHeader>
+              <div className="vc-sheet__user">
+                <span className="vc-avatar">{initial}</span>
+                <div>
+                  <div className="vc-user__name">{profile?.name || 'Investor'}</div>
+                  <div className="vc-sheet__role">Verified investor</div>
                 </div>
-
-                {/* Navigation Links */}
-                <div className="p-4 flex flex-col gap-1">
-                  {navLinks.map(link => (
-                    <Link
-                      key={link.href}
-                      to={link.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                        location.pathname === link.href
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                      }`}
-                    >
-                      <link.icon className="h-5 w-5" />
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
-
-                {/* Logout Button in Mobile */}
-                <div className="p-4 mt-auto border-t border-border">
-                  <Button
-                    onClick={handleLogout}
-                    variant="destructive"
-                    className="w-full rounded-lg"
+              </div>
+              <div className="vc-sheet__links">
+                {navLinks.map(link => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`vc-sheet__link${isActive(link.href) ? ' is-active' : ''}`}
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
+                    <link.icon />
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+              <button type="button" className="vc-signout vc-signout--sheet" onClick={handleLogout}>
+                <LogOut size={16} />
+                Sign out
+              </button>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </nav>

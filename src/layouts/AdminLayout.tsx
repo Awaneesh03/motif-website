@@ -7,6 +7,7 @@ import {
   BookOpen,
   Lightbulb,
   Presentation,
+  FolderOpen,
   LogOut,
   Menu,
 } from 'lucide-react';
@@ -14,7 +15,6 @@ import {
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';
 import { NotificationBell } from '@/components/NotificationBell';
-import { AdminToolsDropdown } from '@/components/AdminToolsDropdown';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -36,8 +36,9 @@ const navGroups = [
   {
     label: 'Tools',
     links: [
-      { to: '/idea-analyser', icon: Lightbulb, label: 'Idea Analyser' },
-      { to: '/pitch-creator', icon: Presentation, label: 'Pitch Creator' },
+      { to: '/admin/idea-analyser', icon: Lightbulb, label: 'Idea Analyser' },
+      { to: '/admin/pitch-creator', icon: Presentation, label: 'Pitch Creator' },
+      { to: '/admin/saved-ideas', icon: FolderOpen, label: 'Saved Ideas' },
     ],
   },
 ];
@@ -117,7 +118,12 @@ export const AdminLayout = () => {
         <header className="adm-topbar">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="adm-mobile-only" aria-label="Open menu">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="adm-mobile-only"
+                aria-label="Open menu"
+              >
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -135,9 +141,6 @@ export const AdminLayout = () => {
           </div>
 
           <div className="adm-topbar__actions">
-            <div className="hidden sm:block">
-              <AdminToolsDropdown />
-            </div>
             <NotificationBell variant="default" />
           </div>
         </header>
@@ -150,7 +153,9 @@ export const AdminLayout = () => {
                   <p className="adm-eyebrow">Something went wrong</p>
                   <h2 className="adm-title">This admin view failed to load</h2>
                   <p className="adm-subtitle">Try again, or return to the overview.</p>
-                  <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}>
+                  <div
+                    style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}
+                  >
                     <Button onClick={() => window.location.reload()}>Try again</Button>
                     <Button
                       variant="outline"

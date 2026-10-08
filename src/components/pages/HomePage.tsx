@@ -2,10 +2,6 @@ import { motion } from 'motion/react';
 import { Lightbulb, Target, Rocket, Users, TrendingUp, Bot, CheckCircle2, Send, BookOpen } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-import { fetchCaseStudies, subscribeToCaseStudies } from '@/lib/caseStudyService';
-import type { CaseStudy } from '@/lib/caseStudyService';
-import { fetchTrendingIdeas, subscribeTrendingIdeas } from '@/lib/communityService';
-import type { TrendingIdea } from '@/lib/communityService';
 
 import { Button } from '../ui/button';
 import { FeatureCard } from '../FeatureCard';
@@ -16,6 +12,11 @@ import { Skeleton } from '../ui/skeleton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Input } from '../ui/input';
+
+import type { TrendingIdea } from '@/lib/communityService';
+import { fetchTrendingIdeas, subscribeTrendingIdeas } from '@/lib/communityService';
+import type { CaseStudy } from '@/lib/caseStudyService';
+import { fetchCaseStudies, subscribeToCaseStudies } from '@/lib/caseStudyService';
 
 const features = [
   {

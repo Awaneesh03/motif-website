@@ -219,7 +219,7 @@ export function VCConnectionPage({ onNavigate }: VCConnectionPageProps) {
     if (fundingModalOpen && user) {
       fetchAndPrefillQualification();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [fundingModalOpen, user]);
 
   // Scroll the modal back to the top whenever the active step changes

@@ -5,6 +5,7 @@ import { ArrowLeft, Home } from 'lucide-react';
 import { VCNavbar } from '@/components/vc/VCNavbar';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
+import '@/styles/vc.css';
 
 export const VCLayout = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export const VCLayout = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div id="vc-root" className="vc-shell flex min-h-screen flex-col">
       <VCNavbar isDark={isDark} toggleTheme={toggleTheme} />
       <main className="flex-1">
         <ErrorBoundary

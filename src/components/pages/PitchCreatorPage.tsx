@@ -250,7 +250,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     } catch {
       localStorage.removeItem(PITCH_CACHE_KEY);
     }
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id]);  
 
   // Pre-fill form when user selects a saved idea
   const handleSelectIdea = (ideaId: string) => {
@@ -468,7 +468,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
     const margin = 22;
 
     // ── Cover page ──────────────────────────────────────────────────
-    doc.setFillColor(201, 167, 235);         // lavender #C9A7EB
+    doc.setFillColor(194, 85, 45);         // lavender var(--brand)
     doc.rect(0, 0, pageW, pageH, 'F');
 
     doc.setFillColor(150, 90, 210);          // darker accent strip at bottom
@@ -515,7 +515,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
         doc.addPage();
 
         // Header bar
-        doc.setFillColor(201, 167, 235);
+        doc.setFillColor(194, 85, 45);
         doc.rect(0, 0, pageW, 18, 'F');
 
         // Slide counter (top-right, inside header)
@@ -534,7 +534,7 @@ export function PitchCreatorPage({ onNavigate }: PitchCreatorPageProps) {
         doc.text(isContinuation ? `${slide.title} (cont.)` : slide.title, margin, 36);
 
         // Divider
-        doc.setDrawColor(201, 167, 235);
+        doc.setDrawColor(194, 85, 45);
         doc.setLineWidth(0.5);
         doc.line(margin, 42, pageW - margin, 42);
 

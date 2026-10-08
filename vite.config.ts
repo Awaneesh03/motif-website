@@ -1,6 +1,7 @@
+import path from 'path';
+
 import { defineConfig, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react-swc';
-import path from 'path';
 
 // Custom plugin to ensure SPA fallback works correctly
 function spaFallbackPlugin(): PluginOption {

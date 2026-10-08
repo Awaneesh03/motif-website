@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+
 import { apiClient } from '@/lib/api-client';
 
 export interface FounderScoreBreakdown {

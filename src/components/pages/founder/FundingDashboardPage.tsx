@@ -20,12 +20,11 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { supabase, isSafeHttpsUrl } from '@/lib/supabase';
 
+import { supabase, isSafeHttpsUrl } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-
 import {
   getMyApplications,
   type VcApplicationResponse,

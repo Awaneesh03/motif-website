@@ -18,6 +18,7 @@ import {
   CalendarDays,
   Users,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -30,7 +31,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { StarRating } from '../ui/star-rating';
 import { Skeleton } from '../ui/skeleton';
 
-import { toast } from 'sonner';
 
 import { supabase } from '@/lib/supabase';
 import { mapDifficulty } from '@/lib/caseStudyService';

@@ -187,8 +187,8 @@ export function Chatbot({ isDark }: ChatbotProps) {
           height: '64px',
           borderRadius: '50%',
           background: isDark
-            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            ? 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)'
+            : 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)',
           color: 'white',
           border: 'none',
           cursor: 'pointer',
@@ -265,7 +265,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                 width: '40px',
                 height: '40px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -278,7 +278,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                   fontWeight: '700',
                   fontSize: '18px',
                   color: isDark ? '#f9fafb' : '#111827',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  background: 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)',
                   backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
@@ -301,7 +301,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                 title={isMentorMode ? 'Switch to General mode' : 'Switch to Mentor mode (uses your analyzed idea)'}
                 style={{
                   background: isMentorMode
-                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    ? 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)'
                     : 'none',
                   border: isMentorMode ? 'none' : `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}`,
                   borderRadius: '8px',
@@ -421,7 +421,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                   height: '36px',
                   borderRadius: '12px',
                   background: message.role === 'user'
-                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    ? 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)'
                     : (isDark ? 'linear-gradient(135deg, #374151 0%, #4b5563 100%)' : 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)'),
                   color: message.role === 'user'
                     ? '#ffffff'
@@ -440,7 +440,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                   padding: '14px 18px',
                   borderRadius: '18px',
                   background: message.role === 'user'
-                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    ? 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)'
                     : (isDark
                       ? 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
                       : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'),
@@ -496,7 +496,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                     width: '8px',
                     height: '8px',
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)',
                     animation: 'typingDot 1.4s infinite',
                     animationDelay: '0s'
                   }}></div>
@@ -504,7 +504,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                     width: '8px',
                     height: '8px',
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)',
                     animation: 'typingDot 1.4s infinite',
                     animationDelay: '0.2s'
                   }}></div>
@@ -512,7 +512,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                     width: '8px',
                     height: '8px',
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)',
                     animation: 'typingDot 1.4s infinite',
                     animationDelay: '0.4s'
                   }}></div>
@@ -557,7 +557,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
                 disabled={isLoading || !inputValue.trim()}
                 style={{
                   background: inputValue.trim()
-                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    ? 'linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%)'
                     : (isDark ? '#374151' : '#e5e7eb'),
                   color: inputValue.trim() ? '#ffffff' : (isDark ? '#9ca3af' : '#6b7280'),
                   border: 'none',
@@ -647,7 +647,7 @@ export function Chatbot({ isDark }: ChatbotProps) {
         }
 
         .chatbot-window::-webkit-scrollbar-thumb {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-ink) 100%);
           border-radius: 2px;
         }
       `}</style>

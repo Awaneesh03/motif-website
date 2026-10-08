@@ -97,7 +97,7 @@
     --color-emerald-500: oklch(0.696 0.17 162.48);
     --color-blue-500: oklch(0.623 0.214 259.815);
     --color-blue-600: oklch(0.546 0.245 262.881);
-    --color-purple-600: oklch(0.558 0.288 302.321);
+    --color-purple-600: var(--brand-deep);
     --color-gray-100: oklch(0.967 0.003 264.542);
     --color-gray-400: oklch(0.707 0.022 261.325);
     --color-black: #000;
@@ -1458,7 +1458,7 @@
   }
 
   .border-\[\#A9F5D0\] {
-    border-color: #a9f5d0;
+    border-color: var(--brand-sage);
   }
 
   .border-border {
@@ -1556,7 +1556,7 @@
   }
 
   .bg-\[\#A9F5D0\] {
-    background-color: #a9f5d0;
+    background-color: var(--brand-sage);
   }
 
   .bg-\[\#A9F5D0\]\/10 {
@@ -2332,11 +2332,11 @@
   }
 
   .text-\[\#0E1020\] {
-    color: #0e1020;
+    color: var(--ink-0);
   }
 
   .text-\[\#A9F5D0\] {
-    color: #a9f5d0;
+    color: var(--brand-sage);
   }
 
   .text-\[\#B0B3C3\] {
@@ -3711,7 +3711,7 @@
 
   @media (hover: hover) {
     .dark\:hover\:shadow-\[0_0_8px_rgba\(201\,167\,235\,0\.45\)\]:is(.dark *):hover {
-      --tw-shadow: 0 0 8px var(--tw-shadow-color, #c9a7eb73);
+      --tw-shadow: 0 0 8px var(--tw-shadow-color, color-mix(in srgb, var(--brand) 45.1%, transparent));
       box-shadow:
         var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow),
         var(--tw-ring-shadow), var(--tw-shadow);
@@ -3907,7 +3907,7 @@
   }
 
   .gradient-lavender {
-    background: linear-gradient(135deg, #c9a7eb 0%, #b084e8 100%);
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
     box-shadow: inset 0 1px #ffffff14;
     color: #ffffff;
   }
@@ -3915,22 +3915,22 @@
   /* Only apply hover to button elements, not section backgrounds */
   button.gradient-lavender:hover,
   [data-slot='button'].gradient-lavender:hover {
-    background: linear-gradient(135deg, #d4b8f0 0%, #c098ed 100%);
-    box-shadow: 0 4px 20px #c9a7eb80;
+    background: linear-gradient(135deg, var(--brand-bright) 0%, var(--brand-deep) 100%);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--brand) 50.2%, transparent);
     opacity: 1;
   }
 
   .dark .gradient-lavender {
-    background: linear-gradient(135deg, #1a1b2e 0%, #252740 100%) !important;
-    border: 1px solid #c9a7eb60 !important;
-    color: #c9a7eb !important;
-    box-shadow: 0 4px 18px #c9a7eb30 !important;
+    background: linear-gradient(135deg, var(--ink-1) 0%, var(--ink-2) 100%) !important;
+    border: 1px solid color-mix(in srgb, var(--brand) 37.6%, transparent) !important;
+    color: var(--brand) !important;
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--brand) 18.8%, transparent) !important;
   }
 
   .dark .gradient-lavender:hover {
-    background: linear-gradient(135deg, #1a1b2e 0%, #252740 100%) !important;
-    border-color: #c9a7eb !important;
-    box-shadow: 0 4px 20px #c9a7eb80 !important;
+    background: linear-gradient(135deg, var(--ink-1) 0%, var(--ink-2) 100%) !important;
+    border-color: var(--brand) !important;
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--brand) 50.2%, transparent) !important;
     opacity: 1 !important;
   }
 
@@ -3941,7 +3941,7 @@
 
   .dark .gradient-lavender svg,
   .dark .gradient-lavender span {
-    color: #c9a7eb !important;
+    color: var(--brand) !important;
   }
 
   .glass-surface {
@@ -3957,11 +3957,11 @@
   }
 
   .shadow-lavender {
-    box-shadow: 0 4px 18px #c9a7eb59;
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--brand) 34.9%, transparent);
   }
 
   .dark .shadow-lavender {
-    box-shadow: 0 4px 18px #c9a7eb70;
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--brand) 43.9%, transparent);
   }
 
   .shadow-glass {
@@ -3969,14 +3969,14 @@
   }
 
   .text-gradient-lavender {
-    background: linear-gradient(135deg, #c9a7eb 0%, #b084e8 100%);
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   /* Light mode button styles */
   button:not(.gradient-lavender) {
-    color: #0e1020;
+    color: var(--ink-0);
   }
 
   button[variant='outline'] {
@@ -3985,19 +3985,19 @@
   }
 
   button:hover:not(.gradient-lavender) {
-    box-shadow: 0 0 8px #c9a7eb40;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--brand) 25.1%, transparent);
   }
 
   button[variant='ghost'] {
-    color: #0e1020;
+    color: var(--ink-0);
   }
 
   button[variant='ghost']:hover {
-    background: #c9a7eb1a;
+    background: color-mix(in srgb, var(--brand) 10.2%, transparent);
   }
 
   button[variant='secondary'] {
-    color: #0e1020;
+    color: var(--ink-0);
   }
 
   /* Light mode: bg-white buttons - make them outline style like border-white */
@@ -4048,37 +4048,37 @@
 
   .dark button[variant='default'],
   .dark button[data-slot='button']:not([class*='outline']):not([class*='ghost']):not([class*='secondary']):not(.gradient-lavender):not(.bg-white):not([class*="bg-white"]):not(.border-white):not([class*="border-white"]) {
-    background: linear-gradient(135deg, #1a1b2e 0%, #252740 100%) !important;
-    border: 1px solid #c9a7eb60 !important;
-    color: #c9a7eb !important;
-    box-shadow: 0 4px 18px #c9a7eb30 !important;
+    background: linear-gradient(135deg, var(--ink-1) 0%, var(--ink-2) 100%) !important;
+    border: 1px solid color-mix(in srgb, var(--brand) 37.6%, transparent) !important;
+    color: var(--brand) !important;
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--brand) 18.8%, transparent) !important;
   }
 
   .dark button[variant='default']:hover,
   .dark button[data-slot='button']:not([class*='outline']):not([class*='ghost']):not([class*='secondary']):not(.gradient-lavender):not(.bg-white):not([class*="bg-white"]):not(.border-white):not([class*="border-white"]):hover {
-    background: linear-gradient(135deg, #1a1b2e 0%, #252740 100%) !important;
-    border-color: #c9a7eb !important;
-    box-shadow: 0 4px 20px #c9a7eb80 !important;
+    background: linear-gradient(135deg, var(--ink-1) 0%, var(--ink-2) 100%) !important;
+    border-color: var(--brand) !important;
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--brand) 50.2%, transparent) !important;
     opacity: 1 !important;
   }
 
   .dark button[variant='default'] *,
   .dark button[data-slot='button']:not([class*='outline']):not([class*='ghost']):not([class*='secondary']):not(.gradient-lavender):not(.bg-white):not([class*="bg-white"]):not(.border-white):not([class*="border-white"]) * {
-    color: #c9a7eb !important;
+    color: var(--brand) !important;
   }
 
   .dark button[variant='outline']:not(.border-white):not([class*="border-white"]),
   .dark button[data-slot='button'][class*='outline']:not(.border-white):not([class*="border-white"]) {
-    border-color: #c9a7eb80 !important;
-    color: #c9a7eb !important;
+    border-color: color-mix(in srgb, var(--brand) 50.2%, transparent) !important;
+    color: var(--brand) !important;
     background-color: transparent !important;
   }
 
   .dark button[variant='outline']:hover:not(.border-white):not([class*="border-white"]),
   .dark button[data-slot='button'][class*='outline']:hover:not(.border-white):not([class*="border-white"]) {
-    border-color: #c9a7eb !important;
-    background-color: #c9a7eb1a !important;
-    box-shadow: 0 0 8px #c9a7eb60 !important;
+    border-color: var(--brand) !important;
+    background-color: color-mix(in srgb, var(--brand) 10.2%, transparent) !important;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--brand) 37.6%, transparent) !important;
   }
 
   .dark button[variant='outline'] *,
@@ -4087,7 +4087,7 @@
   }
 
   .dark button:hover:not(.gradient-lavender):not(.bg-white):not([class*="bg-white"]):not([variant='outline']) {
-    box-shadow: 0 0 8px #c9a7eb73;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--brand) 45.1%, transparent);
   }
 
   .dark button[variant='ghost'],
@@ -4115,39 +4115,39 @@
   /* Dark mode: fix white background buttons */
   .dark button.bg-white,
   .dark .bg-white button {
-    background: linear-gradient(135deg, #1a1b2e 0%, #252740 100%) !important;
-    border: 1px solid #c9a7eb60 !important;
-    color: #c9a7eb !important;
-    box-shadow: 0 4px 18px #c9a7eb30 !important;
+    background: linear-gradient(135deg, var(--ink-1) 0%, var(--ink-2) 100%) !important;
+    border: 1px solid color-mix(in srgb, var(--brand) 37.6%, transparent) !important;
+    color: var(--brand) !important;
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--brand) 18.8%, transparent) !important;
   }
 
   .dark button.bg-white:hover,
   .dark .bg-white button:hover {
-    background: linear-gradient(135deg, #1a1b2e 0%, #252740 100%) !important;
-    border-color: #c9a7eb !important;
-    box-shadow: 0 4px 20px #c9a7eb80 !important;
+    background: linear-gradient(135deg, var(--ink-1) 0%, var(--ink-2) 100%) !important;
+    border-color: var(--brand) !important;
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--brand) 50.2%, transparent) !important;
     opacity: 1 !important;
   }
 
   .dark button.bg-white *,
   .dark .bg-white button * {
-    color: #c9a7eb !important;
+    color: var(--brand) !important;
   }
 
   /* Dark mode: fix white border buttons */
   .dark button.border-white,
   .dark button[class*="border-white"] {
-    background: linear-gradient(135deg, #1a1b2e 0%, #252740 100%) !important;
-    border: 1px solid #c9a7eb60 !important;
-    color: #c9a7eb !important;
-    box-shadow: 0 4px 18px #c9a7eb30 !important;
+    background: linear-gradient(135deg, var(--ink-1) 0%, var(--ink-2) 100%) !important;
+    border: 1px solid color-mix(in srgb, var(--brand) 37.6%, transparent) !important;
+    color: var(--brand) !important;
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--brand) 18.8%, transparent) !important;
   }
 
   .dark button.border-white:hover,
   .dark button[class*="border-white"]:hover {
-    background: linear-gradient(135deg, #1a1b2e 0%, #252740 100%) !important;
-    border-color: #c9a7eb !important;
-    box-shadow: 0 4px 20px #c9a7eb80 !important;
+    background: linear-gradient(135deg, var(--ink-1) 0%, var(--ink-2) 100%) !important;
+    border-color: var(--brand) !important;
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--brand) 50.2%, transparent) !important;
     opacity: 1 !important;
   }
 
@@ -4155,24 +4155,38 @@
   .dark button[class*="border-white"] svg,
   .dark button.border-white span,
   .dark button[class*="border-white"] span {
-    color: #c9a7eb !important;
+    color: var(--brand) !important;
   }
 
   /* Ensure text-primary is visible in dark mode on dark backgrounds */
   .dark .text-primary:not(button):not([data-slot='button']) {
-    color: #c9a7eb !important;
+    color: var(--brand) !important;
   }
 }
 
 :root {
-  --color-primary-500: #c9a7eb;
-  --color-primary-600: #b084e8;
-  --color-accent-mint: #a9f5d0;
-  --color-gradient-start: #c9a7eb;
-  --color-gradient-end: #b084e8;
-  --color-bg-dark: #0e1020;
+  /* Brand palette: founder & public site ("Clay & Ink"). Admin and VC
+     sections override these in their own stylesheets. */
+  --brand: #c2552d;
+  --brand-deep: #9a4020;
+  --brand-bright: #dc7046;
+  --brand-soft: #f6e8df;
+  --brand-sage: #b8c99d;
+  --brand-sage-deep: #6b7f4f;
+  --brand-ink: #24435a;
+  --ink-0: #1c1917;
+  --ink-1: #2a2622;
+  --ink-2: #3a342e;
+  --ink-card: #ffffff;
+
+  --color-primary-500: var(--brand);
+  --color-primary-600: var(--brand-deep);
+  --color-accent-mint: var(--brand-sage);
+  --color-gradient-start: var(--brand);
+  --color-gradient-end: var(--brand-deep);
+  --color-bg-dark: var(--ink-0);
   --color-surface-glass: #ffffff0a;
-  --color-surface-dark: #12121b;
+  --color-surface-dark: var(--ink-card);
   --color-card-light: #fff;
   --color-text-primary-light: #f8f9fb;
   --color-text-muted: #b0b3c3;
@@ -4194,19 +4208,19 @@
   --radius-large: 24px;
   --radius-pill: 9999px;
   --font-size: 16px;
-  --background: #fff;
-  --foreground: #0e1020;
+  --background: #fcfaf7;
+  --foreground: var(--ink-0);
   --card: #fff;
-  --card-foreground: #0e1020;
+  --card-foreground: var(--ink-0);
   --popover: #fff;
-  --popover-foreground: #0e1020;
-  --primary: #c9a7eb;
+  --popover-foreground: var(--ink-0);
+  --primary: var(--brand);
   --primary-foreground: #fff;
-  --secondary: #a9f5d0;
-  --secondary-foreground: #0e1020;
+  --secondary: var(--brand-sage);
+  --secondary-foreground: var(--ink-0);
   --muted: #f3f4f6;
   --muted-foreground: #6b7280;
-  --accent: #c9a7eb;
+  --accent: var(--brand);
   --accent-foreground: #fff;
   --destructive: #ff7c7c;
   --destructive-foreground: #fff;
@@ -4216,7 +4230,7 @@
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #c9a7eb;
+  --ring: var(--brand);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -4225,34 +4239,46 @@
   --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #c9a7eb;
+  --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #fff;
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: #c9a7eb;
+  --sidebar-ring: var(--brand);
 }
 
 .dark {
-  --background: #0e1020;
+  --brand: #e2774f;
+  --brand-deep: #c2552d;
+  --brand-bright: #f08d66;
+  --brand-soft: #3a2419;
+  --brand-sage: #b9c99c;
+  --brand-sage-deep: #8fa36d;
+  --brand-ink: #4c7896;
+  --ink-0: #141210;
+  --ink-1: #1d1a17;
+  --ink-2: #29241f;
+  --ink-card: #1a1714;
+
+  --background: var(--ink-0);
   --foreground: #f8f9fb;
-  --card: #12121b;
+  --card: var(--ink-card);
   --card-foreground: #f8f9fb;
-  --popover: #12121b;
+  --popover: var(--ink-card);
   --popover-foreground: #f8f9fb;
-  --primary: #c9a7eb;
+  --primary: var(--brand);
   --primary-foreground: #f8f9fb;
-  --secondary: #a9f5d0;
-  --secondary-foreground: #0e1020;
-  --muted: #1f2937;
+  --secondary: var(--brand-sage);
+  --secondary-foreground: var(--ink-0);
+  --muted: #221f1b;
   --muted-foreground: #d6d8e5;
-  --accent: #c9a7eb;
+  --accent: var(--brand);
   --accent-foreground: #f8f9fb;
   --destructive: #ff7c7c;
   --destructive-foreground: #fff;
   --border: #fff3;
   --input: #ffffff0a;
-  --ring: #c9a7eb;
+  --ring: var(--brand);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --chart-1: oklch(0.488 0.243 264.376);
@@ -4260,14 +4286,14 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: #12121b;
+  --sidebar: var(--ink-card);
   --sidebar-foreground: #f8f9fb;
-  --sidebar-primary: #c9a7eb;
+  --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #fff;
   --sidebar-accent: #1f2937;
   --sidebar-accent-foreground: #f8f9fb;
   --sidebar-border: #ffffff0f;
-  --sidebar-ring: #c9a7eb;
+  --sidebar-ring: var(--brand);
 }
 
 html {
@@ -4665,5 +4691,39 @@ html {
 
   to {
     height: 0;
+  }
+}
+
+/* In the utilities layer so these can override the layered !important rules above */
+@layer utilities {
+  /* ── Founder theme refinements ─────────────────────────────────────────────
+     Page heroes: deep ink with a warm clay glow instead of a flat brand slab. */
+  section.gradient-lavender,
+  .dark section.gradient-lavender {
+    background:
+      radial-gradient(900px 420px at 88% -12%, color-mix(in srgb, var(--brand) 42%, transparent), transparent 62%),
+      radial-gradient(700px 380px at -6% 112%, color-mix(in srgb, var(--brand-sage) 16%, transparent), transparent 60%),
+      linear-gradient(160deg, var(--brand-ink) 0%, #15212a 100%) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #fff !important;
+  }
+
+  /* Hero primary action: solid clay on ink (the white CTA) */
+  section.gradient-lavender [data-slot='button'].bg-white,
+  .dark section.gradient-lavender [data-slot='button'].bg-white {
+    background: var(--brand) !important;
+    border: 1px solid color-mix(in srgb, #fff 18%, transparent) !important;
+    color: #fff !important;
+    box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--brand) 70%, transparent) !important;
+  }
+
+  section.gradient-lavender [data-slot='button'].bg-white:hover,
+  .dark section.gradient-lavender [data-slot='button'].bg-white:hover {
+    background: var(--brand-bright) !important;
+  }
+
+  section.gradient-lavender [data-slot='button'].bg-white * {
+    color: inherit !important;
   }
 }

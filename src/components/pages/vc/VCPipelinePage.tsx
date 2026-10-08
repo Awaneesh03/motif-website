@@ -13,7 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
 import {
   getAllApplications,
   updateApplicationStatus,
@@ -161,7 +160,7 @@ function AppCard({ app, onUpdated }: AppCardProps) {
       }
     }, 1500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [notes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [notes]);  
 
   const handleAction = useCallback(async (newStatus: ApplicationStatus) => {
     if (!canTransitionTo(app.status as ApplicationStatus, newStatus)) {

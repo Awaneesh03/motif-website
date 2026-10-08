@@ -73,6 +73,7 @@ export const getUserIdeas = async (userId: string): Promise<Idea[]> => {
       const key = idea._normalizedKey || idea.id;
       if (!seen.has(key)) {
         seen.add(key);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip internal dedupe key
         const { _normalizedKey, ...rest } = idea;
         ideas.push(rest);
       }
