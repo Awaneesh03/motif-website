@@ -238,7 +238,7 @@ const AdminCaseStudyForm = () => {
   return (
     <div>
       {/* Header */}
-      <section className="border-border border-b py-4">
+      <section className="adm-page-header border-b border-border py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center justify-between">
@@ -253,7 +253,7 @@ const AdminCaseStudyForm = () => {
                   Back to Case Studies
                 </Button>
                 <div>
-                  <h1 className="text-xl font-bold">
+                  <h1 className="text-2xl font-bold">
                     {isEditing ? 'Edit Case Study' : 'Create Case Study'}
                   </h1>
                   <p className="text-xs text-muted-foreground">

@@ -127,34 +127,34 @@ const AdminStartups = () => {
     const config = {
       draft: {
         label: 'Draft',
-        className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-0',
+        className: 'adm-chip adm-chip--neutral',
         icon: Clock,
       },
       pending_review: {
         label: 'Under Review',
-        className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-0',
+        className: 'adm-chip adm-chip--pending',
         icon: Clock,
       },
       approved_for_vc: {
         label: 'Approved',
-        className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-0',
+        className: 'adm-chip adm-chip--approved',
         icon: CheckCircle2,
       },
       rejected: {
         label: 'Rejected',
-        className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-0',
+        className: 'adm-chip adm-chip--rejected',
         icon: XCircle,
       },
       active: {
         label: 'Active',
-        className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 border-0',
+        className: 'adm-chip adm-chip--approved',
         icon: CheckCircle2,
       },
     };
 
     const statusConfig = config[status] || {
       label: status || 'Unknown',
-      className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-0',
+      className: 'adm-chip adm-chip--neutral',
       icon: Clock,
     };
 
@@ -181,11 +181,11 @@ const AdminStartups = () => {
   return (
     <div>
       {/* Header */}
-      <section className="border-b border-border py-4">
+      <section className="adm-page-header border-b border-border py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold mb-1">Startup Approvals</h1>
+              <h1 className="text-2xl font-bold mb-1">Startup Approvals</h1>
               <p className="text-muted-foreground text-xs">
                 Review and approve startup submissions for VC visibility
               </p>
@@ -250,38 +250,38 @@ const AdminStartups = () => {
               </CardContent>
             </Card>
 
-            <Card className="glass-surface border-border/50 bg-blue-50/50 dark:bg-blue-900/10">
+            <Card className="glass-surface adm-stat adm-stat--pending border-border/50">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">Pending</p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{pendingCount}</p>
+                    <p className="text-sm text-muted-foreground mb-1">Pending</p>
+                    <p className="text-2xl font-bold">{pendingCount}</p>
                   </div>
-                  <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400 opacity-50" />
+                  <Clock className="h-8 w-8 text-muted-foreground opacity-50" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="glass-surface border-border/50 bg-green-50/50 dark:bg-green-900/10">
+            <Card className="glass-surface adm-stat adm-stat--approved border-border/50">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-green-700 dark:text-green-300 mb-1">Approved</p>
-                    <p className="text-2xl font-bold text-green-900 dark:text-green-100">{approvedCount}</p>
+                    <p className="text-sm text-muted-foreground mb-1">Approved</p>
+                    <p className="text-2xl font-bold">{approvedCount}</p>
                   </div>
-                  <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400 opacity-50" />
+                  <CheckCircle2 className="h-8 w-8 text-muted-foreground opacity-50" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="glass-surface border-border/50 bg-red-50/50 dark:bg-red-900/10">
+            <Card className="glass-surface adm-stat adm-stat--rejected border-border/50">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-red-700 dark:text-red-300 mb-1">Rejected</p>
-                    <p className="text-2xl font-bold text-red-900 dark:text-red-100">{rejectedCount}</p>
+                    <p className="text-sm text-muted-foreground mb-1">Rejected</p>
+                    <p className="text-2xl font-bold">{rejectedCount}</p>
                   </div>
-                  <XCircle className="h-8 w-8 text-red-600 dark:text-red-400 opacity-50" />
+                  <XCircle className="h-8 w-8 text-muted-foreground opacity-50" />
                 </div>
               </CardContent>
             </Card>

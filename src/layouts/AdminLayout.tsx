@@ -1,6 +1,15 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Building2, TrendingUp, LogOut, Shield, BookOpen, BarChart3, Menu } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Building2,
+  Handshake,
+  BookOpen,
+  Lightbulb,
+  Presentation,
+  LogOut,
+  Menu,
+} from 'lucide-react';
 
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';
@@ -8,8 +17,30 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { AdminToolsDropdown } from '@/components/AdminToolsDropdown';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import '@/styles/admin.css';
+
+const navGroups = [
+  {
+    label: 'Review',
+    links: [
+      { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview' },
+      { to: '/admin/startups', icon: Building2, label: 'Startups' },
+      { to: '/admin/intro-requests', icon: Handshake, label: 'Intro Requests' },
+    ],
+  },
+  {
+    label: 'Content',
+    links: [{ to: '/admin/case-studies', icon: BookOpen, label: 'Case Studies' }],
+  },
+  {
+    label: 'Tools',
+    links: [
+      { to: '/idea-analyser', icon: Lightbulb, label: 'Idea Analyser' },
+      { to: '/pitch-creator', icon: Presentation, label: 'Pitch Creator' },
+    ],
+  },
+];
 
 export const AdminLayout = () => {
   const { profile } = useUser();
@@ -21,202 +52,121 @@ export const AdminLayout = () => {
     window.location.href = '/auth';
   };
 
-  const navLinks = [
-    { to: '/admin/dashboard', icon: BarChart3, label: 'Dashboard' },
-    { to: '/admin/startups', icon: Building2, label: 'Startups' },
-    { to: '/admin/intro-requests', icon: TrendingUp, label: 'Intro Requests' },
-    { to: '/admin/case-studies', icon: BookOpen, label: 'Case Studies' },
-    { to: '/idea-analyser', icon: TrendingUp, label: 'Idea Analyser' },
-    { to: '/pitch-creator', icon: BookOpen, label: 'Pitch Creator' },
-  ];
+  const isActive = (to: string) =>
+    location.pathname === to || (to !== '/admin/dashboard' && location.pathname.startsWith(to));
+
+  const currentLabel =
+    navGroups.flatMap(g => g.links).find(l => isActive(l.to))?.label ?? 'Overview';
+  const initial = profile?.name?.charAt(0).toUpperCase() || 'A';
+
+  const navigation = (onNavigate?: () => void) => (
+    <>
+      {navGroups.map(group => (
+        <div key={group.label}>
+          <p className="adm-nav__label">{group.label}</p>
+          {group.links.map(link => (
+            <Link
+              key={link.to}
+              to={link.to}
+              onClick={onNavigate}
+              className={`adm-nav__link${isActive(link.to) ? ' is-active' : ''}`}
+              aria-current={isActive(link.to) ? 'page' : undefined}
+            >
+              <link.icon />
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      ))}
+    </>
+  );
+
+  const accountFooter = (
+    <div className="adm-sidebar__footer">
+      <div className="adm-user">
+        <div className="adm-avatar">{initial}</div>
+        <div style={{ minWidth: 0 }}>
+          <div className="adm-user__name">{profile?.name || 'Admin'}</div>
+          <div className="adm-user__role">Administrator</div>
+        </div>
+      </div>
+      <button type="button" className="adm-signout" onClick={handleLogout}>
+        <LogOut size={16} />
+        Sign out
+      </button>
+    </div>
+  );
+
+  const brand = (
+    <Link to="/admin/dashboard" className="adm-brand">
+      <span className="adm-brand__mark">M</span>
+      <span className="adm-brand__name">Motif</span>
+      <span className="adm-brand__tag">Admin</span>
+    </Link>
+  );
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Clean Admin Navbar */}
-      <nav className="bg-background border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-14 items-center">
-            {/* Left Section - Logo & Admin Badge */}
-            <div className="flex items-center gap-3 sm:gap-6">
-              <Link
-                to="/admin/dashboard"
-                className="flex items-center gap-2 text-lg font-semibold text-foreground hover:text-foreground/80 transition-colors"
-              >
-                <Shield className="h-5 w-5 text-blue-600" />
-                <span>Motif</span>
-              </Link>
-              <Badge variant="secondary" className="text-xs font-medium hidden sm:inline-flex">
-                Admin
-              </Badge>
-            </div>
+    <div id="admin-root" className="adm-shell">
+      <aside className="adm-sidebar" aria-label="Admin navigation">
+        {brand}
+        <nav>{navigation()}</nav>
+        {accountFooter}
+      </aside>
 
-            {/* Center Section - Primary Admin Navigation (Desktop/Tablet) */}
-            <div className="hidden md:flex items-center space-x-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    location.pathname === link.to || (link.to !== '/admin/dashboard' && location.pathname.startsWith(link.to))
-                      ? 'bg-primary/10 text-primary border border-primary/20'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  }`}
-                >
-                  <link.icon className="h-4 w-4" />
-                  <span className="whitespace-nowrap">{link.label}</span>
-                </Link>
-              ))}
-            </div>
-
-            {/* Right Section - Tools, Notifications, Profile, Mobile Menu */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden sm:block">
-                <AdminToolsDropdown />
-              </div>
-              <NotificationBell variant="default" />
-
-              {/* Profile - Hidden on small screens */}
-              <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted border border-border cursor-default">
-                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <span className="text-xs font-semibold text-white">
-                    {profile?.name?.charAt(0).toUpperCase() || 'A'}
-                  </span>
-                </div>
-                <div className="hidden lg:block">
-                  <span className="text-sm font-medium text-foreground">{profile?.name || 'Admin'}</span>
-                </div>
-              </div>
-
-              {/* Logout Button - Hidden on mobile */}
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="hidden sm:flex text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800 transition-colors items-center gap-2"
-                title="Sign out"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden lg:inline">Sign out</span>
+      <div style={{ minWidth: 0 }}>
+        <header className="adm-topbar">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="adm-mobile-only" aria-label="Open menu">
+                <Menu className="h-5 w-5" />
               </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="adm-sheet p-4">
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                {brand}
+                <nav>{navigation(() => setMobileMenuOpen(false))}</nav>
+                {accountFooter}
+              </div>
+            </SheetContent>
+          </Sheet>
 
-              {/* Mobile Menu Button */}
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[280px] sm:w-[320px]">
-                  <div className="mt-6 flex flex-col gap-2">
-                    {/* Profile in mobile menu */}
-                    <div className="flex items-center gap-3 px-4 py-3 mb-4 bg-muted rounded-lg">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-white">
-                          {profile?.name?.charAt(0).toUpperCase() || 'A'}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{profile?.name || 'Admin'}</p>
-                        <Badge variant="secondary" className="text-xs">Admin</Badge>
-                      </div>
-                    </div>
+          <div className="adm-topbar__crumb">
+            Admin <span aria-hidden="true">/</span> <strong>{currentLabel}</strong>
+          </div>
 
-                    {/* Navigation Links */}
-                    {navLinks.map((link) => (
-                      <Link
-                        key={link.to}
-                        to={link.to}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                          location.pathname === link.to || (link.to !== '/admin/dashboard' && location.pathname.startsWith(link.to))
-                            ? 'bg-primary/10 text-primary'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                        }`}
-                      >
-                        <link.icon className="h-4 w-4" />
-                        {link.label}
-                      </Link>
-                    ))}
+          <div className="adm-topbar__actions">
+            <div className="hidden sm:block">
+              <AdminToolsDropdown />
+            </div>
+            <NotificationBell variant="default" />
+          </div>
+        </header>
 
-                    {/* Divider */}
-                    <div className="h-px bg-border my-4" />
-
-                    {/* Admin Tools in mobile */}
-                    <div className="px-4 sm:hidden">
-                      <AdminToolsDropdown />
-                    </div>
-
-                    {/* Logout Button */}
+        <main>
+          <ErrorBoundary
+            fallback={
+              <div className="adm-page">
+                <div className="adm-panel" style={{ padding: 32, textAlign: 'center' }}>
+                  <p className="adm-eyebrow">Something went wrong</p>
+                  <h2 className="adm-title">This admin view failed to load</h2>
+                  <p className="adm-subtitle">Try again, or return to the overview.</p>
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}>
+                    <Button onClick={() => window.location.reload()}>Try again</Button>
                     <Button
-                      onClick={() => {
-                        handleLogout();
-                        setMobileMenuOpen(false);
-                      }}
                       variant="outline"
-                      className="mx-4 mt-4 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800"
+                      onClick={() => (window.location.href = '/admin/dashboard')}
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Sign out
+                      Go to overview
                     </Button>
                   </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content - no max-width here so pages can have full-width headers */}
-      <main>
-        <ErrorBoundary
-          fallback={
-            <div className="flex min-h-[600px] flex-col items-center justify-center p-8">
-              <div className="max-w-md text-center">
-                <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-                  <svg
-                    className="h-8 w-8 text-red-600 dark:text-red-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                </div>
-
-                <h2 className="mb-2 text-2xl font-bold">Something went wrong</h2>
-
-                <p className="text-muted-foreground mb-6">
-                  An error occurred in the admin panel. Please try again or return to the dashboard.
-                </p>
-
-                <div className="flex gap-4 justify-center">
-                  <Button
-                    onClick={() => window.location.reload()}
-                    className="rounded-xl"
-                  >
-                    Try Again
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    className="rounded-xl"
-                    onClick={() => window.location.href = '/admin/dashboard'}
-                  >
-                    Go to Dashboard
-                  </Button>
                 </div>
               </div>
-            </div>
-          }
-        >
-          <Outlet />
-        </ErrorBoundary>
-      </main>
+            }
+          >
+            <Outlet />
+          </ErrorBoundary>
+        </main>
+      </div>
     </div>
   );
 };

@@ -116,32 +116,32 @@ const AdminCaseStudies = () => {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
-      case 'beginner': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'intermediate': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'advanced': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+      case 'beginner': return 'adm-chip adm-chip--approved';
+      case 'intermediate': return 'adm-chip adm-chip--pending';
+      case 'advanced': return 'adm-chip adm-chip--rejected';
+      default: return 'adm-chip adm-chip--neutral';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'published': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'draft': return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+      case 'published': return 'adm-chip adm-chip--approved';
+      case 'draft': return 'adm-chip adm-chip--neutral';
+      default: return 'adm-chip adm-chip--neutral';
     }
   };
 
   return (
     <div>
       {/* Header Section */}
-      <section className="border-border border-b py-4">
+      <section className="adm-page-header border-b border-border py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <BookOpen className="h-6 w-6 text-primary" />
                 <div>
-                  <h1 className="text-xl font-bold">Case Studies</h1>
+                  <h1 className="text-2xl font-bold">Case Studies</h1>
                   <p className="text-xs text-muted-foreground">
                     Manage platform case studies and learning resources
                   </p>

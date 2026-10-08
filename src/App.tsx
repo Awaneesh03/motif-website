@@ -18,7 +18,11 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { RoleRedirect } from './components/RoleRedirect';
 import { UserRole } from './types/roles';
 import { VCLayout } from './layouts/VCLayout';
-import { AdminLayout } from './layouts/AdminLayout';
+
+// Admin shell (and its theme CSS/fonts) only downloads for admins
+const AdminLayout = lazy(() =>
+  import('./layouts/AdminLayout').then(m => ({ default: m.AdminLayout }))
+);
 
 // Pages load on demand so the first visit doesn't download every page
 const AboutPage = lazy(() =>
