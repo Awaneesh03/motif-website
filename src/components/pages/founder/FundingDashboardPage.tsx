@@ -1,14 +1,26 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  FileText, Clock, CheckCircle2, XCircle, Sparkles,
-  AlertCircle, RefreshCw, ChevronDown, ChevronUp,
-  Banknote, ArrowRight, ChevronLeft, ChevronRight,
-  Download, X, ExternalLink,
+  FileText,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Sparkles,
+  AlertCircle,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Banknote,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  X,
+  ExternalLink,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSafeHttpsUrl } from '@/lib/supabase';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,12 +39,22 @@ import { useUser } from '@/contexts/UserContext';
 
 // ── PDF Preview Modal ─────────────────────────────────────────────────────────
 
-function PdfPreviewModal({ url, filename, onClose }: { url: string; filename: string; onClose: () => void }) {
+function PdfPreviewModal({
+  url,
+  filename,
+  onClose,
+}: {
+  url: string;
+  filename: string;
+  onClose: () => void;
+}) {
   const [failed, setFailed] = useState(false);
 
   // Close on Escape
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
@@ -43,15 +65,30 @@ function PdfPreviewModal({ url, filename, onClose }: { url: string; filename: st
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
         <FileText className="h-4 w-4 text-primary shrink-0" />
         <span className="flex-1 font-medium text-sm truncate">{filename}</span>
-        <a href={url} target="_blank" rel="noopener noreferrer" download
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-          <Download className="h-3.5 w-3.5" />Download
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          download
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download
         </a>
-        <a href={url} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-          <ExternalLink className="h-3.5 w-3.5" />Open
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          Open
         </a>
-        <button onClick={onClose} className="ml-2 p-1.5 rounded-lg hover:bg-muted transition-colors">
+        <button
+          onClick={onClose}
+          aria-label="Close preview"
+          className="ml-2 p-1.5 rounded-lg hover:bg-muted transition-colors"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -61,10 +98,18 @@ function PdfPreviewModal({ url, filename, onClose }: { url: string; filename: st
         {failed ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-4">
             <AlertCircle className="h-10 w-10 text-muted-foreground" />
-            <p className="text-muted-foreground text-sm">Could not preview this PDF in your browser.</p>
-            <a href={url} target="_blank" rel="noopener noreferrer" download
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
-              <Download className="h-4 w-4" />Download PDF
+            <p className="text-muted-foreground text-sm">
+              Could not preview this PDF in your browser.
+            </p>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
+            >
+              <Download className="h-4 w-4" />
+              Download PDF
             </a>
           </div>
         ) : (
@@ -103,16 +148,40 @@ function ApplicationSkeleton() {
 // ── Summary card config ────────────────────────────────────────────────────────
 
 const SUMMARY_CARDS = [
-  { label: 'Submitted',    status: 'submitted'    as ApplicationStatus, icon: FileText,    color: 'text-blue-600',   bg: 'bg-blue-600/10' },
-  { label: 'Under Review', status: 'under_review' as ApplicationStatus, icon: Clock,       color: 'text-amber-600',  bg: 'bg-amber-600/10' },
-  { label: 'Interested',   status: 'interested'   as ApplicationStatus, icon: CheckCircle2,color: 'text-green-600',  bg: 'bg-green-600/10' },
-  { label: 'Funded',       status: 'funded'       as ApplicationStatus, icon: Sparkles,    color: 'text-purple-600', bg: 'bg-purple-600/10' },
+  {
+    label: 'Submitted',
+    status: 'submitted' as ApplicationStatus,
+    icon: FileText,
+    color: 'text-blue-600',
+    bg: 'bg-blue-600/10',
+  },
+  {
+    label: 'Under Review',
+    status: 'under_review' as ApplicationStatus,
+    icon: Clock,
+    color: 'text-amber-600',
+    bg: 'bg-amber-600/10',
+  },
+  {
+    label: 'Interested',
+    status: 'interested' as ApplicationStatus,
+    icon: CheckCircle2,
+    color: 'text-green-600',
+    bg: 'bg-green-600/10',
+  },
+  {
+    label: 'Funded',
+    status: 'funded' as ApplicationStatus,
+    icon: Sparkles,
+    color: 'text-purple-600',
+    bg: 'bg-purple-600/10',
+  },
 ];
 
 // ── Status Timeline ────────────────────────────────────────────────────────────
 
 function StatusTimeline({ app }: { app: VcApplicationResponse }) {
-  const rejected  = app.status === 'rejected';
+  const rejected = app.status === 'rejected';
   const stepIndex = rejected ? -1 : STATUS_TIMELINE.indexOf(app.status as ApplicationStatus);
 
   return (
@@ -125,14 +194,16 @@ function StatusTimeline({ app }: { app: VcApplicationResponse }) {
         <div
           className="absolute top-3 left-3 h-[2px] bg-primary transition-all duration-500"
           style={{
-            width: rejected ? '0%'
-              : stepIndex <= 0 ? '0%'
-              : `calc(${(stepIndex / (STATUS_TIMELINE.length - 1)) * 100}% - 0.75rem)`,
+            width: rejected
+              ? '0%'
+              : stepIndex <= 0
+                ? '0%'
+                : `calc(${(stepIndex / (STATUS_TIMELINE.length - 1)) * 100}% - 0.75rem)`,
           }}
         />
         {STATUS_TIMELINE.map((s, i) => {
           const isComplete = !rejected && i < stepIndex;
-          const isActive   = !rejected && i === stepIndex;
+          const isActive = !rejected && i === stepIndex;
           // Get the timestamp from history if available
           const historyEntry = app.history?.find(h => h.newStatus === s);
           const ts = historyEntry?.changedAt
@@ -145,24 +216,35 @@ function StatusTimeline({ app }: { app: VcApplicationResponse }) {
                 animate={isActive ? { scale: [1, 1.1, 1] } : {}}
                 transition={{ duration: 0.4 }}
                 className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                  isComplete ? 'bg-primary border-primary'
-                  : isActive ? 'bg-primary border-primary shadow-[0_0_0_3px] shadow-primary/20'
-                  : 'bg-background border-border'
+                  isComplete
+                    ? 'bg-primary border-primary'
+                    : isActive
+                      ? 'bg-primary border-primary shadow-[0_0_0_3px] shadow-primary/20'
+                      : 'bg-background border-border'
                 }`}
               >
-                {isComplete
-                  ? <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
-                  : <span className={`text-[9px] font-bold ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{i + 1}</span>
-                }
+                {isComplete ? (
+                  <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
+                ) : (
+                  <span
+                    className={`text-[9px] font-bold ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`}
+                  >
+                    {i + 1}
+                  </span>
+                )}
               </motion.div>
-              <span className={`text-[10px] text-center leading-tight w-14 ${
-                isActive ? 'text-foreground font-semibold' : isComplete ? 'text-primary' : 'text-muted-foreground'
-              }`}>
+              <span
+                className={`text-[10px] text-center leading-tight w-14 ${
+                  isActive
+                    ? 'text-foreground font-semibold'
+                    : isComplete
+                      ? 'text-primary'
+                      : 'text-muted-foreground'
+                }`}
+              >
                 {STATUS_LABELS[s]}
               </span>
-              {ts && (
-                <span className="text-[9px] text-muted-foreground/70 text-center">{ts}</span>
-              )}
+              {ts && <span className="text-[9px] text-muted-foreground/70 text-center">{ts}</span>}
             </div>
           );
         })}
@@ -184,9 +266,9 @@ function StatusTimeline({ app }: { app: VcApplicationResponse }) {
 
 const STATUS_CONTEXT_MSG: Partial<Record<ApplicationStatus, string>> = {
   under_review: '👀 An investor is reviewing your pitch',
-  interested:   '🎉 An investor is interested in your startup',
-  funded:       '🚀 Congratulations — your application has been funded!',
-  rejected:     'Your application was not selected at this time.',
+  interested: '🎉 An investor is interested in your startup',
+  funded: '🚀 Congratulations — your application has been funded!',
+  rejected: 'Your application was not selected at this time.',
 };
 
 function ApplicationRow({ app }: { app: VcApplicationResponse }) {
@@ -210,9 +292,11 @@ function ApplicationRow({ app }: { app: VcApplicationResponse }) {
           </p>
         </div>
         <Badge className={`text-xs border-0 shrink-0 ${color}`}>{label}</Badge>
-        {expanded
-          ? <ChevronUp   className="h-4 w-4 text-muted-foreground shrink-0" />
-          : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+        {expanded ? (
+          <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+        )}
       </button>
 
       <AnimatePresence initial={false}>
@@ -228,13 +312,15 @@ function ApplicationRow({ app }: { app: VcApplicationResponse }) {
             <div className="px-4 pb-5 space-y-3">
               {/* Status context message */}
               {contextMsg && (
-                <div className={`rounded-lg border p-3 text-sm ${
-                  app.status === 'interested' || app.status === 'funded'
-                    ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
-                    : app.status === 'rejected'
-                    ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
-                    : 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                }`}>
+                <div
+                  className={`rounded-lg border p-3 text-sm ${
+                    app.status === 'interested' || app.status === 'funded'
+                      ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
+                      : app.status === 'rejected'
+                        ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+                        : 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                  }`}
+                >
                   {contextMsg}
                 </div>
               )}
@@ -248,14 +334,17 @@ function ApplicationRow({ app }: { app: VcApplicationResponse }) {
               )}
 
               {/* Pitch preview */}
-              {app.pitchPdfUrl ? (
+              {isSafeHttpsUrl(app.pitchPdfUrl) ? (
                 <>
                   <div className="rounded-lg bg-background/60 border border-border/50 p-3 flex items-center gap-3">
                     <FileText className="h-4 w-4 text-primary shrink-0" />
-                    <span className="flex-1 text-sm truncate">{app.pitchFileName || 'pitch.pdf'}</span>
+                    <span className="flex-1 text-sm truncate">
+                      {app.pitchFileName || 'pitch.pdf'}
+                    </span>
                     <button
                       onClick={() => setPdfOpen(true)}
-                      className="text-xs text-primary underline hover:opacity-80 shrink-0">
+                      className="text-xs text-primary underline hover:opacity-80 shrink-0"
+                    >
                       View Pitch Deck
                     </button>
                   </div>
@@ -298,8 +387,14 @@ function ApplicationRow({ app }: { app: VcApplicationResponse }) {
 // ── Pagination controls ────────────────────────────────────────────────────────
 
 function Pagination({
-  paged, page, onPage,
-}: { paged: PagedResponse<VcApplicationResponse>; page: number; onPage: (p: number) => void }) {
+  paged,
+  page,
+  onPage,
+}: {
+  paged: PagedResponse<VcApplicationResponse>;
+  page: number;
+  onPage: (p: number) => void;
+}) {
   if (paged.totalPages <= 1) return null;
   return (
     <div className="flex items-center justify-between pt-2">
@@ -307,15 +402,27 @@ function Pagination({
         {paged.totalCount} application{paged.totalCount !== 1 ? 's' : ''} total
       </p>
       <div className="flex items-center gap-1">
-        <Button size="sm" variant="outline" className="h-8 w-8 p-0 rounded-lg"
-          disabled={page === 0} onClick={() => onPage(page - 1)}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 w-8 p-0 rounded-lg"
+          disabled={page === 0}
+          aria-label="Previous page"
+          onClick={() => onPage(page - 1)}
+        >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="text-xs px-2 text-muted-foreground">
           {page + 1} / {paged.totalPages}
         </span>
-        <Button size="sm" variant="outline" className="h-8 w-8 p-0 rounded-lg"
-          disabled={page >= paged.totalPages - 1} onClick={() => onPage(page + 1)}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 w-8 p-0 rounded-lg"
+          disabled={page >= paged.totalPages - 1}
+          aria-label="Next page"
+          onClick={() => onPage(page + 1)}
+        >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -328,12 +435,12 @@ function Pagination({
 const PAGE_SIZE = 10;
 
 export function FundingDashboardPage() {
-  const navigate           = useNavigate();
-  const { profile, isVC }  = useUser();
-  const [paged,   setPaged]   = useState<PagedResponse<VcApplicationResponse> | null>(null);
+  const navigate = useNavigate();
+  const { profile, isVC } = useUser();
+  const [paged, setPaged] = useState<PagedResponse<VcApplicationResponse> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
-  const [page,    setPage]    = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
   // ── Access guard: VCs don't belong here ────────────────────────────────────
   useEffect(() => {
@@ -358,7 +465,9 @@ export function FundingDashboardPage() {
     }
   }, []);
 
-  useEffect(() => { load(page); }, [load, page]);
+  useEffect(() => {
+    load(page);
+  }, [load, page]);
 
   // ── Realtime subscription: refresh list when any of the user's apps change ──
   useEffect(() => {
@@ -367,8 +476,13 @@ export function FundingDashboardPage() {
       .channel(`founder-apps-${profile.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'vc_applications', filter: `founder_id=eq.${profile.id}` },
-        (payload) => {
+        {
+          event: '*',
+          schema: 'public',
+          table: 'vc_applications',
+          filter: `founder_id=eq.${profile.id}`,
+        },
+        payload => {
           // Update the changed row in-place first for instant feedback
           const updated = payload.new as Record<string, unknown>;
           if (updated && payload.eventType === 'UPDATE') {
@@ -378,10 +492,10 @@ export function FundingDashboardPage() {
                 a.id === updated.id
                   ? {
                       ...a,
-                      status:     ((updated.status as string) ?? a.status) as ApplicationStatus,
-                      vcNotes:    (updated.vc_notes as string | null) ?? a.vcNotes,
+                      status: ((updated.status as string) ?? a.status) as ApplicationStatus,
+                      vcNotes: (updated.vc_notes as string | null) ?? a.vcNotes,
                       reviewedAt: (updated.reviewed_at as string | null) ?? a.reviewedAt,
-                      updatedAt:  (updated.updated_at as string) ?? a.updatedAt,
+                      updatedAt: (updated.updated_at as string) ?? a.updatedAt,
                     }
                   : a
               );
@@ -401,7 +515,9 @@ export function FundingDashboardPage() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [profile?.id, page, load]);
 
   const handlePage = (p: number) => {
@@ -409,7 +525,7 @@ export function FundingDashboardPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const apps   = paged?.items ?? [];
+  const apps = paged?.items ?? [];
   const counts = SUMMARY_CARDS.reduce<Record<string, number>>((acc, card) => {
     acc[card.status] = apps.filter(a => a.status === card.status).length;
     return acc;
@@ -425,23 +541,32 @@ export function FundingDashboardPage() {
               <Banknote className="h-6 w-6 text-primary" />
               <h1 className="text-2xl font-bold">Funding Applications</h1>
             </div>
-            <p className="text-muted-foreground text-sm">Track the status of your funding requests</p>
+            <p className="text-muted-foreground text-sm">
+              Track the status of your funding requests
+            </p>
           </motion.div>
         </div>
       </section>
 
       <section className="py-6">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-6">
-
           {/* Error banner */}
           {error && (
-            <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}
-              className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20 p-4">
+            <motion.div
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20 p-4"
+            >
               <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
               <p className="flex-1 text-sm text-red-700 dark:text-red-300">{error}</p>
-              <Button size="sm" variant="outline" onClick={() => load(page)}
-                className="border-red-600 text-red-600 hover:bg-red-50 rounded-lg">
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Retry
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => load(page)}
+                className="border-red-600 text-red-600 hover:bg-red-50 rounded-lg"
+              >
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                Retry
               </Button>
             </motion.div>
           )}
@@ -449,16 +574,24 @@ export function FundingDashboardPage() {
           {/* Summary cards */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {SUMMARY_CARDS.map((card, i) => (
-              <motion.div key={card.status} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07 }}>
+              <motion.div
+                key={card.status}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.07 }}
+              >
                 <Card className="glass-surface border-border/50 hover:shadow-lavender transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
+                      <div
+                        className={`h-10 w-10 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}
+                      >
                         <card.icon className={`h-5 w-5 ${card.color}`} />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold">{loading ? '–' : (counts[card.status] ?? 0)}</p>
+                        <p className="text-2xl font-bold">
+                          {loading ? '–' : (counts[card.status] ?? 0)}
+                        </p>
                         <p className="text-xs text-muted-foreground">{card.label}</p>
                       </div>
                     </div>
@@ -469,7 +602,11 @@ export function FundingDashboardPage() {
           </div>
 
           {/* Applications list */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
             <Card className="glass-surface border-border/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -482,17 +619,20 @@ export function FundingDashboardPage() {
                       </span>
                     )}
                   </CardTitle>
-                  <Button size="sm"
+                  <Button
+                    size="sm"
                     className="gradient-lavender text-white rounded-xl shadow-lavender hover:opacity-90"
-                    onClick={() => navigate('/get-funded')}>
-                    New Request<ArrowRight className="ml-1.5 h-4 w-4" />
+                    onClick={() => navigate('/get-funded')}
+                  >
+                    New Request
+                    <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
                   <ApplicationSkeleton />
-                ) : apps.length === 0 ? (
+                ) : error ? null : apps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
                     <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                       <Banknote className="h-8 w-8 text-primary opacity-60" />
@@ -503,17 +643,19 @@ export function FundingDashboardPage() {
                         Submit a funding request to get connected with VCs.
                       </p>
                     </div>
-                    <Button className="gradient-lavender text-white rounded-xl shadow-lavender hover:opacity-90"
-                      onClick={() => navigate('/get-funded')}>
+                    <Button
+                      className="gradient-lavender text-white rounded-xl shadow-lavender hover:opacity-90"
+                      onClick={() => navigate('/get-funded')}
+                    >
                       Get Funded
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {apps.map(app => <ApplicationRow key={app.id} app={app} />)}
-                    {paged && (
-                      <Pagination paged={paged} page={page} onPage={handlePage} />
-                    )}
+                    {apps.map(app => (
+                      <ApplicationRow key={app.id} app={app} />
+                    ))}
+                    {paged && <Pagination paged={paged} page={page} onPage={handlePage} />}
                   </div>
                 )}
               </CardContent>

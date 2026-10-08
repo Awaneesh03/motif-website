@@ -1,4 +1,13 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import type { User } from '@supabase/supabase-js';
 
 import { supabase } from '../lib/supabase';
@@ -33,12 +42,16 @@ type UserContextValue = {
   hasRole: (role: UserRole) => boolean;
   displayName: string;
   loadingUser: boolean;
-}
+};
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const userIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    userIdRef.current = user?.id ?? null;
+  }, [user]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -71,11 +84,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(authUser);
 
       if (authUser) {
-        const profileFetch = supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authUser.id)
-          .single();
+        const profileFetch = supabase.from('profiles').select('*').eq('id', authUser.id).single();
 
         const { data: profile, error } = await Promise.race([
           profileFetch,
@@ -87,7 +96,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (!error && profile) {
           // Always map avatar_url (DB column) → avatar (internal property)
           // avatar_url is the single source of truth in the database
-          profile.avatar = profile.avatar_url ?? profile.avatar ?? authUser.user_metadata?.avatar_url ?? '';
+          profile.avatar =
+            profile.avatar_url ?? profile.avatar ?? authUser.user_metadata?.avatar_url ?? '';
 
           // Profile exists - ensure role is set
           if (!profile.role || profile.role === 'no-role') {
@@ -145,7 +155,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setDisplayName(resolveDisplayName(newProfile, authUser));
           } else {
             // If insert fails (e.g., RLS policy), use in-memory profile
-            console.warn('⚠️ Failed to create profile in database, using in-memory profile:', insertError);
+            console.warn(
+              '⚠️ Failed to create profile in database, using in-memory profile:',
+              insertError
+            );
             if (!checkMounted()) return;
             const inMemoryProfile = { ...defaultProfile, avatar: avatarValue };
             setProfile(inMemoryProfile as any);
@@ -162,7 +175,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const fallbackAvatarUrl = explicitUser.user_metadata?.avatar_url || '';
         const fallbackProfile = {
           id: explicitUser.id,
-          name: explicitUser.user_metadata?.full_name || explicitUser.email?.split('@')[0] || 'User',
+          name:
+            explicitUser.user_metadata?.full_name || explicitUser.email?.split('@')[0] || 'User',
           email: explicitUser.email || '',
           about: '',
           linkedin: '',
@@ -194,15 +208,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       try {
         // First, try to restore session from storage
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
+
         if (sessionError) {
           console.warn('[UserContext] Session error:', sessionError);
         }
 
         const sessionUser = sessionData.session?.user ?? null;
-        
+
         if (!isMounted) return;
-        
+
         setUser(sessionUser);
 
         if (sessionUser) {
@@ -228,31 +242,36 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       // Skip INITIAL_SESSION as we handle it in initializeAuth
       if (event === 'INITIAL_SESSION') return;
-      
+
       const handleAuthChange = async () => {
         const sessionUser = session?.user ?? null;
-        
-        if (!isMounted) return;
-        
-        setIsLoading(true);
 
-        if (event === 'SIGNED_IN') {
-          setUser(sessionUser);
-          if (sessionUser) {
-            await loadUser(sessionUser, () => isMounted);
-          }
-        } else if (event === 'SIGNED_OUT') {
+        if (!isMounted) return;
+
+        if (event === 'SIGNED_OUT') {
           setUser(null);
           setProfile(null);
           setDisplayName('there');
-        } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          if (sessionUser) {
-            setUser(sessionUser);
-            await loadUser(sessionUser, () => isMounted);
-          }
+          return;
+        }
+        if (!sessionUser) return;
+
+        // Token refreshes (hourly, and on tab refocus) re-emit SIGNED_IN /
+        // TOKEN_REFRESHED for the same user. Keep the existing user object and
+        // skip the loading state so pages don't unmount and lose in-progress work.
+        const isNewUser = userIdRef.current !== sessionUser.id;
+        if (event === 'SIGNED_IN' && isNewUser) {
+          setIsLoading(true);
+          setUser(sessionUser);
+          await loadUser(sessionUser, () => isMounted);
+        } else if (event === 'USER_UPDATED') {
+          setUser(sessionUser);
+          await loadUser(sessionUser, () => isMounted);
         }
       };
 
@@ -274,27 +293,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const isVC = profile?.role === UserRole.VC || profile?.role === 'vc';
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'; // Both admin and super_admin
 
-  const hasRole = (role: UserRole) => {
-    if (!profile) return false;
-    return profile.role === role;
-  };
+  const hasRole = useCallback((role: UserRole) => profile?.role === role, [profile]);
 
   // Combine loading states - show loading until fully initialized
   const combinedLoading = !isInitialized || isLoading;
 
-  const value: UserContextValue = {
-    user,
-    profile,
-    setProfile,
-    isLoading: combinedLoading,
-    loading: combinedLoading, // Alias
-    isFounder,
-    isVC,
-    isAdmin,
-    hasRole,
-    displayName,
-    loadingUser,
-  };
+  const value = useMemo<UserContextValue>(
+    () => ({
+      user,
+      profile,
+      setProfile,
+      isLoading: combinedLoading,
+      loading: combinedLoading, // Alias
+      isFounder,
+      isVC,
+      isAdmin,
+      hasRole,
+      displayName,
+      loadingUser,
+    }),
+    [user, profile, combinedLoading, isFounder, isVC, isAdmin, hasRole, displayName, loadingUser]
+  );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }

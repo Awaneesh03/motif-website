@@ -414,7 +414,12 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     [displayProfile, userIdeas]
   );
 
-  const { data: founderScore, loading: scoreLoading } = useFounderScore();
+  const {
+    data: founderScore,
+    loading: scoreLoading,
+    error: scoreError,
+    refresh: refreshScore,
+  } = useFounderScore();
 
   // ============================================================================
   // HELPER: Safe display name (never empty)
@@ -488,7 +493,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
           email: editForm.email,
           about: editForm.about,
           linkedin: editForm.linkedin,
-          role: editForm.role,
+          // role is intentionally not user-editable (privilege escalation risk)
           location: editForm.location,
           education: editForm.education,
           startup_goals: selectedGoals,
@@ -506,7 +511,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
         email: editForm.email,
         about: editForm.about,
         linkedin: editForm.linkedin,
-        role: editForm.role,
         location: editForm.location,
         education: editForm.education,
         startup_goals: selectedGoals,
@@ -776,15 +780,6 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Input
-                  id="role"
-                  value={editForm.role}
-                  onChange={e => setEditForm({ ...editForm, role: e.target.value })}
-                  placeholder="e.g., Founder, CEO"
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
                 <Input
@@ -1227,6 +1222,13 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
                         ))}
                       </div>
                     </>
+                  ) : scoreError ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm text-muted-foreground">Couldn't load your score.</p>
+                      <Button variant="outline" size="sm" onClick={refreshScore}>
+                        Retry
+                      </Button>
+                    </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       Score unavailable — complete your profile to see results.

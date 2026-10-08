@@ -49,10 +49,14 @@ export function StartupDetailPage() {
   const [loadingConnections, setLoadingConnections] = useState(false);
 
   useEffect(() => {
+    if (!id) return;
+    // Ignore responses for a previous id if the user navigates away mid-load
+    let cancelled = false;
     const fetchStartup = async () => {
-      if (id) {
-        setLoading(true);
+      setLoading(true);
+      try {
         const data = await getIdeaById(id);
+        if (cancelled) return;
         setStartup(data);
         setLoading(false);
 
@@ -60,22 +64,30 @@ export function StartupDetailPage() {
         if (data?.status === 'approved_for_vc') {
           setLoadingIntros(true);
           setLoadingConnections(true);
-
-          const intros = await getIntroRequestsByStartup(id);
+          const [intros, requested, connections] = await Promise.all([
+            getIntroRequestsByStartup(id),
+            hasFounderRequestedIntro(id),
+            getConnectedVCs(id),
+          ]);
+          if (cancelled) return;
           setVcIntroRequests(intros);
-
-          const requested = await hasFounderRequestedIntro(id);
           setHasRequested(requested);
-
-          const connections = await getConnectedVCs(id);
           setConnectedVCs(connections);
-
+        }
+      } catch (err) {
+        console.error('[StartupDetailPage] Failed to load startup:', err);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
           setLoadingIntros(false);
           setLoadingConnections(false);
         }
       }
     };
-    fetchStartup();
+    void fetchStartup();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   // Async action for submitting startup for review
@@ -93,11 +105,7 @@ export function StartupDetailPage() {
       setStartup(updatedIdea);
 
       // Send notification
-      await notifyStartupSubmitted(
-        profile.id,
-        id,
-        startup.title || startup.name || 'Untitled'
-      );
+      await notifyStartupSubmitted(profile.id, id, startup.title || startup.name || 'Untitled');
     },
     {
       successMessage: 'Startup submitted for admin review!',
@@ -120,11 +128,7 @@ export function StartupDetailPage() {
       setStartup(updatedIdea);
 
       // Send notification
-      await notifyStartupSubmitted(
-        profile.id,
-        id,
-        startup.title || startup.name || 'Untitled'
-      );
+      await notifyStartupSubmitted(profile.id, id, startup.title || startup.name || 'Untitled');
     },
     {
       successMessage: 'Startup resubmitted for review!',
@@ -241,9 +245,7 @@ export function StartupDetailPage() {
       events.push({
         title: 'Submitted for Review',
         description: 'Submitted to Motif admin for approval',
-        date: startup.updated_at
-          ? new Date(startup.updated_at).toLocaleDateString()
-          : undefined,
+        date: startup.updated_at ? new Date(startup.updated_at).toLocaleDateString() : undefined,
         status: 'completed',
       });
     } else if (startup.status === 'draft') {
@@ -259,18 +261,14 @@ export function StartupDetailPage() {
       events.push({
         title: 'Approved for VCs',
         description: 'Visible to investors on the platform',
-        date: startup.updated_at
-          ? new Date(startup.updated_at).toLocaleDateString()
-          : undefined,
+        date: startup.updated_at ? new Date(startup.updated_at).toLocaleDateString() : undefined,
         status: 'completed',
       });
     } else if (startup.status === 'rejected') {
       events.push({
         title: 'Changes Requested',
         description: 'Admin requested improvements',
-        date: startup.updated_at
-          ? new Date(startup.updated_at).toLocaleDateString()
-          : undefined,
+        date: startup.updated_at ? new Date(startup.updated_at).toLocaleDateString() : undefined,
         status: 'completed',
       });
     } else if (startup.status === 'pending_review') {
@@ -514,8 +512,9 @@ export function StartupDetailPage() {
                       ) : (
                         <div className="space-y-3">
                           <p className="text-sm text-green-700 dark:text-green-300 mb-4">
-                            You are connected with {connectedVCs.length} VC{connectedVCs.length !== 1 ? 's' : ''}.
-                            These investors can now access your full startup details.
+                            You are connected with {connectedVCs.length} VC
+                            {connectedVCs.length !== 1 ? 's' : ''}. These investors can now access
+                            your full startup details.
                           </p>
                           <div className="space-y-2">
                             {connectedVCs.map((vc, index) => (
@@ -598,8 +597,9 @@ export function StartupDetailPage() {
                                   About VC Connections
                                 </h4>
                                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                                  Once connected, VCs may reach out to you externally via email or LinkedIn.
-                                  Motif facilitates introductions but does not provide in-platform messaging.
+                                  Once connected, VCs may reach out to you externally via email or
+                                  LinkedIn. Motif facilitates introductions but does not provide
+                                  in-platform messaging.
                                 </p>
                               </div>
                             </div>
@@ -612,8 +612,8 @@ export function StartupDetailPage() {
                                 Connect with VCs
                               </h4>
                               <p className="text-sm text-muted-foreground mb-4">
-                                Request an introduction to VCs on our platform. We'll help connect you
-                                with investors interested in your startup.
+                                Request an introduction to VCs on our platform. We'll help connect
+                                you with investors interested in your startup.
                               </p>
                               <Button
                                 onClick={handleRequestVCIntro}
@@ -645,8 +645,9 @@ export function StartupDetailPage() {
                                     Connected to VCs
                                   </h4>
                                   <p className="text-sm text-green-700 dark:text-green-300">
-                                    You have {connectedVCs.length} active VC connection{connectedVCs.length !== 1 ? 's' : ''}.
-                                    Check the "Connected VCs" section above for details.
+                                    You have {connectedVCs.length} active VC connection
+                                    {connectedVCs.length !== 1 ? 's' : ''}. Check the "Connected
+                                    VCs" section above for details.
                                   </p>
                                 </div>
                               </div>
@@ -663,8 +664,8 @@ export function StartupDetailPage() {
                                     Request Submitted!
                                   </h4>
                                   <p className="text-sm text-green-700 dark:text-green-300">
-                                    Your VC intro request is active. We'll notify you when VCs express
-                                    interest.
+                                    Your VC intro request is active. We'll notify you when VCs
+                                    express interest.
                                   </p>
                                 </div>
                               </div>
@@ -705,8 +706,8 @@ export function StartupDetailPage() {
                                           request.status === 'approved'
                                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                             : request.status === 'rejected'
-                                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                                         } border-0`}
                                       >
                                         {request.status}

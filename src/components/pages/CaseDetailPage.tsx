@@ -164,6 +164,8 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
       return;
     }
     setCaseLoading(true);
+    // Ignore responses for a previous caseId if the user navigates away mid-load
+    let cancelled = false;
     (async () => {
       try {
         const { data, error } = await supabase
@@ -171,6 +173,7 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
           .select('*')
           .eq('id', caseId)
           .single();
+        if (cancelled) return;
         if (error || !data) {
           setCaseData(null);
         } else {
@@ -202,10 +205,16 @@ export function CaseDetailPage({ onNavigate }: CaseDetailPageProps) {
             hints: Array.isArray(data.hints) ? data.hints : [],
           });
         }
+      } catch (err) {
+        console.error('[CaseDetailPage] Failed to load case study:', err);
+        if (!cancelled) setCaseData(null);
       } finally {
-        setCaseLoading(false);
+        if (!cancelled) setCaseLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [caseId]);
 
   // ── Fetch contributors — depends only on stable caseId ───────────────────

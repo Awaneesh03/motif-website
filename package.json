@@ -47,7 +47,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "prettier": "^3.6.2",
     "typescript": "^6.0.2",
-    "vite": "6.3.5"
+    "vite": "6.4.4"
   },
   "scripts": {
     "dev": "vite",

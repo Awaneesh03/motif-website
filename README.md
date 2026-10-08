@@ -326,8 +326,9 @@ Create a `.env` file in the root directory:
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# Groq API (for AI features)
-VITE_GROQ_API_KEY=your_groq_api_key
+# Spring Boot backend (AI features). AI API keys live on the backend only —
+# never put secrets in VITE_* variables; they are shipped to every browser.
+VITE_BACKEND_URL=http://localhost:8080
 
 # Google OAuth (optional, handled via Supabase)
 VITE_GOOGLE_CLIENT_ID=your_google_client_id

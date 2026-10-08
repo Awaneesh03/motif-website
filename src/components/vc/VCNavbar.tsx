@@ -61,7 +61,7 @@ export const VCNavbar = ({ isDark, toggleTheme }: VCNavbarProps) => {
           {/* Right side - Desktop */}
           <div className="hidden md:flex items-center gap-3">
             {/* Theme Toggle */}
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full">
+            <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={toggleTheme} className="rounded-full">
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
 
@@ -93,7 +93,7 @@ export const VCNavbar = ({ isDark, toggleTheme }: VCNavbarProps) => {
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
             {/* Theme Toggle */}
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full">
+            <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={toggleTheme} className="rounded-full">
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
 
@@ -103,7 +103,7 @@ export const VCNavbar = ({ isDark, toggleTheme }: VCNavbarProps) => {
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" aria-label="Open menu">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>

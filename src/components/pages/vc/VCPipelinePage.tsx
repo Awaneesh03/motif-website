@@ -25,7 +25,7 @@ import {
   canTransitionTo,
 } from '@/lib/vcApplicationService';
 import { useUser } from '@/contexts/UserContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSafeHttpsUrl } from '@/lib/supabase';
 
 // ── PDF Preview Modal ─────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ function PdfPreviewModal({ url, filename, onClose }: { url: string; filename: st
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
           <ExternalLink className="h-3.5 w-3.5" />Open
         </a>
-        <button onClick={onClose} className="ml-2 p-1.5 rounded-lg hover:bg-muted transition-colors">
+        <button onClick={onClose} aria-label="Close preview" className="ml-2 p-1.5 rounded-lg hover:bg-muted transition-colors">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -237,7 +237,7 @@ function AppCard({ app, onUpdated }: AppCardProps) {
               </div>
 
               {/* Pitch content */}
-              {app.pitchPdfUrl ? (
+              {isSafeHttpsUrl(app.pitchPdfUrl) ? (
                 <>
                   <div className="rounded-lg border border-border/50 bg-background/60 p-3 flex items-center gap-3">
                     <FileText className="h-5 w-5 text-primary shrink-0" />
@@ -386,14 +386,14 @@ function Pagination({
       </p>
       <div className="flex items-center gap-1">
         <Button size="sm" variant="outline" className="h-8 w-8 p-0 rounded-lg"
-          disabled={page === 0} onClick={() => onPage(page - 1)}>
+          disabled={page === 0} aria-label="Previous page" onClick={() => onPage(page - 1)}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="text-xs px-2 text-muted-foreground">
           {page + 1} / {paged.totalPages}
         </span>
         <Button size="sm" variant="outline" className="h-8 w-8 p-0 rounded-lg"
-          disabled={page >= paged.totalPages - 1} onClick={() => onPage(page + 1)}>
+          disabled={page >= paged.totalPages - 1} aria-label="Next page" onClick={() => onPage(page + 1)}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

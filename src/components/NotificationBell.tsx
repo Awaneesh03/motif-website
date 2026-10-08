@@ -147,6 +147,7 @@ export function NotificationBell({ variant = 'default' }: NotificationBellProps)
           disabled={isLoading}
           className={`relative rounded-full shrink-0 ${getVariantStyles()}`}
           title="View notifications"
+          aria-label="View notifications"
         >
           <Bell className="h-5 w-5" />
 

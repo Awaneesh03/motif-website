@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
 import { UserProvider, useUser } from './contexts/UserContext';
@@ -7,24 +7,8 @@ import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Chatbot } from './components/Chatbot';
 import { HomePage } from './components/pages/HomePage';
-import { AboutPage } from './components/pages/AboutPage';
-import { FeaturesPage } from './components/pages/FeaturesPage';
-import { CommunityPage } from './components/pages/CommunityPage';
-import { ResourcesPage } from './components/pages/ResourcesPage';
-import { ContactPage } from './components/pages/ContactPage';
 import { AuthPage } from './components/pages/AuthPage';
-import { CaseStudiesPage } from './components/pages/CaseStudiesPage';
-import { CaseDetailPage } from './components/pages/CaseDetailPage';
-import { IdeaAnalyserPage } from './components/pages/IdeaAnalyserPage';
-import { ProfilePage } from './components/pages/ProfilePage';
-import { PricingPage } from './components/pages/PricingPage';
-import { PitchCreatorPage } from './components/pages/PitchCreatorPage';
-import { DashboardPage } from './components/pages/DashboardPage';
-import { VCConnectionPage } from './components/pages/VCConnectionPage';
-import { SavedIdeasPage } from './components/pages/SavedIdeasPage';
-import { SavedAnalysisPage } from './components/pages/SavedAnalysisPage';
 import { NotFoundPage } from './components/pages/NotFoundPage';
-import { NotificationsPage } from './components/pages/NotificationsPage';
 import { supabase } from './lib/supabase';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { serverWarmup } from './lib/serverWarmup';
@@ -36,27 +20,75 @@ import { UserRole } from './types/roles';
 import { VCLayout } from './layouts/VCLayout';
 import { AdminLayout } from './layouts/AdminLayout';
 
-// VC Pages
-import VCDashboard from './components/pages/vc/VCDashboard';
-import VCStartups from './components/pages/vc/VCStartups';
-import VCStartupDetail from './components/pages/vc/VCStartupDetail';
-import VCPendingPage from './components/pages/vc/VCPendingPage';
-import VCOnboarding from './components/pages/vc/VCOnboarding';
-
-// Admin Pages
-import AdminDashboard from './components/pages/admin/AdminDashboard';
-import AdminStartups from './components/pages/admin/AdminStartups';
-import AdminIntroRequests from './components/pages/admin/AdminIntroRequests';
-import AdminCaseStudies from './components/pages/admin/AdminCaseStudies';
-import AdminCaseStudyForm from './components/pages/admin/AdminCaseStudyForm';
-
-// Founder Pages
-import SubmitStartupPage from './components/pages/SubmitStartupPage';
-import { StartupDetailPage } from './components/pages/StartupDetailPage';
-import { FundingDashboardPage } from './components/pages/founder/FundingDashboardPage';
-
-// VC Pipeline
-import VCPipelinePage from './components/pages/vc/VCPipelinePage';
+// Pages load on demand so the first visit doesn't download every page
+const AboutPage = lazy(() =>
+  import('./components/pages/AboutPage').then(m => ({ default: m.AboutPage }))
+);
+const FeaturesPage = lazy(() =>
+  import('./components/pages/FeaturesPage').then(m => ({ default: m.FeaturesPage }))
+);
+const CommunityPage = lazy(() =>
+  import('./components/pages/CommunityPage').then(m => ({ default: m.CommunityPage }))
+);
+const ResourcesPage = lazy(() =>
+  import('./components/pages/ResourcesPage').then(m => ({ default: m.ResourcesPage }))
+);
+const ContactPage = lazy(() =>
+  import('./components/pages/ContactPage').then(m => ({ default: m.ContactPage }))
+);
+const CaseStudiesPage = lazy(() =>
+  import('./components/pages/CaseStudiesPage').then(m => ({ default: m.CaseStudiesPage }))
+);
+const CaseDetailPage = lazy(() =>
+  import('./components/pages/CaseDetailPage').then(m => ({ default: m.CaseDetailPage }))
+);
+const IdeaAnalyserPage = lazy(() =>
+  import('./components/pages/IdeaAnalyserPage').then(m => ({ default: m.IdeaAnalyserPage }))
+);
+const ProfilePage = lazy(() =>
+  import('./components/pages/ProfilePage').then(m => ({ default: m.ProfilePage }))
+);
+const PricingPage = lazy(() =>
+  import('./components/pages/PricingPage').then(m => ({ default: m.PricingPage }))
+);
+const PitchCreatorPage = lazy(() =>
+  import('./components/pages/PitchCreatorPage').then(m => ({ default: m.PitchCreatorPage }))
+);
+const DashboardPage = lazy(() =>
+  import('./components/pages/DashboardPage').then(m => ({ default: m.DashboardPage }))
+);
+const VCConnectionPage = lazy(() =>
+  import('./components/pages/VCConnectionPage').then(m => ({ default: m.VCConnectionPage }))
+);
+const SavedIdeasPage = lazy(() =>
+  import('./components/pages/SavedIdeasPage').then(m => ({ default: m.SavedIdeasPage }))
+);
+const SavedAnalysisPage = lazy(() =>
+  import('./components/pages/SavedAnalysisPage').then(m => ({ default: m.SavedAnalysisPage }))
+);
+const NotificationsPage = lazy(() =>
+  import('./components/pages/NotificationsPage').then(m => ({ default: m.NotificationsPage }))
+);
+const StartupDetailPage = lazy(() =>
+  import('./components/pages/StartupDetailPage').then(m => ({ default: m.StartupDetailPage }))
+);
+const FundingDashboardPage = lazy(() =>
+  import('./components/pages/founder/FundingDashboardPage').then(m => ({
+    default: m.FundingDashboardPage,
+  }))
+);
+const VCDashboard = lazy(() => import('./components/pages/vc/VCDashboard'));
+const VCStartups = lazy(() => import('./components/pages/vc/VCStartups'));
+const VCStartupDetail = lazy(() => import('./components/pages/vc/VCStartupDetail'));
+const VCPendingPage = lazy(() => import('./components/pages/vc/VCPendingPage'));
+const VCOnboarding = lazy(() => import('./components/pages/vc/VCOnboarding'));
+const AdminDashboard = lazy(() => import('./components/pages/admin/AdminDashboard'));
+const AdminStartups = lazy(() => import('./components/pages/admin/AdminStartups'));
+const AdminIntroRequests = lazy(() => import('./components/pages/admin/AdminIntroRequests'));
+const AdminCaseStudies = lazy(() => import('./components/pages/admin/AdminCaseStudies'));
+const AdminCaseStudyForm = lazy(() => import('./components/pages/admin/AdminCaseStudyForm'));
+const SubmitStartupPage = lazy(() => import('./components/pages/SubmitStartupPage'));
+const VCPipelinePage = lazy(() => import('./components/pages/vc/VCPipelinePage'));
 
 function AppContent() {
   const [isDark, setIsDark] = useState(false);
@@ -91,26 +123,26 @@ function AppContent() {
 
   const handleNavigate = (page: string, caseId?: string) => {
     const routeMap: Record<string, string> = {
-      'Home': '/',
-      'About': '/about',
-      'Features': '/features',
-      'Community': '/community',
-      'Resources': '/resources',
-      'Contact': '/contact',
-      'Auth': '/auth',
+      Home: '/',
+      About: '/about',
+      Features: '/features',
+      Community: '/community',
+      Resources: '/resources',
+      Contact: '/contact',
+      Auth: '/auth',
       'Case Studies': '/case-studies',
       'Idea Analyser': '/idea-analyser',
-      'Profile': '/profile',
-      'Settings': '/profile',
-      'Pricing': '/pricing',
+      Profile: '/profile',
+      Settings: '/profile',
+      Pricing: '/pricing',
       'Pitch Creator': '/pitch-creator',
-      'Dashboard': '/dashboard',
+      Dashboard: '/dashboard',
       'Get Funded': '/get-funded',
       'Funding Dashboard': '/dashboard/funding',
       'VC Pipeline': '/vc/pipeline',
       'saved-ideas': '/saved-ideas',
       'saved-analysis': '/saved-analysis',
-      'Notifications': '/notifications'
+      Notifications: '/notifications',
     };
 
     if (caseId) {
@@ -128,7 +160,9 @@ function AppContent() {
         setTimeout(() => reject(new Error('Session fetch timed out')), 5000)
       );
 
-      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+      const {
+        data: { session },
+      } = await Promise.race([sessionPromise, timeoutPromise]);
 
       if (!session?.user) {
         console.warn('[handleLogin] No session found, redirecting to home');
@@ -169,7 +203,7 @@ function AppContent() {
       '/get-funded': 'Get Funded',
       '/saved-ideas': 'Saved Ideas',
       '/saved-analysis': 'Saved Analysis',
-      '/notifications': 'Notifications'
+      '/notifications': 'Notifications',
     };
 
     // Handle case detail pages
@@ -184,314 +218,366 @@ function AppContent() {
     <div className="bg-background text-foreground min-h-screen">
       <Toaster position="top-right" />
 
-      <Routes>
-        {/* ADMIN ROUTES (Separate Layout) */}
-        <Route element={<AdminLayout />}>
-          <Route
-            path="/admin/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/startups"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
-                <AdminStartups />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/intro-requests"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
-                <AdminIntroRequests />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/case-studies"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
-                <AdminCaseStudies />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/case-studies/new"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
-                <AdminCaseStudyForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/case-studies/:id/edit"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
-                <AdminCaseStudyForm />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
+      <Suspense
+        fallback={
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        }
+      >
+        <Routes>
+          {/* ADMIN ROUTES (Separate Layout) */}
+          <Route element={<AdminLayout />}>
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/startups"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <AdminStartups />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/intro-requests"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <AdminIntroRequests />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/case-studies"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <AdminCaseStudies />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/case-studies/new"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <AdminCaseStudyForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/case-studies/:id/edit"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <AdminCaseStudyForm />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
 
-        {/* VC PORTAL ROUTES (Separate Layout) */}
-        <Route element={<VCLayout />}>
-          <Route
-            path="/vc/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.VC]}>
-                <VCDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vc/pending"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.VC_PENDING]}>
-                <VCPendingPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vc/startups"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.VC]}>
-                <VCStartups />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vc/startups/:id"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.VC]}>
-                <VCStartupDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vc/onboarding"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.VC, UserRole.VC_PENDING, UserRole.FOUNDER]}>
-                <VCOnboarding />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vc/pipeline"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.VC, UserRole.SUPER_ADMIN, UserRole.ADMIN]}>
-                <VCPipelinePage />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
+          {/* VC PORTAL ROUTES (Separate Layout) */}
+          <Route element={<VCLayout />}>
+            <Route
+              path="/vc/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.VC]}>
+                  <VCDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vc/pending"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.VC_PENDING]}>
+                  <VCPendingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vc/startups"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.VC]}>
+                  <VCStartups />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vc/startups/:id"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.VC]}>
+                  <VCStartupDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vc/onboarding"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.VC, UserRole.VC_PENDING, UserRole.FOUNDER]}>
+                  <VCOnboarding />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vc/pipeline"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.VC, UserRole.SUPER_ADMIN, UserRole.ADMIN]}>
+                  <VCPipelinePage />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
 
-        {/* MAIN APP ROUTES (Founder + Public) */}
-        <Route
-          path="/*"
-          element={
-            <>
-              <Navbar
-                isDark={isDark}
-                toggleTheme={toggleTheme}
-                currentPage={getCurrentPage()}
-                onNavigate={handleNavigate}
-                isLoggedIn={isLoggedIn}
-                onLogout={handleLogout}
-              />
-              <main>
-                <ErrorBoundary>
-                  <Routes>
-                    {/* Public Routes - Only Home and Auth */}
-                    <Route path="/" element={<HomePage onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />} />
-                    <Route path="/auth" element={<AuthPage onLogin={handleLogin} />} />
+          {/* MAIN APP ROUTES (Founder + Public) */}
+          <Route
+            path="/*"
+            element={
+              <>
+                <Navbar
+                  isDark={isDark}
+                  toggleTheme={toggleTheme}
+                  currentPage={getCurrentPage()}
+                  onNavigate={handleNavigate}
+                  isLoggedIn={isLoggedIn}
+                  onLogout={handleLogout}
+                />
+                <main>
+                  <ErrorBoundary>
+                    <Routes>
+                      {/* Public Routes - Only Home and Auth */}
+                      <Route
+                        path="/"
+                        element={<HomePage onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />}
+                      />
+                      <Route path="/auth" element={<AuthPage onLogin={handleLogin} />} />
 
-                    {/* Protected Routes - Require login */}
-                    <Route
-                      path="/about"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                          <AboutPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/features"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                          <FeaturesPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/contact"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                          <ContactPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/case-studies"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                          <CaseStudiesPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/case-studies/:caseId"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                          <CaseDetailPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/pricing"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                          <PricingPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
+                      {/* Protected Routes - Require login */}
+                      <Route
+                        path="/about"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={[
+                              UserRole.FOUNDER,
+                              UserRole.VC,
+                              UserRole.ADMIN,
+                              UserRole.SUPER_ADMIN,
+                            ]}
+                          >
+                            <AboutPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/features"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={[
+                              UserRole.FOUNDER,
+                              UserRole.VC,
+                              UserRole.ADMIN,
+                              UserRole.SUPER_ADMIN,
+                            ]}
+                          >
+                            <FeaturesPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/contact"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={[
+                              UserRole.FOUNDER,
+                              UserRole.VC,
+                              UserRole.ADMIN,
+                              UserRole.SUPER_ADMIN,
+                            ]}
+                          >
+                            <ContactPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/case-studies"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={[
+                              UserRole.FOUNDER,
+                              UserRole.VC,
+                              UserRole.ADMIN,
+                              UserRole.SUPER_ADMIN,
+                            ]}
+                          >
+                            <CaseStudiesPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/case-studies/:caseId"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={[
+                              UserRole.FOUNDER,
+                              UserRole.VC,
+                              UserRole.ADMIN,
+                              UserRole.SUPER_ADMIN,
+                            ]}
+                          >
+                            <CaseDetailPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/pricing"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={[
+                              UserRole.FOUNDER,
+                              UserRole.VC,
+                              UserRole.ADMIN,
+                              UserRole.SUPER_ADMIN,
+                            ]}
+                          >
+                            <PricingPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    {/* Founder Protected Routes (Admin can access all) */}
-                    <Route
-                      path="/community"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <CommunityPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/resources"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <ResourcesPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/idea-analyser"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
-                          <IdeaAnalyserPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/profile"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <ProfilePage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/pitch-creator"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
-                          <PitchCreatorPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    {/* PURE REDIRECT ROUTER - No UI rendering */}
-                    <Route
-                      path="/dashboard"
-                      element={<RoleRedirect />}
-                    />
-                    {/* Founder Dashboard (actual UI) */}
-                    <Route
-                      path="/dashboard/home"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <DashboardPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/dashboard/submit-startup"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <SubmitStartupPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/dashboard/startups/:id"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <StartupDetailPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/get-funded"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <VCConnectionPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/dashboard/funding"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <FundingDashboardPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/saved-ideas"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <SavedIdeasPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/saved-analysis"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
-                          <SavedAnalysisPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/idea/:id"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
-                          <SavedAnalysisPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/notifications"
-                      element={
-                        <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN]}>
-                          <NotificationsPage onNavigate={handleNavigate} />
-                        </ProtectedRoute>
-                      }
-                    />
+                      {/* Founder Protected Routes (Admin can access all) */}
+                      <Route
+                        path="/community"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                            <CommunityPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/resources"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                            <ResourcesPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/idea-analyser"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                            <IdeaAnalyserPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/profile"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                            <ProfilePage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/pitch-creator"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                            <PitchCreatorPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      {/* PURE REDIRECT ROUTER - No UI rendering */}
+                      <Route path="/dashboard" element={<RoleRedirect />} />
+                      {/* Founder Dashboard (actual UI) */}
+                      <Route
+                        path="/dashboard/home"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                            <DashboardPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/dashboard/submit-startup"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                            <SubmitStartupPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/dashboard/startups/:id"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                            <StartupDetailPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/get-funded"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                            <VCConnectionPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/dashboard/funding"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                            <FundingDashboardPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/saved-ideas"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                            <SavedIdeasPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/saved-analysis"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER]}>
+                            <SavedAnalysisPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/idea/:id"
+                        element={
+                          <ProtectedRoute allowedRoles={[UserRole.FOUNDER, UserRole.SUPER_ADMIN]}>
+                            <SavedAnalysisPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/notifications"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={[UserRole.FOUNDER, UserRole.VC, UserRole.ADMIN]}
+                          >
+                            <NotificationsPage onNavigate={handleNavigate} />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    {/* 404 Catch-all Route */}
-                    <Route path="*" element={<NotFoundPage onNavigate={handleNavigate} />} />
-                  </Routes>
-                </ErrorBoundary>
-              </main>
-              <Footer onNavigate={handleNavigate} />
+                      {/* 404 Catch-all Route */}
+                      <Route path="*" element={<NotFoundPage onNavigate={handleNavigate} />} />
+                    </Routes>
+                  </ErrorBoundary>
+                </main>
+                <Footer onNavigate={handleNavigate} />
 
-              {/* Chatbot - Available on all pages except Auth and VC Portal */}
-              {location.pathname !== '/auth' && <Chatbot isDark={isDark} />}
-            </>
-          }
-        />
-      </Routes>
+                {/* Chatbot - Available on all pages except Auth and VC Portal */}
+                {location.pathname !== '/auth' && <Chatbot isDark={isDark} />}
+              </>
+            }
+          />
+        </Routes>
+      </Suspense>
     </div>
   );
 }

@@ -88,6 +88,15 @@ export const supabase = createClient(
 // Export a flag so UI can block sign-in when credentials are missing
 export const supabaseConfigured = hasValidCredentials;
 
+/** True only for absolute https: URLs — blocks javascript:/data: links stored by users. */
+export function isSafeHttpsUrl(url?: string | null): url is string {
+  try {
+    return new URL(url ?? '').protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Resolve a case study image to a full public URL.
  *

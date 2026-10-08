@@ -199,7 +199,7 @@ export function Navbar({
             </Sheet>
 
             {/* Theme Toggle */}
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full shrink-0">
+            <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={toggleTheme} className="rounded-full shrink-0">
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
 
