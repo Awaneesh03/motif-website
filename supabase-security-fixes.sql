@@ -13,8 +13,10 @@ language sql stable security definer set search_path = public, pg_temp as $$
   select exists (select 1 from public.profiles
                  where id = (select auth.uid()) and role in ('super_admin', 'admin'));
 $$;
-revoke execute on function public.is_admin() from public, anon;
-grant execute on function public.is_admin() to authenticated;
+-- anon needs EXECUTE too: the public case_studies policy calls is_admin(), and
+-- without it logged-out visitors get "permission denied" (it returns false for them).
+revoke execute on function public.is_admin() from public;
+grant execute on function public.is_admin() to anon, authenticated;
 
 
 -- ── 1. CRITICAL: users can make themselves admin by editing profiles.role ────
