@@ -93,7 +93,14 @@ const SubmitStartupPage = lazy(() => import('./components/pages/SubmitStartupPag
 const VCPipelinePage = lazy(() => import('./components/pages/vc/VCPipelinePage'));
 
 function AppContent() {
-  const [isDark, setIsDark] = useState(false);
+  // Remember the theme across reloads (same key the VC portal uses)
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      return localStorage.getItem('theme') === 'dark';
+    } catch {
+      return false;
+    }
+  });
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useUser();
@@ -108,15 +115,16 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    document.documentElement.classList.toggle('dark', isDark);
+    try {
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    } catch {
+      // storage unavailable (private mode) — theme still works for this visit
     }
   }, [isDark]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0 });
   }, [location.pathname]);
 
   const toggleTheme = () => {

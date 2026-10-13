@@ -77,7 +77,12 @@ export const VCNavbar = ({ isDark, toggleTheme }: VCNavbarProps) => {
 
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Open menu" className="vc-icon-btn vc-mobile-only">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Open menu"
+                className="vc-icon-btn vc-mobile-only"
+              >
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>

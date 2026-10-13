@@ -4174,6 +4174,7 @@
   --brand-sage: #b8c99d;
   --brand-sage-deep: #6b7f4f;
   --brand-ink: #24435a;
+  --hero-ink: #24435a;
   --ink-0: #1c1917;
   --ink-1: #2a2622;
   --ink-2: #3a342e;
@@ -4255,6 +4256,7 @@
   --brand-sage: #b9c99c;
   --brand-sage-deep: #8fa36d;
   --brand-ink: #4c7896;
+  --hero-ink: #1a2e3b;
   --ink-0: #141210;
   --ink-1: #1d1a17;
   --ink-2: #29241f;
@@ -4703,7 +4705,7 @@ html {
     background:
       radial-gradient(900px 420px at 88% -12%, color-mix(in srgb, var(--brand) 42%, transparent), transparent 62%),
       radial-gradient(700px 380px at -6% 112%, color-mix(in srgb, var(--brand-sage) 16%, transparent), transparent 60%),
-      linear-gradient(160deg, var(--brand-ink) 0%, #15212a 100%) !important;
+      linear-gradient(160deg, var(--hero-ink, var(--brand-ink)) 0%, #121c24 100%) !important;
     border: 0 !important;
     box-shadow: none !important;
     color: #fff !important;
@@ -4711,7 +4713,7 @@ html {
 
   /* Hero primary action: solid clay on ink (the white CTA) */
   section.gradient-lavender [data-slot='button'].bg-white,
-  .dark section.gradient-lavender [data-slot='button'].bg-white {
+  :root.dark section.gradient-lavender [data-slot='button'].bg-white:not(.border-white) {
     background: var(--brand) !important;
     border: 1px solid color-mix(in srgb, #fff 18%, transparent) !important;
     color: #fff !important;
@@ -4719,7 +4721,7 @@ html {
   }
 
   section.gradient-lavender [data-slot='button'].bg-white:hover,
-  .dark section.gradient-lavender [data-slot='button'].bg-white:hover {
+  :root.dark section.gradient-lavender [data-slot='button'].bg-white:not(.border-white):hover {
     background: var(--brand-bright) !important;
   }
 
