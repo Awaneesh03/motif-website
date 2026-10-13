@@ -67,7 +67,7 @@ const VCDashboard = () => {
           const [requests, connections, notifications, vcMetrics] = await Promise.all([
             supabase
               .from('vc_applications')
-              .select('*, idea:idea_analyses(id, title)')
+              .select('*, idea:idea_analyses!idea_id(id, idea_title)')
               .eq('vc_id', profile.id)
               .order('created_at', { ascending: false })
               .then(({ data }) => data),
@@ -331,7 +331,7 @@ const VCDashboard = () => {
                           >
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">
-                                {request.idea?.title || 'Startup'}
+                                {request.idea?.idea_title || 'Startup'}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {new Date(request.created_at).toLocaleDateString()}

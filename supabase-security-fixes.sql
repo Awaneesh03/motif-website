@@ -117,3 +117,11 @@ revoke execute on function public.update_updated_at_column() from public, anon, 
 
 -- ── Manual (dashboard) step ──────────────────────────────────────────────────
 -- Authentication → Providers → Email → enable "Leaked password protection".
+
+-- vc_applications: idea_id pointed at the legacy `ideas` table and vc_id had no FK,
+-- so intro-request inserts failed and the profile/idea embeds returned 400.
+alter table public.vc_applications
+  drop constraint vc_applications_idea_id_fkey,
+  add constraint vc_applications_idea_id_fkey foreign key (idea_id) references public.idea_analyses(id) on delete cascade,
+  add constraint vc_applications_vc_id_fkey foreign key (vc_id) references public.profiles(id) on delete set null;
+notify pgrst, 'reload schema';
